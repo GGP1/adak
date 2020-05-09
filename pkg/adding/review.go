@@ -1,13 +1,14 @@
 package adding
 
 import (
-	"time"
+	"github.com/jinzhu/gorm"
 )
 
 // Review model
 type Review struct {
-	User      User      `json:"user"`
-	Stars     int       `json:"stars" `
-	Comment   string    `json:"comment"`
-	CreatedAt time.Time `json:"created_at"`
+	gorm.Model
+	Stars     int    `json:"stars"`
+	Comment   string `json:"comment"`
+	UserID    uint   `json:"user_id"`
+	ProductID uint   `json:"product_id"`
 }

@@ -10,6 +10,8 @@ type Service interface {
 	GetAUser(User, string) error
 	GetProducts([]Product) error
 	GetAProduct(Product, string) error
+	GetReviews([]Review, string) error
+	GetAReview(Review, string) error
 }
 
 // GetUsers returns all the users in the database
@@ -39,6 +41,22 @@ func GetProducts(product *[]Product) (err error) {
 // GetAProduct returns a single product
 func GetAProduct(product *Product, id string) (err error) {
 	if err = stg.DB.Where("id = ?", id).First(product).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+// GetReviews returns all the products in the database
+func GetReviews(review *[]Review) (err error) {
+	if err = stg.DB.Find(review).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+// GetAReview returns a single product
+func GetAReview(review *Review, id string) (err error) {
+	if err = stg.DB.Where("id = ?", id).First(review).Error; err != nil {
 		return err
 	}
 	return nil

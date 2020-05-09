@@ -32,5 +32,13 @@ func SetupRouter() *gin.Engine {
 		u.DELETE("/:id", DeleteUser)
 	}
 
+	rw := r.Group("/reviews")
+	{
+		rw.GET("/", GetReviews)
+		rw.POST("/add", AddReview)
+		rw.GET("/:id", GetAReview)
+		rw.DELETE("/:id", DeleteReview)
+	}
+
 	return r
 }

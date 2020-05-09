@@ -3,12 +3,16 @@ Package adding: adds products/users to the database
 */
 package adding
 
+import (
+	"github.com/jinzhu/gorm"
+)
+
 // Product model
 type Product struct {
-	ID       uint   `json:"id"`
+	gorm.Model
 	Category string `json:"category"`
 	Brand    string `json:"brand"`
-	Weight   int    `json:"weight"`
+	Name     string `json:"name"`
+	Weight   string `json:"weight"`
 	Cost     int    `json:"cost"`
-	Review   Review `json:"review"`
 }
