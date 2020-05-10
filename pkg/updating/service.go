@@ -1,23 +1,24 @@
 package updating
 
 import (
+	"palo/pkg/models"
 	stg "palo/pkg/storage"
 )
 
-// Service provides user and product updating operations.
-type Service interface {
-	UpdateUser(User, string) error
-	UpdateProduct(Product, string) error
+// Updater provides user and product updating operations.
+type Updater interface {
+	UpdateUser(models.User, string) error
+	UpdateProduct(models.Product, string) error
 }
 
 // UpdateUser returns nil and updates a user
-func UpdateUser(user *User, id string) (err error) {
+func UpdateUser(user *models.User, id string) (err error) {
 	stg.DB.Where("id=?", id).Update(user)
 	return nil
 }
 
 // UpdateProduct returns nil and updates a user
-func UpdateProduct(product *Product, id string) (err error) {
+func UpdateProduct(product *models.Product, id string) (err error) {
 	stg.DB.Where("id=?", id).Update(product)
 	return nil
 }

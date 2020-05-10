@@ -1,7 +1,4 @@
-/*
-Package updating: updates products/users and saves the result in the database
-*/
-package updating
+package models
 
 import (
 	"github.com/jinzhu/gorm"

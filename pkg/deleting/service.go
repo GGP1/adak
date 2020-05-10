@@ -1,30 +1,31 @@
 package deleting
 
 import (
+	"palo/pkg/models"
 	stg "palo/pkg/storage"
 )
 
-// Service provides user and product deleting operations.
-type Service interface {
-	DeleteUser(User, string) error
-	DeleteProduct(Product) error
-	DeleteReview(Review) error
+// Deleter provides user and product deleting operations.
+type Deleter interface {
+	DeleteUser(models.User, string) error
+	DeleteProduct(models.Product) error
+	DeleteReview(models.Review) error
 }
 
 // DeleteUser returns nil and deletes a user
-func DeleteUser(user *User, id string) (err error) {
+func DeleteUser(user *models.User, id string) (err error) {
 	stg.DB.Where("id=?", id).Delete(user)
 	return nil
 }
 
 // DeleteProduct returns nil and deletes a user
-func DeleteProduct(product *Product, id string) (err error) {
+func DeleteProduct(product *models.Product, id string) (err error) {
 	stg.DB.Where("id=?", id).Delete(product)
 	return nil
 }
 
 // DeleteReview returns nil and deletes a user
-func DeleteReview(review *Review, id string) (err error) {
+func DeleteReview(review *models.Review, id string) (err error) {
 	stg.DB.Where("id=?", id).Delete(review)
 	return nil
 }
