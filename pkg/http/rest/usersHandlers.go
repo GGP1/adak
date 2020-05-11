@@ -6,7 +6,7 @@ import (
 	"palo/pkg/adding"
 	"palo/pkg/deleting"
 	"palo/pkg/listing"
-	"palo/pkg/models"
+	"palo/pkg/model"
 	"palo/pkg/updating"
 
 	"github.com/gin-gonic/gin"
@@ -14,7 +14,7 @@ import (
 
 // GetUsers func
 func GetUsers(c *gin.Context) {
-	var user []models.User
+	var user []model.User
 	err := listing.GetUsers(&user)
 
 	if err != nil {
@@ -26,7 +26,7 @@ func GetUsers(c *gin.Context) {
 
 // GetAUser func
 func GetAUser(c *gin.Context) {
-	var user models.User
+	var user model.User
 	id := c.Params.ByName("id")
 
 	err := listing.GetAUser(&user, id)
@@ -40,7 +40,7 @@ func GetAUser(c *gin.Context) {
 
 // AddUser func
 func AddUser(c *gin.Context) {
-	var user models.User
+	var user model.User
 	c.BindJSON(&user)
 
 	err := adding.AddUser(&user)
@@ -54,7 +54,7 @@ func AddUser(c *gin.Context) {
 
 // UpdateUser func
 func UpdateUser(c *gin.Context) {
-	var user models.User
+	var user model.User
 	id := c.Params.ByName("id")
 
 	err := updating.UpdateUser(&user, id)
@@ -68,7 +68,7 @@ func UpdateUser(c *gin.Context) {
 
 // DeleteUser func
 func DeleteUser(c *gin.Context) {
-	var user models.User
+	var user model.User
 	id := c.Params.ByName("id")
 
 	err := deleting.DeleteUser(&user, id)

@@ -1,3 +1,6 @@
+/*
+Package storage saves all the data and connects to the database
+*/
 package storage
 
 import (

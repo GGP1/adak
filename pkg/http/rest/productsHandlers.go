@@ -6,7 +6,7 @@ import (
 	"palo/pkg/adding"
 	"palo/pkg/deleting"
 	"palo/pkg/listing"
-	"palo/pkg/models"
+	"palo/pkg/model"
 	"palo/pkg/updating"
 
 	"github.com/gin-gonic/gin"
@@ -14,7 +14,7 @@ import (
 
 // GetProducts func
 func GetProducts(c *gin.Context) {
-	var product []models.Product
+	var product []model.Product
 	err := listing.GetProducts(&product)
 
 	if err != nil {
@@ -26,7 +26,7 @@ func GetProducts(c *gin.Context) {
 
 // GetAProduct func
 func GetAProduct(c *gin.Context) {
-	var product models.Product
+	var product model.Product
 	id := c.Params.ByName("id")
 
 	err := listing.GetAProduct(&product, id)
@@ -40,7 +40,7 @@ func GetAProduct(c *gin.Context) {
 
 // AddProduct func
 func AddProduct(c *gin.Context) {
-	var product models.Product
+	var product model.Product
 	c.BindJSON(&product)
 
 	err := adding.AddProduct(&product)
@@ -54,7 +54,7 @@ func AddProduct(c *gin.Context) {
 
 // UpdateProduct func
 func UpdateProduct(c *gin.Context) {
-	var product models.Product
+	var product model.Product
 	id := c.Params.ByName("id")
 
 	err := updating.UpdateProduct(&product, id)
@@ -68,7 +68,7 @@ func UpdateProduct(c *gin.Context) {
 
 // DeleteProduct func
 func DeleteProduct(c *gin.Context) {
-	var product models.Product
+	var product model.Product
 	id := c.Params.ByName("id")
 
 	err := deleting.DeleteProduct(&product, id)

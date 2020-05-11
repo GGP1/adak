@@ -1,3 +1,6 @@
+/*
+Package rest handles objects request and response functions aswell as its routes
+*/
 package rest
 
 import (
@@ -6,7 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// SetupRouter ...
+// SetupRouter returns single and group of routes with their handlers
 func SetupRouter() *gin.Engine {
 	r := gin.Default()
 

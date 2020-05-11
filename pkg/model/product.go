@@ -1,4 +1,7 @@
-package models
+/*
+Package model contains all the objects used in the api
+*/
+package model
 
 import (
 	"github.com/jinzhu/gorm"

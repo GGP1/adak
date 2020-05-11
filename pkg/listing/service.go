@@ -1,22 +1,22 @@
 package listing
 
 import (
-	"palo/pkg/models"
+	"palo/pkg/model"
 	stg "palo/pkg/storage"
 )
 
-// Lister provides user and product listing operations.
-type Lister interface {
-	GetUsers([]models.User) error
-	GetAUser(models.User, string) error
-	GetProducts([]models.Product) error
-	GetAProduct(models.Product, string) error
-	GetReviews([]models.Review, string) error
-	GetAReview(models.Review, string) error
+// Service provides user and product listing operations.
+type Service interface {
+	GetUsers([]model.User) error
+	GetAUser(model.User, string) error
+	GetProducts([]model.Product) error
+	GetAProduct(model.Product, string) error
+	GetReviews([]model.Review, string) error
+	GetAReview(model.Review, string) error
 }
 
 // GetUsers returns all the users in the database
-func GetUsers(user *[]models.User) (err error) {
+func GetUsers(user *[]model.User) (err error) {
 	if err = stg.DB.Find(user).Error; err != nil {
 		return err
 	}
@@ -24,7 +24,7 @@ func GetUsers(user *[]models.User) (err error) {
 }
 
 // GetAUser returns a single user
-func GetAUser(user *models.User, id string) (err error) {
+func GetAUser(user *model.User, id string) (err error) {
 	if err = stg.DB.Where("id = ?", id).First(user).Error; err != nil {
 		return err
 	}
@@ -32,7 +32,7 @@ func GetAUser(user *models.User, id string) (err error) {
 }
 
 // GetProducts returns all the products in the database
-func GetProducts(product *[]models.Product) (err error) {
+func GetProducts(product *[]model.Product) (err error) {
 	if err = stg.DB.Find(product).Error; err != nil {
 		return err
 	}
@@ -40,7 +40,7 @@ func GetProducts(product *[]models.Product) (err error) {
 }
 
 // GetAProduct returns a single product
-func GetAProduct(product *models.Product, id string) (err error) {
+func GetAProduct(product *model.Product, id string) (err error) {
 	if err = stg.DB.Where("id = ?", id).First(product).Error; err != nil {
 		return err
 	}
@@ -48,7 +48,7 @@ func GetAProduct(product *models.Product, id string) (err error) {
 }
 
 // GetReviews returns all the products in the database
-func GetReviews(review *[]models.Review) (err error) {
+func GetReviews(review *[]model.Review) (err error) {
 	if err = stg.DB.Find(review).Error; err != nil {
 		return err
 	}
@@ -56,7 +56,7 @@ func GetReviews(review *[]models.Review) (err error) {
 }
 
 // GetAReview returns a single product
-func GetAReview(review *models.Review, id string) (err error) {
+func GetAReview(review *model.Review, id string) (err error) {
 	if err = stg.DB.Where("id = ?", id).First(review).Error; err != nil {
 		return err
 	}
