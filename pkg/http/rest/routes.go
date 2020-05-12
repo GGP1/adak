@@ -1,47 +1,55 @@
 /*
-Package rest handles objects request and response functions aswell as its routes
+Package rest contains all the functions related to the restful api
 */
 package rest
 
 import (
-	"net/http"
+	"fmt"
+	h "palo/pkg/http/rest/handlers"
 
 	"github.com/gin-gonic/gin"
+	"github.com/google/uuid"
 )
 
 // SetupRouter returns single and group of routes with their handlers
 func SetupRouter() *gin.Engine {
-	r := gin.Default()
+	router := gin.Default()
 
-	r.GET("/", func(c *gin.Context) {
-		c.JSON(http.StatusOK, "Welcome to my golang server!")
+	router.GET("/", func(c *gin.Context) {
+		cookie, err := c.Request.Cookie("sessionID")
+		if err != nil {
+			id := uuid.New()
+			c.SetCookie("sessionID", id.String(), 0, "/", "localhost", false, true)
+		}
+		fmt.Println(cookie)
+		c.String(200, "Welcome to my golang backend server!")
 	})
 
-	p := r.Group("/products")
+	p := router.Group("/products")
 	{
-		p.GET("/", GetProducts)
-		p.POST("/add", AddProduct)
-		p.GET("/:id", GetAProduct)
-		p.PUT("/:id", UpdateProduct)
-		p.DELETE("/:id", DeleteProduct)
+		p.GET("/", h.GetProducts)
+		p.POST("/add", h.AddProduct)
+		p.GET("/:id", h.GetAProduct)
+		p.PUT("/:id", h.UpdateProduct)
+		p.DELETE("/:id", h.DeleteProduct)
 	}
 
-	u := r.Group("/users")
+	u := router.Group("/users")
 	{
-		u.GET("/", GetUsers)
-		u.POST("/add", AddUser)
-		u.GET("/:id", GetAUser)
-		u.PUT("/:id", UpdateUser)
-		u.DELETE("/:id", DeleteUser)
+		u.GET("/", h.GetUsers)
+		u.POST("/add", h.AddUser)
+		u.GET("/:id", h.GetAUser)
+		u.PUT("/:id", h.UpdateUser)
+		u.DELETE("/:id", h.DeleteUser)
 	}
 
-	rw := r.Group("/reviews")
+	rw := router.Group("/reviews")
 	{
-		rw.GET("/", GetReviews)
-		rw.POST("/add", AddReview)
-		rw.GET("/:id", GetAReview)
-		rw.DELETE("/:id", DeleteReview)
+		rw.GET("/", h.GetReviews)
+		rw.POST("/add", h.AddReview)
+		rw.GET("/:id", h.GetAReview)
+		rw.DELETE("/:id", h.DeleteReview)
 	}
 
-	return r
+	return router
 }
