@@ -8,8 +8,8 @@ import (
 // Service provides user and product deleting operations.
 type Service interface {
 	DeleteUser(model.User, string) error
-	DeleteProduct(model.Product) error
-	DeleteReview(model.Review) error
+	DeleteProduct(model.Product, string) error
+	DeleteReview(model.Review, string) error
 }
 
 // DeleteUser returns nil and deletes a user

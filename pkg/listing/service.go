@@ -11,7 +11,7 @@ type Service interface {
 	GetAUser(model.User, string) error
 	GetProducts([]model.Product) error
 	GetAProduct(model.Product, string) error
-	GetReviews([]model.Review, string) error
+	GetReviews([]model.Review) error
 	GetAReview(model.Review, string) error
 }
 
