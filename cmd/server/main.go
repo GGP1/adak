@@ -1,7 +1,9 @@
 package main
 
 import (
-	"log"
+	"fmt"
+	"net/http"
+	"time"
 
 	"palo/pkg/http/rest"
 	db "palo/pkg/storage"
@@ -14,9 +16,19 @@ func main() {
 	db.Connect()
 	defer db.DB.Close()
 
-	// Setup router
+	// Router setup
 	r := rest.SetupRouter()
 
+	// Server setup
+	server := &http.Server{
+		Addr:           ":4000",
+		Handler:        r,
+		ReadTimeout:    5 * time.Second,
+		WriteTimeout:   10 * time.Second,
+		MaxHeaderBytes: 1 << 20,
+	}
+
 	// Run server
-	log.Fatal(r.Run(":4000"))
+	fmt.Println("Listening on port", server.Addr)
+	server.ListenAndServe()
 }
