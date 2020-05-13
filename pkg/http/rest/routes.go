@@ -5,7 +5,8 @@ package rest
 
 import (
 	"fmt"
-	h "palo/pkg/http/rest/handlers"
+
+	h "github.com/GGP1/palo/pkg/http/rest/handlers"
 
 	"github.com/gin-gonic/gin"
 	"github.com/google/uuid"

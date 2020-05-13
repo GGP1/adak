@@ -3,10 +3,10 @@ package handlers
 import (
 	"net/http"
 
-	"palo/pkg/adding"
-	"palo/pkg/deleting"
-	"palo/pkg/listing"
-	"palo/pkg/model"
+	"github.com/GGP1/palo/pkg/adding"
+	"github.com/GGP1/palo/pkg/deleting"
+	"github.com/GGP1/palo/pkg/listing"
+	"github.com/GGP1/palo/pkg/model"
 
 	"github.com/gin-gonic/gin"
 )

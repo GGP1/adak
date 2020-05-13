@@ -1,8 +1,8 @@
 package adding
 
 import (
-	"palo/pkg/model"
-	stg "palo/pkg/storage"
+	"github.com/GGP1/palo/pkg/model"
+	stg "github.com/GGP1/palo/pkg/storage"
 )
 
 // Service provides user and product adding operations.

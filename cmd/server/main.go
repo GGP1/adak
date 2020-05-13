@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"time"
 
-	"palo/pkg/http/rest"
-	db "palo/pkg/storage"
+	"github.com/GGP1/palo/pkg/http/rest"
+	db "github.com/GGP1/palo/pkg/storage"
 
 	_ "github.com/lib/pq"
 )

@@ -1,4 +1,4 @@
-module palo
+module github.com/GGP1/palo
 
 go 1.14
 
