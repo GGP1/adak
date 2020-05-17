@@ -7,8 +7,8 @@ import (
 // Review model
 type Review struct {
 	gorm.Model
-	Stars     int    `json:"stars" `
+	Stars     int    `json:"stars"`
 	Comment   string `json:"comment"`
-	UserID    uint   `json:"user_id"`
-	ProductID uint   `json:"product_id"`
+	UserID    int    `json:"user_id"`
+	ProductID int    `json:"product_id"`
 }
