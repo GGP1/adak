@@ -7,9 +7,9 @@ import (
 
 // Service provides user and product adding operations.
 type Service interface {
-	AddUser(model.User) error
-	AddProduct(model.Product) error
-	AddReview(model.Review) error
+	AddUser(*model.User) error
+	AddProduct(*model.Product) error
+	AddReview(*model.Review) error
 }
 
 // AddUser returns a new user and appends it to the database
