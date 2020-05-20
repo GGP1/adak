@@ -14,6 +14,9 @@ type Service interface {
 
 // AddUser returns a new user and appends it to the database
 func AddUser(user *model.User) (err error) {
+	// Hash password before creating the user
+	user.BeforeSave()
+	// Create user
 	if err = stg.DB.Create(user).Error; err != nil {
 		return err
 	}
