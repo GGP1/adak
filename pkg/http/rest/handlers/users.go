@@ -32,10 +32,10 @@ func GetAUser(c *gin.Context) {
 	err := listing.GetAUser(&user, id)
 
 	if err != nil {
-		c.AbortWithStatus(http.StatusNotFound)
+		c.String(http.StatusNotFound, "User not found")
+	} else {
+		c.JSON(http.StatusOK, user)
 	}
-
-	c.JSON(http.StatusOK, user)
 }
 
 // AddUser func

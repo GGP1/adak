@@ -35,10 +35,10 @@ func GetAProduct(c *gin.Context) {
 	err := listing.GetAProduct(&product, id)
 
 	if err != nil {
-		c.AbortWithStatus(http.StatusNotFound)
+		c.String(http.StatusNotFound, "Product not found")
+	} else {
+		c.JSON(http.StatusOK, product)
 	}
-
-	c.JSON(http.StatusOK, product)
 }
 
 // AddProduct func

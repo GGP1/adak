@@ -59,8 +59,8 @@ func DeleteReview(c *gin.Context) {
 	err := deleting.DeleteReview(&review, id)
 
 	if err != nil {
-		c.AbortWithStatus(http.StatusNotFound)
+		c.String(http.StatusNotFound, "Review not found")
+	} else {
+		c.JSON(http.StatusOK, review)
 	}
-
-	c.JSON(http.StatusOK, review)
 }
