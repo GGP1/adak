@@ -12,7 +12,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// GetUsers func
+// GetUsers lists all the users
 func GetUsers(c *gin.Context) {
 	var user []model.User
 	err := listing.GetUsers(&user)
@@ -24,21 +24,25 @@ func GetUsers(c *gin.Context) {
 	c.JSON(http.StatusOK, user)
 }
 
-// GetAUser func
+// GetAUser lists one user based on the id
 func GetAUser(c *gin.Context) {
 	var user model.User
 	id := c.Params.ByName("id")
 
 	err := listing.GetAUser(&user, id)
-
 	if err != nil {
-		c.String(http.StatusNotFound, "User not found")
-	} else {
-		c.JSON(http.StatusOK, user)
+		c.AbortWithError(http.StatusNotFound, err)
 	}
+
+	if user.ID == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"status": http.StatusNotFound, "message": "User not found"})
+		return
+	}
+
+	c.JSON(http.StatusOK, user)
 }
 
-// AddUser func
+// AddUser creates a new user and saves it
 func AddUser(c *gin.Context) {
 	var user model.User
 	c.BindJSON(&user)
@@ -47,12 +51,13 @@ func AddUser(c *gin.Context) {
 
 	if err != nil {
 		c.AbortWithStatus(http.StatusNotFound)
+		return
 	}
 
 	c.JSON(http.StatusCreated, user)
 }
 
-// UpdateUser func
+// UpdateUser updates a user
 func UpdateUser(c *gin.Context) {
 	var user model.User
 	id := c.Params.ByName("id")
@@ -61,12 +66,13 @@ func UpdateUser(c *gin.Context) {
 
 	if err != nil {
 		c.AbortWithStatus(http.StatusNotFound)
+		return
 	}
 
-	c.JSON(http.StatusOK, user)
+	c.JSON(http.StatusOK, gin.H{"message": "User updated"})
 }
 
-// DeleteUser func
+// DeleteUser deletes a user
 func DeleteUser(c *gin.Context) {
 	var user model.User
 	id := c.Params.ByName("id")
@@ -75,7 +81,8 @@ func DeleteUser(c *gin.Context) {
 
 	if err != nil {
 		c.AbortWithStatus(http.StatusNotFound)
+		return
 	}
 
-	c.JSON(http.StatusOK, user)
+	c.JSON(http.StatusOK, gin.H{"message": "User deleted"})
 }

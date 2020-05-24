@@ -11,7 +11,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// GetReviews func
+// GetReviews lists all the reviews
 func GetReviews(c *gin.Context) {
 	var review []model.Review
 	err := listing.GetReviews(&review)
@@ -23,7 +23,7 @@ func GetReviews(c *gin.Context) {
 	c.JSON(http.StatusOK, review)
 }
 
-// GetAReview func
+// GetAReview lists a review based on the id
 func GetAReview(c *gin.Context) {
 	var review model.Review
 	id := c.Params.ByName("id")
@@ -31,13 +31,18 @@ func GetAReview(c *gin.Context) {
 	err := listing.GetAReview(&review, id)
 
 	if err != nil {
-		c.AbortWithStatus(http.StatusNotFound)
+		c.AbortWithError(http.StatusNotFound, err)
+	}
+
+	if review.ID == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"status": http.StatusNotFound, "message": "Review not found"})
+		return
 	}
 
 	c.JSON(http.StatusOK, review)
 }
 
-// AddReview func
+// AddReview creates a new review and saves it
 func AddReview(c *gin.Context) {
 	var review model.Review
 	c.BindJSON(&review)
@@ -46,12 +51,13 @@ func AddReview(c *gin.Context) {
 
 	if err != nil {
 		c.AbortWithStatus(http.StatusNotFound)
+		return
 	}
 
 	c.JSON(http.StatusCreated, review)
 }
 
-// DeleteReview func
+// DeleteReview deletes a review
 func DeleteReview(c *gin.Context) {
 	var review model.Review
 	id := c.Params.ByName("id")
@@ -60,7 +66,8 @@ func DeleteReview(c *gin.Context) {
 
 	if err != nil {
 		c.String(http.StatusNotFound, "Review not found")
-	} else {
-		c.JSON(http.StatusOK, review)
+		return
 	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Review deleted"})
 }

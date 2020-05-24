@@ -1,6 +1,3 @@
-/*
-Package handlers contains all the functions used by the api
-*/
 package handlers
 
 import (
@@ -15,7 +12,7 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// GetProducts func
+// GetProducts lists all the products
 func GetProducts(c *gin.Context) {
 	var product []model.Product
 	err := listing.GetProducts(&product)
@@ -27,21 +24,25 @@ func GetProducts(c *gin.Context) {
 	c.JSON(http.StatusOK, product)
 }
 
-// GetAProduct func
+// GetAProduct lists one product based on the id
 func GetAProduct(c *gin.Context) {
 	var product model.Product
 	id := c.Params.ByName("id")
 
 	err := listing.GetAProduct(&product, id)
-
 	if err != nil {
-		c.String(http.StatusNotFound, "Product not found")
-	} else {
-		c.JSON(http.StatusOK, product)
+		c.AbortWithError(http.StatusNotFound, err)
 	}
+
+	if product.ID == 0 {
+		c.JSON(http.StatusNotFound, gin.H{"status": http.StatusNotFound, "message": "Product not found"})
+		return
+	}
+
+	c.JSON(http.StatusOK, product)
 }
 
-// AddProduct func
+// AddProduct creates a new product and saves it
 func AddProduct(c *gin.Context) {
 	var product model.Product
 	c.BindJSON(&product)
@@ -50,12 +51,13 @@ func AddProduct(c *gin.Context) {
 
 	if err != nil {
 		c.AbortWithStatus(http.StatusNotFound)
+		return
 	}
 
 	c.JSON(http.StatusCreated, product)
 }
 
-// UpdateProduct func
+// UpdateProduct updates a product
 func UpdateProduct(c *gin.Context) {
 	var product model.Product
 	id := c.Params.ByName("id")
@@ -64,12 +66,13 @@ func UpdateProduct(c *gin.Context) {
 
 	if err != nil {
 		c.AbortWithStatus(http.StatusNotFound)
+		return
 	}
 
-	c.JSON(http.StatusOK, product)
+	c.JSON(http.StatusOK, gin.H{"message": "Product updated"})
 }
 
-// DeleteProduct func
+// DeleteProduct deletes a product
 func DeleteProduct(c *gin.Context) {
 	var product model.Product
 	id := c.Params.ByName("id")
@@ -78,7 +81,8 @@ func DeleteProduct(c *gin.Context) {
 
 	if err != nil {
 		c.AbortWithStatus(http.StatusNotFound)
+		return
 	}
 
-	c.JSON(http.StatusOK, product)
+	c.JSON(http.StatusOK, gin.H{"message": "Product deleted"})
 }
