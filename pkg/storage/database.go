@@ -8,8 +8,9 @@ import (
 	"os"
 
 	"github.com/GGP1/palo/pkg/model"
+	"github.com/GGP1/palo/pkg/utils/env"
+
 	"github.com/jinzhu/gorm"
-	"github.com/joho/godotenv"
 )
 
 // CheckErr ...
@@ -22,15 +23,13 @@ func CheckErr(err error) {
 // DB global variable
 var DB *gorm.DB
 
-// Connect database
+// Connect to the database
 func Connect() {
 	var err error
 
-	// Load env variables
-	osErr := godotenv.Load("../../.env")
-	if osErr != nil {
-		log.Fatal("Error loading .env file")
-	}
+	// Load env file
+	env.LoadEnv()
+
 	connStr := os.Getenv("PQ_URL")
 
 	// Connection
