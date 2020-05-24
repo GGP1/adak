@@ -6,15 +6,15 @@ import (
 	"time"
 
 	"github.com/GGP1/palo/pkg/http/rest"
-	db "github.com/GGP1/palo/pkg/storage"
+	"github.com/GGP1/palo/pkg/storage"
 
 	_ "github.com/lib/pq"
 )
 
 func main() {
 	// Connect to database
-	db.Connect()
-	defer db.DB.Close()
+	storage.Connect()
+	defer storage.DB.Close()
 
 	// Router setup
 	r := rest.SetupRouter()
