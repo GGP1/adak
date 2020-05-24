@@ -1,6 +1,7 @@
 package adding
 
 import (
+	"github.com/GGP1/palo/pkg/auth/security"
 	"github.com/GGP1/palo/pkg/model"
 	stg "github.com/GGP1/palo/pkg/storage"
 )
@@ -14,8 +15,13 @@ type Service interface {
 
 // AddUser returns a new user and appends it to the database
 func AddUser(user *model.User) (err error) {
-	// Hash password before creating the user
-	user.BeforeSave()
+	// Hash password
+	hash, err := security.HashPassword(user.Password)
+	if err != nil {
+		return err
+	}
+	user.Password = string(hash)
+
 	// Create user
 	if err = stg.DB.Create(user).Error; err != nil {
 		return err

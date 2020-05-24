@@ -12,7 +12,7 @@ import (
 	"github.com/google/uuid"
 )
 
-// SetupRouter returns single and group of routes with their handlers
+// SetupRouter returns gin Engine
 func SetupRouter() *gin.Engine {
 	router := gin.Default()
 
@@ -25,6 +25,8 @@ func SetupRouter() *gin.Engine {
 		fmt.Println(cookie)
 		c.String(200, "Welcome to my golang backend server!")
 	})
+
+	router.POST("/login", h.Login)
 
 	p := router.Group("/products")
 	{
