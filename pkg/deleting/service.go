@@ -14,18 +14,18 @@ type Service interface {
 
 // DeleteUser returns nil and deletes a user
 func DeleteUser(user *model.User, id string) error {
-	stg.DB.Where("id=?", id).Delete(user)
+	stg.DB.Delete(user, id)
 	return nil
 }
 
 // DeleteProduct returns nil and deletes a user
 func DeleteProduct(product *model.Product, id string) error {
-	stg.DB.Where("id=?", id).Delete(product)
+	stg.DB.Delete(product, id)
 	return nil
 }
 
 // DeleteReview returns nil and deletes a user
 func DeleteReview(review *model.Review, id string) error {
-	stg.DB.Where("id=?", id).Delete(review)
+	stg.DB.Delete(review, id)
 	return nil
 }

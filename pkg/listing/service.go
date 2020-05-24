@@ -7,12 +7,12 @@ import (
 
 // Service provides user and product listing operations.
 type Service interface {
-	GetUsers([]model.User) error
-	GetAUser(model.User, string) error
-	GetProducts([]model.Product) error
-	GetAProduct(model.Product, string) error
-	GetReviews([]model.Review) error
-	GetAReview(model.Review, string) error
+	GetUsers(*[]model.User) error
+	GetAUser(*model.User, string) error
+	GetProducts(*[]model.Product) error
+	GetAProduct(*model.Product, string) error
+	GetReviews(*[]model.Review) error
+	GetAReview(*model.Review, string) error
 }
 
 // GetUsers returns all the users in the database
@@ -25,7 +25,7 @@ func GetUsers(user *[]model.User) (err error) {
 
 // GetAUser returns a single user
 func GetAUser(user *model.User, id string) (err error) {
-	if err = stg.DB.Where("id = ?", id).First(user).Error; err != nil {
+	if err = stg.DB.First(user, id).Error; err != nil {
 		return err
 	}
 	return nil
@@ -41,7 +41,7 @@ func GetProducts(product *[]model.Product) (err error) {
 
 // GetAProduct returns a single product
 func GetAProduct(product *model.Product, id string) (err error) {
-	if err = stg.DB.Where("id = ?", id).First(product).Error; err != nil {
+	if err = stg.DB.First(product, id).Error; err != nil {
 		return err
 	}
 	return nil
@@ -57,7 +57,7 @@ func GetReviews(review *[]model.Review) (err error) {
 
 // GetAReview returns a single product
 func GetAReview(review *model.Review, id string) (err error) {
-	if err = stg.DB.Where("id = ?", id).First(review).Error; err != nil {
+	if err = stg.DB.First(review, id).Error; err != nil {
 		return err
 	}
 	return nil
