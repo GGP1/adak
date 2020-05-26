@@ -1,3 +1,6 @@
+/*
+Package auth is used for authenticating users functions
+*/
 package auth
 
 import (

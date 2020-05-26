@@ -1,3 +1,6 @@
+/*
+Package adding provides the methods needed to create objects and append them to the database
+*/
 package adding
 
 import (
@@ -11,6 +14,7 @@ type Service interface {
 	AddUser(*model.User) error
 	AddProduct(*model.Product) error
 	AddReview(*model.Review) error
+	AddShop(*model.Shop) error
 }
 
 // AddUser returns a new user and appends it to the database
@@ -37,9 +41,17 @@ func AddProduct(product *model.Product) (err error) {
 	return nil
 }
 
-// AddReview returns a product and appends it to the database
+// AddReview returns a review and appends it to the database
 func AddReview(review *model.Review) (err error) {
 	if err = stg.DB.Create(review).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+// AddShop returns a shop and appends it to the database
+func AddShop(shop *model.Shop) (err error) {
+	if err = stg.DB.Create(shop).Error; err != nil {
 		return err
 	}
 	return nil

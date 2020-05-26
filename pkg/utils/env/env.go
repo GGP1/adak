@@ -1,5 +1,5 @@
 /*
-Package env let us manage the environment variables
+Package env manages the environment variables
 */
 package env
 
