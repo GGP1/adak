@@ -40,23 +40,28 @@ func Connect() {
 	CheckErr(err)
 
 	// Auto-migrate models to the db
-	DB.AutoMigrate(&model.Product{}, &model.User{}, &model.Review{})
+	DB.AutoMigrate(&model.Product{}, &model.User{}, &model.Review{}, &model.Shop{})
 
 	// Check if database tables are already created
-	hasP := DB.HasTable(model.Product{})
-	hasU := DB.HasTable(model.User{})
-	hasR := DB.HasTable(model.Review{})
+	productTable := DB.HasTable(model.Product{})
+	userTable := DB.HasTable(model.User{})
+	reviewTable := DB.HasTable(model.Review{})
+	shopTable := DB.HasTable(model.Shop{})
 
 	// If a database does not exist, create it
-	if hasP != true {
+	if productTable != true {
 		DB.CreateTable(model.Product{})
 	}
 
-	if hasU != true {
+	if userTable != true {
 		DB.CreateTable(model.User{})
 	}
 
-	if hasR != true {
+	if reviewTable != true {
 		DB.CreateTable(model.Review{})
+	}
+
+	if shopTable != true {
+		DB.CreateTable(model.Shop{})
 	}
 }
