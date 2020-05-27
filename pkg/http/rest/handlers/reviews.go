@@ -6,14 +6,14 @@ import (
 	"github.com/GGP1/palo/pkg/adding"
 	"github.com/GGP1/palo/pkg/deleting"
 	"github.com/GGP1/palo/pkg/listing"
-	"github.com/GGP1/palo/pkg/model"
+	"github.com/GGP1/palo/pkg/models"
 
 	"github.com/gin-gonic/gin"
 )
 
 // GetReviews lists all the reviews
 func GetReviews(c *gin.Context) {
-	var review []model.Review
+	var review []models.Review
 	err := listing.GetReviews(&review)
 
 	if err != nil {
@@ -25,7 +25,7 @@ func GetReviews(c *gin.Context) {
 
 // GetAReview lists a review based on the id
 func GetAReview(c *gin.Context) {
-	var review model.Review
+	var review models.Review
 	id := c.Params.ByName("id")
 
 	err := listing.GetAReview(&review, id)
@@ -44,7 +44,7 @@ func GetAReview(c *gin.Context) {
 
 // AddReview creates a new review and saves it
 func AddReview(c *gin.Context) {
-	var review model.Review
+	var review models.Review
 	c.BindJSON(&review)
 
 	err := adding.AddReview(&review)
@@ -59,7 +59,7 @@ func AddReview(c *gin.Context) {
 
 // DeleteReview deletes a review
 func DeleteReview(c *gin.Context) {
-	var review model.Review
+	var review models.Review
 	id := c.Params.ByName("id")
 
 	err := deleting.DeleteReview(&review, id)

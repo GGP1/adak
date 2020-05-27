@@ -1,4 +1,4 @@
-package model
+package models
 
 import (
 	"github.com/jinzhu/gorm"
@@ -7,10 +7,9 @@ import (
 // Shop model
 type Shop struct {
 	gorm.Model
-	Name     string     `json:"name,omitempty"`
-	Location *Location  `json:"location,omitempty"`
-	Products *[]Product `json:"products,omitempty"`
-	Reviews  *[]Review  `json:"reviews,omitempty"`
+	Name     string    `json:"name,omitempty"`
+	Location Location  `json:"location,omitempty"`
+	Products []Product `json:"products,omitempty"`
 }
 
 // Location of the shop

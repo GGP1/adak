@@ -7,7 +7,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/GGP1/palo/pkg/model"
+	"github.com/GGP1/palo/pkg/models"
 	"github.com/GGP1/palo/pkg/utils/env"
 
 	"github.com/jinzhu/gorm"
@@ -39,29 +39,29 @@ func Connect() {
 	err = DB.DB().Ping()
 	CheckErr(err)
 
-	// Auto-migrate models to the db
-	DB.AutoMigrate(&model.Product{}, &model.User{}, &model.Review{}, &model.Shop{})
+	// Auto-migrate modelss to the db
+	DB.AutoMigrate(&models.Product{}, &models.User{}, &models.Review{}, &models.Shop{})
 
 	// Check if database tables are already created
-	productTable := DB.HasTable(model.Product{})
-	userTable := DB.HasTable(model.User{})
-	reviewTable := DB.HasTable(model.Review{})
-	shopTable := DB.HasTable(model.Shop{})
+	productTable := DB.HasTable(models.Product{})
+	userTable := DB.HasTable(models.User{})
+	reviewTable := DB.HasTable(models.Review{})
+	shopTable := DB.HasTable(models.Shop{})
 
 	// If a database does not exist, create it
 	if productTable != true {
-		DB.CreateTable(model.Product{})
+		DB.CreateTable(models.Product{})
 	}
 
 	if userTable != true {
-		DB.CreateTable(model.User{})
+		DB.CreateTable(models.User{})
 	}
 
 	if reviewTable != true {
-		DB.CreateTable(model.Review{})
+		DB.CreateTable(models.Review{})
 	}
 
 	if shopTable != true {
-		DB.CreateTable(model.Shop{})
+		DB.CreateTable(models.Shop{})
 	}
 }

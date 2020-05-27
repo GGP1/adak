@@ -7,13 +7,13 @@ import (
 	"net/http"
 
 	"github.com/GGP1/palo/pkg/auth"
-	"github.com/GGP1/palo/pkg/model"
+	"github.com/GGP1/palo/pkg/models"
 	"github.com/gin-gonic/gin"
 )
 
 // Login takes a user and authenticates it
 func Login(c *gin.Context) {
-	user := model.User{}
+	user := models.User{}
 
 	err := c.BindJSON(&user)
 

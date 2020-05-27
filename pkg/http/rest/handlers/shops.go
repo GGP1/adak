@@ -6,7 +6,7 @@ import (
 	"github.com/GGP1/palo/pkg/adding"
 	"github.com/GGP1/palo/pkg/deleting"
 	"github.com/GGP1/palo/pkg/listing"
-	"github.com/GGP1/palo/pkg/model"
+	"github.com/GGP1/palo/pkg/models"
 	"github.com/GGP1/palo/pkg/updating"
 
 	"github.com/gin-gonic/gin"
@@ -14,7 +14,7 @@ import (
 
 // GetShops lists all the shops
 func GetShops(c *gin.Context) {
-	var shop []model.Shop
+	var shop []models.Shop
 	err := listing.GetShops(&shop)
 
 	if err != nil {
@@ -26,7 +26,7 @@ func GetShops(c *gin.Context) {
 
 // GetAShop lists one shop based on the id
 func GetAShop(c *gin.Context) {
-	var shop model.Shop
+	var shop models.Shop
 	id := c.Params.ByName("id")
 
 	err := listing.GetAShop(&shop, id)
@@ -44,7 +44,7 @@ func GetAShop(c *gin.Context) {
 
 // AddShop creates a new shop and saves it
 func AddShop(c *gin.Context) {
-	var shop model.Shop
+	var shop models.Shop
 	c.BindJSON(&shop)
 
 	err := adding.AddShop(&shop)
@@ -59,7 +59,7 @@ func AddShop(c *gin.Context) {
 
 // UpdateShop updates a shop
 func UpdateShop(c *gin.Context) {
-	var shop model.Shop
+	var shop models.Shop
 	id := c.Params.ByName("id")
 
 	err := updating.UpdateShop(&shop, id)
@@ -74,7 +74,7 @@ func UpdateShop(c *gin.Context) {
 
 // DeleteShop deletes a shop
 func DeleteShop(c *gin.Context) {
-	var shop model.Shop
+	var shop models.Shop
 	id := c.Params.ByName("id")
 
 	err := deleting.DeleteShop(&shop, id)

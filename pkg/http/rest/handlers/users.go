@@ -6,7 +6,7 @@ import (
 	"github.com/GGP1/palo/pkg/adding"
 	"github.com/GGP1/palo/pkg/deleting"
 	"github.com/GGP1/palo/pkg/listing"
-	"github.com/GGP1/palo/pkg/model"
+	"github.com/GGP1/palo/pkg/models"
 	"github.com/GGP1/palo/pkg/updating"
 
 	"github.com/gin-gonic/gin"
@@ -14,7 +14,7 @@ import (
 
 // GetUsers lists all the users
 func GetUsers(c *gin.Context) {
-	var user []model.User
+	var user []models.User
 	err := listing.GetUsers(&user)
 
 	if err != nil {
@@ -26,7 +26,7 @@ func GetUsers(c *gin.Context) {
 
 // GetAUser lists one user based on the id
 func GetAUser(c *gin.Context) {
-	var user model.User
+	var user models.User
 	id := c.Params.ByName("id")
 
 	err := listing.GetAUser(&user, id)
@@ -44,7 +44,7 @@ func GetAUser(c *gin.Context) {
 
 // AddUser creates a new user and saves it
 func AddUser(c *gin.Context) {
-	var user model.User
+	var user models.User
 	c.BindJSON(&user)
 
 	err := adding.AddUser(&user)
@@ -59,7 +59,7 @@ func AddUser(c *gin.Context) {
 
 // UpdateUser updates a user
 func UpdateUser(c *gin.Context) {
-	var user model.User
+	var user models.User
 	id := c.Params.ByName("id")
 
 	err := updating.UpdateUser(&user, id)
@@ -74,7 +74,7 @@ func UpdateUser(c *gin.Context) {
 
 // DeleteUser deletes a user
 func DeleteUser(c *gin.Context) {
-	var user model.User
+	var user models.User
 	id := c.Params.ByName("id")
 
 	err := deleting.DeleteUser(&user, id)

@@ -1,4 +1,4 @@
-package model
+package models
 
 import (
 	"github.com/jinzhu/gorm"
@@ -7,7 +7,7 @@ import (
 // Review model
 type Review struct {
 	gorm.Model
-	Stars   int    `json:"stars"`
+	Stars   uint8  `json:"stars"`
 	Comment string `json:"comment"`
-	UserID  int    `json:"user_id"`
+	User    User   `json:"user"`
 }
