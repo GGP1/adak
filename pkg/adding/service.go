@@ -1,5 +1,5 @@
 /*
-Package adding provides the methods needed to create objects and append them to the database
+Package adding includes database adding operations
 */
 package adding
 

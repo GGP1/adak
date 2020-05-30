@@ -1,5 +1,5 @@
 /*
-Package updating includes the functions to update an object from the database
+Package updating includes database udpating operations
 */
 package updating
 

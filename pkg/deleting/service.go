@@ -1,5 +1,5 @@
 /*
-Package deleting gives us the methods to delete objects from the database
+Package deleting includes database deleting operations
 */
 package deleting
 

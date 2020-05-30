@@ -1,5 +1,5 @@
 /*
-Package listing reads and lists objects from the database
+Package listing includes database listing operations
 */
 package listing
 
