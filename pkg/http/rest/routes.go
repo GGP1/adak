@@ -15,6 +15,7 @@ import (
 func SetupRouter() *gin.Engine {
 	router := gin.Default()
 
+	// Home route
 	router.GET("/", func(c *gin.Context) {
 		cookie, err := c.Request.Cookie("sessionID")
 		if err != nil {
@@ -24,8 +25,11 @@ func SetupRouter() *gin.Engine {
 		c.String(200, "Welcome to my golang backend server!")
 	})
 
+	// Auth routes
 	router.POST("/login", h.Login)
+	router.GET("/logout", h.Logout)
 
+	// Product routes
 	product := router.Group("/products")
 	{
 		product.GET("/", h.GetProducts)
@@ -35,6 +39,7 @@ func SetupRouter() *gin.Engine {
 		product.DELETE("/:id", h.DeleteProduct)
 	}
 
+	// User routes
 	user := router.Group("/users")
 	{
 		user.GET("/", h.GetUsers)
@@ -44,6 +49,7 @@ func SetupRouter() *gin.Engine {
 		user.DELETE("/:id", h.DeleteUser)
 	}
 
+	// Review routes
 	review := router.Group("/reviews")
 	{
 		review.GET("/", h.GetReviews)
@@ -52,6 +58,7 @@ func SetupRouter() *gin.Engine {
 		review.DELETE("/:id", h.DeleteReview)
 	}
 
+	// Shop routes
 	shop := router.Group("/shops")
 	{
 		shop.GET("/", h.GetShops)

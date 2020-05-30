@@ -41,3 +41,10 @@ func Login(c *gin.Context) {
 
 	c.JSON(http.StatusOK, token)
 }
+
+// Logout removes the authentication cookie
+func Logout(c *gin.Context) {
+	c.SetCookie("SID", "0", -1, "/", "localhost", false, true)
+
+	c.String(http.StatusOK, "You are now logged out")
+}
