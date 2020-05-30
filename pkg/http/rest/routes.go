@@ -9,7 +9,6 @@ import (
 	h "github.com/GGP1/palo/pkg/http/rest/handlers"
 
 	"github.com/gin-gonic/gin"
-	"github.com/google/uuid"
 )
 
 // SetupRouter returns gin Engine
@@ -19,8 +18,7 @@ func SetupRouter() *gin.Engine {
 	router.GET("/", func(c *gin.Context) {
 		cookie, err := c.Request.Cookie("sessionID")
 		if err != nil {
-			id := uuid.New()
-			c.SetCookie("sessionID", id.String(), 0, "/", "localhost", false, true)
+			c.SetCookie("WelcomeCookie", "1", 0, "/", "localhost", false, true)
 		}
 		fmt.Println(cookie)
 		c.String(200, "Welcome to my golang backend server!")
