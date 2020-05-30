@@ -13,7 +13,7 @@ import (
 	"github.com/jinzhu/gorm"
 )
 
-// CheckErr ...
+// CheckErr test if there's an error and returns it
 func CheckErr(err error) {
 	if err != nil {
 		log.Fatal(err)
@@ -43,25 +43,38 @@ func Connect() {
 	DB.AutoMigrate(&models.Product{}, &models.User{}, &models.Review{}, &models.Shop{})
 
 	// Check if database tables are already created
-	productTable := DB.HasTable(models.Product{})
-	userTable := DB.HasTable(models.User{})
-	reviewTable := DB.HasTable(models.Review{})
-	shopTable := DB.HasTable(models.Shop{})
+	productsTable(models.Product{})
+	usersTable(models.User{})
+	reviewsTable(models.Review{})
+	shopsTable(models.Shop{})
+}
 
-	// If a database does not exist, create it
-	if productTable != true {
-		DB.CreateTable(models.Product{})
+// Check if database tables are already
+// created if not, create them
+func productsTable(m models.Product) {
+	h := DB.HasTable(m)
+	if h != true {
+		DB.CreateTable(m)
 	}
+}
 
-	if userTable != true {
-		DB.CreateTable(models.User{})
+func usersTable(m models.User) {
+	h := DB.HasTable(m)
+	if h != true {
+		DB.CreateTable(m)
 	}
+}
 
-	if reviewTable != true {
-		DB.CreateTable(models.Review{})
+func reviewsTable(m models.Review) {
+	h := DB.HasTable(m)
+	if h != true {
+		DB.CreateTable(m)
 	}
+}
 
-	if shopTable != true {
-		DB.CreateTable(models.Shop{})
+func shopsTable(m models.Shop) {
+	h := DB.HasTable(m)
+	if h != true {
+		DB.CreateTable(m)
 	}
 }
