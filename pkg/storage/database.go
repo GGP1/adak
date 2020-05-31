@@ -7,8 +7,8 @@ import (
 	"log"
 	"os"
 
+	"github.com/GGP1/palo/internal/utils/env"
 	"github.com/GGP1/palo/pkg/models"
-	"github.com/GGP1/palo/pkg/utils/env"
 
 	"github.com/jinzhu/gorm"
 )
