@@ -1,73 +1,92 @@
 package handlers
 
 import (
+	"bytes"
+	"encoding/json"
+	"io"
 	"net/http"
 
+	"github.com/GGP1/palo/internal/utils/response"
 	"github.com/GGP1/palo/pkg/adding"
 	"github.com/GGP1/palo/pkg/deleting"
 	"github.com/GGP1/palo/pkg/listing"
 	"github.com/GGP1/palo/pkg/models"
-
-	"github.com/gin-gonic/gin"
+	"github.com/gorilla/mux"
 )
 
 // GetReviews lists all the reviews
-func GetReviews(c *gin.Context) {
-	var review []models.Review
-	err := listing.GetReviews(&review)
+func GetReviews() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var review []models.Review
 
-	if err != nil {
-		c.AbortWithStatus(http.StatusNotFound)
+		err := listing.GetReviews(&review)
+		if err != nil {
+			response.Respond(w, r, http.StatusNotFound, err)
+		}
+
+		response.Respond(w, r, http.StatusOK, review)
 	}
-
-	c.JSON(http.StatusOK, review)
 }
 
-// GetAReview lists a review based on the id
-func GetAReview(c *gin.Context) {
-	var review models.Review
-	id := c.Params.ByName("id")
+// GetSingleReview lists a review based on the id
+func GetOneReview() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var review models.Review
 
-	err := listing.GetAReview(&review, id)
+		param := mux.Vars(r)
+		id := param["id"]
 
-	if err != nil {
-		c.AbortWithError(http.StatusNotFound, err)
+		err := listing.GetAReview(&review, id)
+		if err != nil {
+			response.Respond(w, r, http.StatusNotFound, err)
+		}
+
+		if review.ID == 0 {
+			w.WriteHeader(http.StatusNotFound)
+			io.WriteString(w, "Review not found")
+			return
+		}
+
+		response.Respond(w, r, http.StatusOK, review)
 	}
-
-	if review.ID == 0 {
-		c.JSON(http.StatusNotFound, gin.H{"status": http.StatusNotFound, "message": "Review not found"})
-		return
-	}
-
-	c.JSON(http.StatusOK, review)
 }
 
 // AddReview creates a new review and saves it
-func AddReview(c *gin.Context) {
-	var review models.Review
-	c.BindJSON(&review)
+func AddReview() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var review models.Review
+		var buf bytes.Buffer
+		var err error
 
-	err := adding.AddReview(&review)
+		err = json.NewEncoder(&buf).Encode(&review)
+		if err != nil {
+			w.WriteHeader(http.StatusNotFound)
+			io.WriteString(w, "Review not found")
+		}
 
-	if err != nil {
-		c.AbortWithStatus(http.StatusNotFound)
-		return
+		err = adding.AddReview(&review)
+		if err != nil {
+			response.Respond(w, r, http.StatusNotFound, err)
+		}
+
+		w.WriteHeader(http.StatusOK)
+		io.WriteString(w, "Review deleted")
 	}
-
-	c.JSON(http.StatusCreated, review)
 }
 
 // DeleteReview deletes a review
-func DeleteReview(c *gin.Context) {
-	var review models.Review
-	id := c.Params.ByName("id")
+func DeleteReview() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var review models.Review
 
-	err := deleting.DeleteReview(&review, id)
+		param := mux.Vars(r)
+		id := param["id"]
 
-	if err != nil {
-		c.String(http.StatusNotFound, "Review not found")
-		return
+		err := deleting.DeleteReview(&review, id)
+		if err != nil {
+			response.Respond(w, r, http.StatusNotFound, err)
+		}
+
+		response.Respond(w, r, http.StatusOK, review)
 	}
-
-	c.JSON(http.StatusOK, gin.H{"message": "Review deleted"})
 }

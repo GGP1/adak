@@ -1,88 +1,110 @@
 package handlers
 
 import (
+	"bytes"
+	"encoding/json"
+	"io"
 	"net/http"
 
+	"github.com/GGP1/palo/internal/utils/response"
 	"github.com/GGP1/palo/pkg/adding"
 	"github.com/GGP1/palo/pkg/deleting"
 	"github.com/GGP1/palo/pkg/listing"
 	"github.com/GGP1/palo/pkg/models"
 	"github.com/GGP1/palo/pkg/updating"
 
-	"github.com/gin-gonic/gin"
+	"github.com/gorilla/mux"
 )
 
 // GetProducts lists all the products
-func GetProducts(c *gin.Context) {
-	var product []models.Product
-	err := listing.GetProducts(&product)
+func GetProducts() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var product []models.Product
 
-	if err != nil {
-		c.AbortWithStatus(http.StatusNotFound)
+		err := listing.GetProducts(&product)
+		if err != nil {
+			response.Respond(w, r, http.StatusNotFound, err)
+		}
+
+		response.Respond(w, r, http.StatusOK, product)
 	}
-
-	c.JSON(http.StatusOK, product)
 }
 
-// GetAProduct lists one product based on the id
-func GetAProduct(c *gin.Context) {
-	var product models.Product
-	id := c.Params.ByName("id")
+// GetOneProduct lists one product based on the id
+func GetOneProduct() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var product models.Product
 
-	err := listing.GetAProduct(&product, id)
-	if err != nil {
-		c.AbortWithError(http.StatusNotFound, err)
+		param := mux.Vars(r)
+		id := param["id"]
+
+		err := listing.GetAProduct(&product, id)
+		if err != nil {
+			response.Respond(w, r, http.StatusInternalServerError, err)
+		}
+
+		if product.ID == 0 {
+			w.WriteHeader(http.StatusNotFound)
+			io.WriteString(w, "Product not found")
+			return
+		}
+
+		response.Respond(w, r, http.StatusOK, product)
 	}
-
-	if product.ID == 0 {
-		c.JSON(http.StatusNotFound, gin.H{"status": http.StatusNotFound, "message": "Product not found"})
-		return
-	}
-
-	c.JSON(http.StatusOK, product)
 }
 
 // AddProduct creates a new product and saves it
-func AddProduct(c *gin.Context) {
-	var product models.Product
-	c.BindJSON(&product)
+func AddProduct() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var product models.Product
+		var buf bytes.Buffer
+		var err error
 
-	err := adding.AddProduct(&product)
+		err = json.NewEncoder(&buf).Encode(&product)
+		if err != nil {
+			w.WriteHeader(http.StatusNotFound)
+			io.WriteString(w, "Product not found")
+		}
 
-	if err != nil {
-		c.AbortWithStatus(http.StatusNotFound)
-		return
+		err = adding.AddProduct(&product)
+		if err != nil {
+			response.Respond(w, r, http.StatusNotFound, err)
+		}
+
+		response.Respond(w, r, http.StatusCreated, product)
 	}
-
-	c.JSON(http.StatusCreated, product)
 }
 
 // UpdateProduct updates a product
-func UpdateProduct(c *gin.Context) {
-	var product models.Product
-	id := c.Params.ByName("id")
+func UpdateProduct() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var product models.Product
 
-	err := updating.UpdateProduct(&product, id)
+		param := mux.Vars(r)
+		id := param["id"]
 
-	if err != nil {
-		c.AbortWithStatus(http.StatusNotFound)
-		return
+		err := updating.UpdateProduct(&product, id)
+		if err != nil {
+			response.Respond(w, r, http.StatusNotFound, err)
+		}
+
+		response.Respond(w, r, http.StatusOK, product)
 	}
-
-	c.JSON(http.StatusOK, gin.H{"message": "Product updated"})
 }
 
 // DeleteProduct deletes a product
-func DeleteProduct(c *gin.Context) {
-	var product models.Product
-	id := c.Params.ByName("id")
+func DeleteProduct() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var product models.Product
 
-	err := deleting.DeleteProduct(&product, id)
+		param := mux.Vars(r)
+		id := param["id"]
 
-	if err != nil {
-		c.AbortWithStatus(http.StatusNotFound)
-		return
+		err := deleting.DeleteProduct(&product, id)
+		if err != nil {
+			response.Respond(w, r, http.StatusNotFound, err)
+		}
+
+		io.WriteString(w, "Product deleted")
 	}
-
-	c.JSON(http.StatusOK, gin.H{"message": "Product deleted"})
 }

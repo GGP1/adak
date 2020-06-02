@@ -4,69 +4,49 @@ Package rest contains all the functions related to the rest api
 package rest
 
 import (
-	"fmt"
+	"net/http"
 
 	h "github.com/GGP1/palo/pkg/http/rest/handlers"
 
-	"github.com/gin-gonic/gin"
+	"github.com/gorilla/mux"
 )
 
 // SetupRouter returns gin Engine
-func SetupRouter() *gin.Engine {
-	router := gin.Default()
+func SetupRouter() *mux.Router {
+	r := mux.NewRouter()
 
-	// Home route
-	router.GET("/", func(c *gin.Context) {
-		cookie, err := c.Request.Cookie("sessionID")
-		if err != nil {
-			c.SetCookie("WelcomeCookie", "1", 0, "/", "localhost", false, true)
-		}
-		fmt.Println(cookie)
-		c.String(200, "Welcome to my golang backend server!")
-	})
+	// Auth
+	r.HandleFunc("/login", h.Login()).Methods("POST")
+	r.HandleFunc("/logout", h.Logout()).Methods("GET")
 
-	// Auth routes
-	router.POST("/login", h.Login)
-	router.GET("/logout", h.Logout)
+	// Users
+	r.HandleFunc("/users", h.GetUsers()).Methods("GET")
+	r.HandleFunc("/users/{id}", h.GetOneUser()).Methods("GET")
+	r.HandleFunc("/users/{id}", h.AddUser()).Methods("POST")
+	r.HandleFunc("/users/{id}", h.UpdateUser()).Methods("PUT")
+	r.HandleFunc("/users/{id}", h.DeleteUser()).Methods("DELETE")
 
-	// Product routes
-	product := router.Group("/products")
-	{
-		product.GET("/", h.GetProducts)
-		product.POST("/add", h.AddProduct)
-		product.GET("/:id", h.GetAProduct)
-		product.PUT("/:id", h.UpdateProduct)
-		product.DELETE("/:id", h.DeleteProduct)
-	}
+	// Products
+	r.HandleFunc("/products", h.GetProducts()).Methods("GET")
+	r.HandleFunc("/products/{id}", h.GetOneProduct()).Methods("GET")
+	r.HandleFunc("/products/{id}", h.AddProduct()).Methods("POST")
+	r.HandleFunc("/products/{id}", h.UpdateProduct()).Methods("PUT")
+	r.HandleFunc("/products/{id}", h.DeleteProduct()).Methods("DELETE")
 
-	// User routes
-	user := router.Group("/users")
-	{
-		user.GET("/", h.GetUsers)
-		user.POST("/add", h.AddUser)
-		user.GET("/:id", h.GetAUser)
-		user.PUT("/:id", h.UpdateUser)
-		user.DELETE("/:id", h.DeleteUser)
-	}
+	// Reviews
+	r.HandleFunc("/reviews", h.GetReviews()).Methods("GET")
+	r.HandleFunc("/reviews/{id}", h.GetOneReview()).Methods("GET")
+	r.HandleFunc("/reviews/{id}", h.AddReview()).Methods("POST")
+	r.HandleFunc("/reviews/{id}", h.DeleteReview()).Methods("DELETE")
 
-	// Review routes
-	review := router.Group("/reviews")
-	{
-		review.GET("/", h.GetReviews)
-		review.POST("/add", h.AddReview)
-		review.GET("/:id", h.GetAReview)
-		review.DELETE("/:id", h.DeleteReview)
-	}
+	// Shops
+	r.HandleFunc("/shops", h.GetShops()).Methods("GET")
+	r.HandleFunc("/shops/{id}", h.GetOneShop()).Methods("GET")
+	r.HandleFunc("/shops/{id}", h.AddShop()).Methods("POST")
+	r.HandleFunc("/shops/{id}", h.UpdateShop()).Methods("PUT")
+	r.HandleFunc("/shops/{id}", h.DeleteShop()).Methods("DELETE")
 
-	// Shop routes
-	shop := router.Group("/shops")
-	{
-		shop.GET("/", h.GetShops)
-		shop.POST("/add", h.AddShop)
-		shop.GET("/:id", h.GetAShop)
-		shop.PUT("/:id", h.UpdateShop)
-		shop.DELETE("/:id", h.DeleteShop)
-	}
+	http.Handle("/", r)
 
-	return router
+	return r
 }

@@ -1,88 +1,111 @@
 package handlers
 
 import (
+	"bytes"
+	"encoding/json"
+	"io"
 	"net/http"
 
+	"github.com/GGP1/palo/internal/utils/response"
 	"github.com/GGP1/palo/pkg/adding"
 	"github.com/GGP1/palo/pkg/deleting"
 	"github.com/GGP1/palo/pkg/listing"
 	"github.com/GGP1/palo/pkg/models"
 	"github.com/GGP1/palo/pkg/updating"
-
-	"github.com/gin-gonic/gin"
+	"github.com/gorilla/mux"
 )
 
 // GetShops lists all the shops
-func GetShops(c *gin.Context) {
-	var shop []models.Shop
-	err := listing.GetShops(&shop)
+func GetShops() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var shop []models.Shop
 
-	if err != nil {
-		c.AbortWithStatus(http.StatusNotFound)
+		err := listing.GetShops(&shop)
+		if err != nil {
+			response.Respond(w, r, http.StatusNotFound, err)
+		}
+
+		response.Respond(w, r, http.StatusOK, shop)
 	}
-
-	c.JSON(http.StatusOK, shop)
 }
 
-// GetAShop lists one shop based on the id
-func GetAShop(c *gin.Context) {
-	var shop models.Shop
-	id := c.Params.ByName("id")
+// GetOneShop lists one shop based on the id
+func GetOneShop() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var shop models.Shop
 
-	err := listing.GetAShop(&shop, id)
-	if err != nil {
-		c.AbortWithError(http.StatusNotFound, err)
+		param := mux.Vars(r)
+		id := param["id"]
+
+		err := listing.GetAShop(&shop, id)
+		if err != nil {
+			response.Respond(w, r, http.StatusNotFound, err)
+		}
+
+		if shop.ID == 0 {
+			w.WriteHeader(http.StatusNotFound)
+			io.WriteString(w, "Shop not found")
+			return
+		}
+
+		response.Respond(w, r, http.StatusOK, shop)
 	}
-
-	if shop.ID == 0 {
-		c.JSON(http.StatusNotFound, gin.H{"status": http.StatusNotFound, "message": "Shop not found"})
-		return
-	}
-
-	c.JSON(http.StatusOK, shop)
 }
 
 // AddShop creates a new shop and saves it
-func AddShop(c *gin.Context) {
-	var shop models.Shop
-	c.BindJSON(&shop)
+func AddShop() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var shop models.Shop
+		var buf bytes.Buffer
+		var err error
 
-	err := adding.AddShop(&shop)
+		err = json.NewEncoder(&buf).Encode(&shop)
+		if err != nil {
+			w.WriteHeader(http.StatusNotFound)
+			io.WriteString(w, "Review not found")
+		}
 
-	if err != nil {
-		c.AbortWithStatus(http.StatusNotFound)
-		return
+		err = adding.AddShop(&shop)
+		if err != nil {
+			response.Respond(w, r, http.StatusNotFound, err)
+		}
+
+		response.Respond(w, r, http.StatusOK, shop)
 	}
-
-	c.JSON(http.StatusCreated, shop)
 }
 
 // UpdateShop updates a shop
-func UpdateShop(c *gin.Context) {
-	var shop models.Shop
-	id := c.Params.ByName("id")
+func UpdateShop() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var shop models.Shop
 
-	err := updating.UpdateShop(&shop, id)
+		param := mux.Vars(r)
+		id := param["id"]
 
-	if err != nil {
-		c.AbortWithStatus(http.StatusNotFound)
-		return
+		err := updating.UpdateShop(&shop, id)
+		if err != nil {
+			response.Respond(w, r, http.StatusNotFound, err)
+		}
+
+		w.WriteHeader(http.StatusOK)
+		io.WriteString(w, "Shop updated")
 	}
-
-	c.JSON(http.StatusOK, gin.H{"message": "Shop updated"})
 }
 
 // DeleteShop deletes a shop
-func DeleteShop(c *gin.Context) {
-	var shop models.Shop
-	id := c.Params.ByName("id")
+func DeleteShop() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var shop models.Shop
 
-	err := deleting.DeleteShop(&shop, id)
+		param := mux.Vars(r)
+		id := param["id"]
 
-	if err != nil {
-		c.AbortWithStatus(http.StatusNotFound)
-		return
+		err := deleting.DeleteShop(&shop, id)
+		if err != nil {
+			response.Respond(w, r, http.StatusNotFound, err)
+		}
+
+		w.WriteHeader(http.StatusOK)
+		io.WriteString(w, "Shop deleted")
 	}
-
-	c.JSON(http.StatusOK, gin.H{"message": "Shop deleted"})
 }

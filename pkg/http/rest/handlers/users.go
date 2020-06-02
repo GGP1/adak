@@ -1,88 +1,108 @@
 package handlers
 
 import (
+	"bytes"
+	"encoding/json"
+	"io"
 	"net/http"
 
+	"github.com/GGP1/palo/internal/utils/response"
 	"github.com/GGP1/palo/pkg/adding"
 	"github.com/GGP1/palo/pkg/deleting"
 	"github.com/GGP1/palo/pkg/listing"
 	"github.com/GGP1/palo/pkg/models"
 	"github.com/GGP1/palo/pkg/updating"
 
-	"github.com/gin-gonic/gin"
+	"github.com/gorilla/mux"
 )
 
 // GetUsers lists all the users
-func GetUsers(c *gin.Context) {
-	var user []models.User
-	err := listing.GetUsers(&user)
+func GetUsers() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var user []models.User
 
-	if err != nil {
-		c.AbortWithStatus(http.StatusNotFound)
+		err := listing.GetUsers(&user)
+
+		if err != nil {
+			response.Respond(w, r, http.StatusInternalServerError, err)
+		}
+
+		response.Respond(w, r, http.StatusOK, user)
 	}
-
-	c.JSON(http.StatusOK, user)
 }
 
-// GetAUser lists one user based on the id
-func GetAUser(c *gin.Context) {
-	var user models.User
-	id := c.Params.ByName("id")
+// GetOneUser lists one user based on the id
+func GetOneUser() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var user models.User
 
-	err := listing.GetAUser(&user, id)
-	if err != nil {
-		c.AbortWithError(http.StatusNotFound, err)
+		param := mux.Vars(r)
+		id := param["id"]
+
+		err := listing.GetAUser(&user, id)
+
+		if err != nil {
+			response.Respond(w, r, http.StatusNotFound, err)
+		}
+
+		response.Respond(w, r, http.StatusOK, user)
 	}
-
-	if user.ID == 0 {
-		c.JSON(http.StatusNotFound, gin.H{"status": http.StatusNotFound, "message": "User not found"})
-		return
-	}
-
-	c.JSON(http.StatusOK, user)
 }
 
 // AddUser creates a new user and saves it
-func AddUser(c *gin.Context) {
-	var user models.User
-	c.BindJSON(&user)
+func AddUser() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var user models.User
+		var buf bytes.Buffer
+		var err error
 
-	err := adding.AddUser(&user)
+		err = json.NewEncoder(&buf).Encode(&user)
+		if err != nil {
+			w.WriteHeader(http.StatusNotFound)
+			io.WriteString(w, "Review not found")
+		}
 
-	if err != nil {
-		c.AbortWithStatus(http.StatusNotFound)
-		return
+		err = adding.AddUser(&user)
+		if err != nil {
+			response.Respond(w, r, http.StatusInternalServerError, err)
+		}
+
+		response.Respond(w, r, http.StatusOK, user)
 	}
-
-	c.JSON(http.StatusCreated, user)
 }
 
 // UpdateUser updates a user
-func UpdateUser(c *gin.Context) {
-	var user models.User
-	id := c.Params.ByName("id")
+func UpdateUser() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var user models.User
 
-	err := updating.UpdateUser(&user, id)
+		param := mux.Vars(r)
+		id := param["id"]
 
-	if err != nil {
-		c.AbortWithStatus(http.StatusNotFound)
-		return
+		err := updating.UpdateUser(&user, id)
+
+		if err != nil {
+			response.Respond(w, r, http.StatusInternalServerError, err)
+		}
+
+		response.Respond(w, r, http.StatusOK, user)
 	}
-
-	c.JSON(http.StatusOK, gin.H{"message": "User updated"})
 }
 
 // DeleteUser deletes a user
-func DeleteUser(c *gin.Context) {
-	var user models.User
-	id := c.Params.ByName("id")
+func DeleteUser() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var user models.User
 
-	err := deleting.DeleteUser(&user, id)
+		param := mux.Vars(r)
+		id := param["id"]
 
-	if err != nil {
-		c.AbortWithStatus(http.StatusNotFound)
-		return
+		err := deleting.DeleteUser(&user, id)
+
+		if err != nil {
+			response.Respond(w, r, http.StatusInternalServerError, err)
+		}
+
+		response.Respond(w, r, http.StatusOK, user)
 	}
-
-	c.JSON(http.StatusOK, gin.H{"message": "User deleted"})
 }
