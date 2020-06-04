@@ -15,7 +15,7 @@ type Product struct {
 	Type        string   `json:"type,omitempty"`
 	Description string   `json:"description"`
 	Weight      string   `json:"weight,omitempty"`
-	Price       int      `json:"price,omitempty"`
-	Shop        Shop     `json:"shop,omitempty"`
+	Price       uint16   `json:"price,omitempty"`
+	ShopID      int      `json:"shop_id,omitempty"`
 	Reviews     []Review `json:"reviews,omitempty"`
 }
