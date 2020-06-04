@@ -9,7 +9,7 @@ import (
 	stg "github.com/GGP1/palo/pkg/storage"
 )
 
-// Service provides user and product adding operations.
+// Service provides models adding operations.
 type Service interface {
 	AddUser(*models.User) error
 	AddProduct(*models.Product) error

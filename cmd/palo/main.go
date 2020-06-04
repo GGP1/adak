@@ -17,6 +17,11 @@ import (
 )
 
 func main() {
+	run()
+}
+
+// func run is easier to test
+func run() {
 	// Connect to database
 	storage.Connect()
 	defer storage.DB.Close()
@@ -29,7 +34,7 @@ func main() {
 		Addr:           ":4000",
 		Handler:        r,
 		ReadTimeout:    5 * time.Second,
-		WriteTimeout:   10 * time.Second,
+		WriteTimeout:   5 * time.Second,
 		MaxHeaderBytes: 1 << 20,
 	}
 

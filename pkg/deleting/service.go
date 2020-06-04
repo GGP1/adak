@@ -8,7 +8,7 @@ import (
 	stg "github.com/GGP1/palo/pkg/storage"
 )
 
-// Service provides user and product deleting operations.
+// Service provides models deleting operations.
 type Service interface {
 	DeleteUser(models.User, string) error
 	DeleteProduct(models.Product, string) error

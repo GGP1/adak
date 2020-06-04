@@ -8,7 +8,7 @@ import (
 	stg "github.com/GGP1/palo/pkg/storage"
 )
 
-// Service provides user and product listing operations.
+// Service provides models listing operations.
 type Service interface {
 	GetUsers(*[]models.User) error
 	GetAUser(*models.User, string) error
