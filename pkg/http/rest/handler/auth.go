@@ -1,7 +1,7 @@
 /*
-Package handlers contains the methods used by the router
+Package handler contains the methods used by the router
 */
-package handlers
+package handler
 
 import (
 	"encoding/json"
@@ -11,7 +11,7 @@ import (
 
 	"github.com/GGP1/palo/internal/utils/response"
 	"github.com/GGP1/palo/pkg/auth"
-	"github.com/GGP1/palo/pkg/models"
+	"github.com/GGP1/palo/pkg/model"
 
 	"github.com/google/uuid"
 )
@@ -19,7 +19,7 @@ import (
 // Login takes a user and authenticates it
 func Login() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		user := models.User{}
+		user := model.User{}
 
 		// Check if cookie already exists, if not, create it
 		_, err := r.Cookie("SID")

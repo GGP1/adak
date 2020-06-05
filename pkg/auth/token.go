@@ -7,13 +7,13 @@ import (
 	"time"
 
 	"github.com/GGP1/palo/internal/utils/env"
-	"github.com/GGP1/palo/pkg/models"
+	"github.com/GGP1/palo/pkg/model"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/dgrijalva/jwt-go/request"
 )
 
 // GenerateJWT creates a new jwt token
-func GenerateJWT(user models.User) (string, error) {
+func GenerateJWT(user model.User) (string, error) {
 	// Load env file
 	env.LoadEnv()
 

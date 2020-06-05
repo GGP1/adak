@@ -1,7 +1,7 @@
 /*
-Package models contains all the objects used in the api
+Package model contains all the objects used in the api
 */
-package models
+package model
 
 import (
 	"github.com/jinzhu/gorm"
@@ -10,8 +10,8 @@ import (
 // Product model
 type Product struct {
 	gorm.Model
-	Category    string   `json:"category,omitempty"`
 	Brand       string   `json:"brand,omitempty"`
+	Category    string   `json:"category,omitempty"`
 	Type        string   `json:"type,omitempty"`
 	Description string   `json:"description"`
 	Weight      string   `json:"weight,omitempty"`

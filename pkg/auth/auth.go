@@ -5,14 +5,14 @@ package auth
 
 import (
 	"github.com/GGP1/palo/pkg/auth/security"
-	"github.com/GGP1/palo/pkg/models"
+	"github.com/GGP1/palo/pkg/model"
 	"github.com/GGP1/palo/pkg/storage"
 )
 
 // SignIn authenticates users and returns a jwt token
 func SignIn(email, password string) (string, error) {
 	var err error
-	user := models.User{}
+	user := model.User{}
 
 	err = storage.DB.Where("email = ?", email).Take(&user).Error
 	if err != nil {
