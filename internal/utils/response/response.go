@@ -8,18 +8,38 @@ import (
 	"net/http"
 )
 
-// Respond is the response protocol function
-func Respond(w http.ResponseWriter, r *http.Request, status int, data interface{}) {
+// Respond is the protocol function for plain text resposes
+func Respond(w http.ResponseWriter, r *http.Request, status int, v interface{}) {
 	var buf bytes.Buffer
 
-	if err := json.NewEncoder(&buf).Encode(data); err != nil {
+	if err := json.NewEncoder(&buf).Encode(v); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	//w.WriteHeader(status)
+	w.Header().Set("Content-Type", "plain/text")
+
+	w.WriteHeader(status)
 
 	if _, err := io.Copy(w, &buf); err != nil {
-		fmt.Println("respond: ", err)
+		fmt.Println("Respond: ", err)
+	}
+}
+
+// RespondJSON is the protocol function for JSON responses
+func RespondJSON(w http.ResponseWriter, r *http.Request, status int, v interface{}) {
+	var buf bytes.Buffer
+
+	if err := json.NewEncoder(&buf).Encode(v); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+
+	w.WriteHeader(status)
+
+	if _, err := io.Copy(w, &buf); err != nil {
+		fmt.Println("Respond: ", err)
 	}
 }
