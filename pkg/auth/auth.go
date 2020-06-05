@@ -9,7 +9,7 @@ import (
 	"github.com/GGP1/palo/pkg/storage"
 )
 
-// SignIn logs a user in
+// SignIn authenticates users and returns a jwt token
 func SignIn(email, password string) (string, error) {
 	var err error
 	user := models.User{}

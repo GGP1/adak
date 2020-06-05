@@ -10,7 +10,5 @@ require (
 	github.com/jinzhu/gorm v1.9.12
 	github.com/joho/godotenv v1.3.0 // direct
 	github.com/lib/pq v1.5.2 // direct
-	github.com/spf13/cobra v1.0.0
-	github.com/spf13/pflag v1.0.5 // indirect
 	golang.org/x/crypto v0.0.0-20200510223506-06a226fb4e37
 )
