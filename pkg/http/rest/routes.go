@@ -60,7 +60,7 @@ func SetupRouter() *mux.Router {
 
 func home() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "plain/text")
+		w.Header().Set("Content-Type", "text/html; charset=UTF-8")
 		w.WriteHeader(http.StatusOK)
 		io.WriteString(w, "Welcome to the Palo home page")
 	}
@@ -68,8 +68,8 @@ func home() http.HandlerFunc {
 
 func verify() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "plain/text")
+		w.Header().Set("Content-Type", "text/html; charset=UTF-8")
 		w.WriteHeader(http.StatusOK)
-		io.WriteString(w, "You have successfully confirmed your email")
+		io.WriteString(w, "You have successfully confirmed your email!")
 	}
 }
