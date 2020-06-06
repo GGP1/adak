@@ -70,7 +70,7 @@ func run() {
 		}
 
 		if err != nil {
-			log.Fatalf("main : Could not stop server gracefully : %v", err)
+			log.Fatalf("main : Couldn't stop server gracefully : %v", err)
 		}
 	}
 }
