@@ -77,6 +77,7 @@ func UpdateShop() http.HandlerFunc {
 		if err := json.NewDecoder(r.Body).Decode(&shop); err != nil {
 			response.Respond(w, r, http.StatusInternalServerError, err)
 		}
+		defer r.Body.Close()
 
 		err := updating.UpdateShop(&shop, id)
 		if err != nil {

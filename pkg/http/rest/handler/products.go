@@ -56,6 +56,7 @@ func AddProduct() http.HandlerFunc {
 		if err := json.NewDecoder(r.Body).Decode(&product); err != nil {
 			response.Respond(w, r, http.StatusInternalServerError, err)
 		}
+		defer r.Body.Close()
 
 		err := adding.AddProduct(&product)
 		if err != nil {

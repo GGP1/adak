@@ -42,6 +42,7 @@ func Login() http.HandlerFunc {
 			response.Respond(w, r, http.StatusUnauthorized, err)
 			return
 		}
+		defer r.Body.Close()
 
 		// Validate it has no empty values
 		err = user.Validate("login")
