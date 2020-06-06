@@ -23,32 +23,35 @@ func SetupRouter() *mux.Router {
 	// Products
 	r.HandleFunc("/products", h.GetProducts()).Methods("GET")
 	r.HandleFunc("/products/{id}", h.GetOneProduct()).Methods("GET")
-	r.HandleFunc("/products/{id}", h.AddProduct()).Methods("POST")
+	r.HandleFunc("/products/add", h.AddProduct()).Methods("POST")
 	r.HandleFunc("/products/{id}", h.UpdateProduct()).Methods("PUT")
 	r.HandleFunc("/products/{id}", h.DeleteProduct()).Methods("DELETE")
 
 	// Reviews
 	r.HandleFunc("/reviews", h.GetReviews()).Methods("GET")
 	r.HandleFunc("/reviews/{id}", h.GetOneReview()).Methods("GET")
-	r.HandleFunc("/reviews/{id}", h.AddReview()).Methods("POST")
+	r.HandleFunc("/reviews/add", h.AddReview()).Methods("POST")
 	r.HandleFunc("/reviews/{id}", h.DeleteReview()).Methods("DELETE")
 
 	// Shops
 	r.HandleFunc("/shops", h.GetShops()).Methods("GET")
 	r.HandleFunc("/shops/{id}", h.GetOneShop()).Methods("GET")
-	r.HandleFunc("/shops/{id}", h.AddShop()).Methods("POST")
+	r.HandleFunc("/shops/add", h.AddShop()).Methods("POST")
 	r.HandleFunc("/shops/{id}", h.UpdateShop()).Methods("PUT")
 	r.HandleFunc("/shops/{id}", h.DeleteShop()).Methods("DELETE")
 
 	// Users
 	r.HandleFunc("/users", h.GetUsers()).Methods("GET")
 	r.HandleFunc("/users/{id}", h.GetOneUser()).Methods("GET")
-	r.HandleFunc("/users/{id}", h.AddUser()).Methods("POST")
+	r.HandleFunc("/users/add", h.AddUser()).Methods("POST")
 	r.HandleFunc("/users/{id}", h.UpdateUser()).Methods("PUT")
 	r.HandleFunc("/users/{id}", h.DeleteUser()).Methods("DELETE")
 
 	// Home
 	r.HandleFunc("/", home()).Methods("GET")
+
+	// Email validation route
+	r.HandleFunc("/verify", verify()).Methods("GET")
 
 	http.Handle("/", r)
 
@@ -60,5 +63,13 @@ func home() http.HandlerFunc {
 		w.Header().Set("Content-Type", "plain/text")
 		w.WriteHeader(http.StatusOK)
 		io.WriteString(w, "Welcome to the Palo home page")
+	}
+}
+
+func verify() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "plain/text")
+		w.WriteHeader(http.StatusOK)
+		io.WriteString(w, "You have successfully confirmed your email")
 	}
 }

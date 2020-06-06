@@ -4,6 +4,7 @@ Package adding includes database adding operations
 package adding
 
 import (
+	"github.com/GGP1/palo/internal/utils/email"
 	"github.com/GGP1/palo/pkg/auth/security"
 	"github.com/GGP1/palo/pkg/model"
 	storage "github.com/GGP1/palo/pkg/storage"
@@ -30,6 +31,10 @@ func AddUser(user *model.User) (err error) {
 	if err = storage.DB.Create(user).Error; err != nil {
 		return err
 	}
+
+	// Send confirmation email to the user
+	email.Confirmation(user)
+
 	return nil
 }
 

@@ -10,5 +10,7 @@ require (
 	github.com/jinzhu/gorm v1.9.12
 	github.com/joho/godotenv v1.3.0 // direct
 	github.com/lib/pq v1.5.2 // direct
+	github.com/sendgrid/rest v2.4.1+incompatible // indirect
+	github.com/sendgrid/sendgrid-go v3.5.0+incompatible
 	golang.org/x/crypto v0.0.0-20200510223506-06a226fb4e37
 )

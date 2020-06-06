@@ -65,6 +65,7 @@ func AddUser() http.HandlerFunc {
 		}
 
 		response.RespondJSON(w, r, http.StatusOK, user)
+		io.WriteString(w, "Please validate your email")
 	}
 }
 
