@@ -21,64 +21,64 @@ type Service interface {
 }
 
 // GetUsers returns all the users in the database
-func GetUsers(user *[]model.User) (err error) {
-	if err = storage.DB.Find(user).Error; err != nil {
+func GetUsers(user *[]model.User) error {
+	if err := storage.DB.Find(user).Error; err != nil {
 		return err
 	}
 	return nil
 }
 
 // GetAUser returns a single user
-func GetAUser(user *model.User, id string) (err error) {
-	if err = storage.DB.First(user, id).Error; err != nil {
+func GetAUser(user *model.User, id string) error {
+	if err := storage.DB.First(user, id).Error; err != nil {
 		return err
 	}
 	return nil
 }
 
 // GetProducts returns all the products in the database
-func GetProducts(product *[]model.Product) (err error) {
-	if err = storage.DB.Find(product).Error; err != nil {
+func GetProducts(product *[]model.Product) error {
+	if err := storage.DB.Find(product).Error; err != nil {
 		return err
 	}
 	return nil
 }
 
 // GetAProduct returns a single product
-func GetAProduct(product *model.Product, id string) (err error) {
-	if err = storage.DB.First(product, id).Error; err != nil {
+func GetAProduct(product *model.Product, id string) error {
+	if err := storage.DB.First(product, id).Error; err != nil {
 		return err
 	}
 	return nil
 }
 
 // GetReviews returns all the reviews in the database
-func GetReviews(review *[]model.Review) (err error) {
-	if err = storage.DB.Find(review).Error; err != nil {
+func GetReviews(review *[]model.Review) error {
+	if err := storage.DB.Find(review).Error; err != nil {
 		return err
 	}
 	return nil
 }
 
 // GetAReview returns a single review
-func GetAReview(review *model.Review, id string) (err error) {
-	if err = storage.DB.First(review, id).Error; err != nil {
+func GetAReview(review *model.Review, id string) error {
+	if err := storage.DB.First(review, id).Error; err != nil {
 		return err
 	}
 	return nil
 }
 
 // GetShops returns all the shops in the database
-func GetShops(shop *[]model.Shop) (err error) {
-	if err = storage.DB.Find(shop).Error; err != nil {
+func GetShops(shop *[]model.Shop) error {
+	if err := storage.DB.Find(shop).Error; err != nil {
 		return err
 	}
 	return nil
 }
 
 // GetAShop returns a single shop
-func GetAShop(shop *model.Shop, id string) (err error) {
-	if err = storage.DB.First(shop, id).Error; err != nil {
+func GetAShop(shop *model.Shop, id string) error {
+	if err := storage.DB.First(shop, id).Error; err != nil {
 		return err
 	}
 	return nil
