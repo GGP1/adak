@@ -17,7 +17,7 @@ func Respond(w http.ResponseWriter, r *http.Request, status int, v interface{}) 
 		return
 	}
 
-	w.Header().Set("Content-Type", "plain/text")
+	w.Header().Set("Content-Type", "plain/text; charset=UTF-8")
 
 	w.WriteHeader(status)
 

@@ -12,9 +12,9 @@ import (
 	"github.com/gorilla/mux"
 )
 
-// SetupRouter returns gin Engine
-func SetupRouter() *mux.Router {
-	r := mux.NewRouter()
+// NewRouter returns mux router
+func NewRouter() http.Handler {
+	r := mux.NewRouter().StrictSlash(true)
 
 	// Auth
 	r.HandleFunc("/login", h.Login()).Methods("POST")
@@ -50,7 +50,7 @@ func SetupRouter() *mux.Router {
 	// Home
 	r.HandleFunc("/", home()).Methods("GET")
 
-	// Email validation route
+	// Email validation
 	r.HandleFunc("/verify", verify()).Methods("GET")
 
 	http.Handle("/", r)
@@ -58,6 +58,7 @@ func SetupRouter() *mux.Router {
 	return r
 }
 
+// Home page
 func home() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html; charset=UTF-8")
@@ -66,6 +67,7 @@ func home() http.HandlerFunc {
 	}
 }
 
+// Email verification page
 func verify() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html; charset=UTF-8")

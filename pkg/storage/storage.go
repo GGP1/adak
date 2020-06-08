@@ -4,7 +4,6 @@ Package storage saves all the data and connects to the database
 package storage
 
 import (
-	"log"
 	"os"
 
 	"github.com/GGP1/palo/internal/utils/env"
@@ -17,7 +16,7 @@ import (
 var DB *gorm.DB
 
 // Connect to the database
-func Connect() {
+func Connect() (*gorm.DB, error) {
 	var err error
 
 	// Load env file
@@ -27,10 +26,14 @@ func Connect() {
 
 	// Connection
 	DB, err = gorm.Open("postgres", connStr)
-	CheckErr(err)
+	if err != nil {
+		return nil, err
+	}
 
 	err = DB.DB().Ping()
-	CheckErr(err)
+	if err != nil {
+		return nil, err
+	}
 
 	// Auto-migrate modelss to the db
 	DB.AutoMigrate(&model.Product{}, &model.User{}, &model.Review{}, &model.Shop{})
@@ -40,13 +43,8 @@ func Connect() {
 	usersTable(model.User{})
 	reviewsTable(model.Review{})
 	shopsTable(model.Shop{})
-}
 
-// CheckErr test if there's an error and returns it
-func CheckErr(err error) {
-	if err != nil {
-		log.Fatal(err)
-	}
+	return DB, nil
 }
 
 // Check if database tables are already

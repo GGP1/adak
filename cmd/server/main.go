@@ -23,11 +23,14 @@ func main() {
 // func run is easier to test
 func run() {
 	// Connect to database
-	storage.Connect()
-	defer storage.DB.Close()
+	db, err := storage.Connect()
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
 
 	// Router setup
-	r := rest.SetupRouter()
+	r := rest.NewRouter()
 
 	// Server setup
 	server := &http.Server{
