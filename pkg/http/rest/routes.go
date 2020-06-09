@@ -8,6 +8,7 @@ import (
 	"net/http"
 
 	h "github.com/GGP1/palo/pkg/http/rest/handler"
+	"github.com/GGP1/palo/pkg/http/rest/middleware"
 
 	"github.com/gorilla/mux"
 )
@@ -53,6 +54,8 @@ func NewRouter() http.Handler {
 	// Email validation
 	r.HandleFunc("/verify", verify()).Methods("GET")
 
+	r.Use(middleware.AllowCrossOrigin)
+
 	http.Handle("/", r)
 
 	return r
@@ -61,6 +64,7 @@ func NewRouter() http.Handler {
 // Home page
 func home() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, PUT, DELETE")
 		w.Header().Set("Content-Type", "text/html; charset=UTF-8")
 		w.WriteHeader(http.StatusOK)
 		io.WriteString(w, "Welcome to the Palo home page")
