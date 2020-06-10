@@ -15,7 +15,7 @@ import (
 	"github.com/jinzhu/gorm"
 )
 
-// ShopHandler defines all of the handlers related to products. It holds the
+// ShopHandler defines all of the handlers related to shops. It holds the
 // application state needed by the handler methods.
 type ShopHandler struct {
 	DB *gorm.DB

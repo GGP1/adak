@@ -14,7 +14,7 @@ import (
 	"github.com/jinzhu/gorm"
 )
 
-// ReviewHandler defines all of the handlers related to products. It holds the
+// ReviewHandler defines all of the handlers related to reviews. It holds the
 // application state needed by the handler methods.
 type ReviewHandler struct {
 	DB *gorm.DB

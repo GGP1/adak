@@ -16,7 +16,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
-// UserHandler defines all of the handlers related to products. It holds the
+// UserHandler defines all of the handlers related to users. It holds the
 // application state needed by the handler methods.
 type UserHandler struct {
 	DB *gorm.DB

@@ -72,7 +72,7 @@ func (ah *AuthHandler) Login() http.HandlerFunc {
 	}
 }
 
-// AuthLogout removes the authentication cookie
+// Logout removes the authentication cookie
 func (ah *AuthHandler) Logout() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		http.SetCookie(w, &http.Cookie{
