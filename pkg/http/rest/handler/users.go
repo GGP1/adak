@@ -11,16 +11,23 @@ import (
 	"github.com/GGP1/palo/pkg/listing"
 	"github.com/GGP1/palo/pkg/model"
 	"github.com/GGP1/palo/pkg/updating"
+	"github.com/jinzhu/gorm"
 
 	"github.com/gorilla/mux"
 )
 
-// GetUsers lists all the users
-func GetUsers() http.HandlerFunc {
+// UserHandler defines all of the handlers related to products. It holds the
+// application state needed by the handler methods.
+type UserHandler struct {
+	DB *gorm.DB
+}
+
+// Get lists all the users
+func (uh *UserHandler) Get() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var user []model.User
 
-		err := listing.GetUsers(&user)
+		err := listing.GetUsers(&user, uh.DB)
 
 		if err != nil {
 			response.Respond(w, r, http.StatusInternalServerError, err)
@@ -30,15 +37,15 @@ func GetUsers() http.HandlerFunc {
 	}
 }
 
-// GetOneUser lists one user based on the id
-func GetOneUser() http.HandlerFunc {
+// GetOne lists one user based on the id
+func (uh *UserHandler) GetOne() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var user model.User
 
 		param := mux.Vars(r)
 		id := param["id"]
 
-		err := listing.GetAUser(&user, id)
+		err := listing.GetAUser(&user, id, uh.DB)
 		if err != nil {
 			w.WriteHeader(http.StatusNotFound)
 			io.WriteString(w, "User not found")
@@ -49,8 +56,8 @@ func GetOneUser() http.HandlerFunc {
 	}
 }
 
-// AddUser creates a new user and saves it
-func AddUser() http.HandlerFunc {
+// Add creates a new user and saves it
+func (uh *UserHandler) Add() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var user model.User
 
@@ -59,7 +66,7 @@ func AddUser() http.HandlerFunc {
 		}
 		defer r.Body.Close()
 
-		err := adding.AddUser(&user)
+		err := adding.AddUser(&user, uh.DB)
 		if err != nil {
 			response.Respond(w, r, http.StatusInternalServerError, err)
 		}
@@ -69,8 +76,8 @@ func AddUser() http.HandlerFunc {
 	}
 }
 
-// UpdateUser updates a user
-func UpdateUser() http.HandlerFunc {
+// Update updates a user
+func (uh *UserHandler) Update() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var user model.User
 
@@ -82,7 +89,7 @@ func UpdateUser() http.HandlerFunc {
 		}
 		defer r.Body.Close()
 
-		err := updating.UpdateUser(&user, id)
+		err := updating.UpdateUser(&user, id, uh.DB)
 
 		if err != nil {
 			response.Respond(w, r, http.StatusInternalServerError, err)
@@ -92,15 +99,15 @@ func UpdateUser() http.HandlerFunc {
 	}
 }
 
-// DeleteUser deletes a user
-func DeleteUser() http.HandlerFunc {
+// Delete deletes a user
+func (uh *UserHandler) Delete() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var user model.User
 
 		param := mux.Vars(r)
 		id := param["id"]
 
-		err := deleting.DeleteUser(&user, id)
+		err := deleting.DeleteUser(&user, id, uh.DB)
 		if err != nil {
 			response.Respond(w, r, http.StatusInternalServerError, err)
 		}

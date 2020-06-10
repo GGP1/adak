@@ -11,16 +11,23 @@ import (
 	"github.com/GGP1/palo/pkg/listing"
 	"github.com/GGP1/palo/pkg/model"
 	"github.com/GGP1/palo/pkg/updating"
+	"github.com/jinzhu/gorm"
 
 	"github.com/gorilla/mux"
 )
 
-// GetProducts lists all the products
-func GetProducts() http.HandlerFunc {
+// ProductHandler defines all of the handlers related to products. It holds the
+// application state needed by the handler methods.
+type ProductHandler struct {
+	DB *gorm.DB
+}
+
+// Get lists all the products
+func (ph *ProductHandler) Get() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var product []model.Product
 
-		err := listing.GetProducts(&product)
+		err := listing.GetProducts(&product, ph.DB)
 		if err != nil {
 			response.Respond(w, r, http.StatusNotFound, err)
 		}
@@ -29,15 +36,15 @@ func GetProducts() http.HandlerFunc {
 	}
 }
 
-// GetOneProduct lists one product based on the id
-func GetOneProduct() http.HandlerFunc {
+// GetOne lists one product based on the id
+func (ph *ProductHandler) GetOne() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var product model.Product
 
 		param := mux.Vars(r)
 		id := param["id"]
 
-		err := listing.GetAProduct(&product, id)
+		err := listing.GetAProduct(&product, id, ph.DB)
 		if err != nil {
 			w.WriteHeader(http.StatusNotFound)
 			io.WriteString(w, "Product not found")
@@ -48,8 +55,8 @@ func GetOneProduct() http.HandlerFunc {
 	}
 }
 
-// AddProduct creates a new product and saves it
-func AddProduct() http.HandlerFunc {
+// Add creates a new product and saves it
+func (ph *ProductHandler) Add() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var product model.Product
 
@@ -58,7 +65,7 @@ func AddProduct() http.HandlerFunc {
 		}
 		defer r.Body.Close()
 
-		err := adding.AddProduct(&product)
+		err := adding.AddProduct(&product, ph.DB)
 		if err != nil {
 			response.Respond(w, r, http.StatusNotFound, err)
 		}
@@ -67,8 +74,8 @@ func AddProduct() http.HandlerFunc {
 	}
 }
 
-// UpdateProduct updates a product
-func UpdateProduct() http.HandlerFunc {
+// Update updates a product
+func (ph *ProductHandler) Update() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var product model.Product
 
@@ -80,7 +87,7 @@ func UpdateProduct() http.HandlerFunc {
 		}
 		defer r.Body.Close()
 
-		err := updating.UpdateProduct(&product, id)
+		err := updating.UpdateProduct(&product, id, ph.DB)
 		if err != nil {
 			response.Respond(w, r, http.StatusNotFound, err)
 		}
@@ -89,15 +96,15 @@ func UpdateProduct() http.HandlerFunc {
 	}
 }
 
-// DeleteProduct deletes a product
-func DeleteProduct() http.HandlerFunc {
+// Delete deletes a product
+func (ph *ProductHandler) Delete() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var product model.Product
 
 		param := mux.Vars(r)
 		id := param["id"]
 
-		err := deleting.DeleteProduct(&product, id)
+		err := deleting.DeleteProduct(&product, id, ph.DB)
 		if err != nil {
 			response.Respond(w, r, http.StatusNotFound, err)
 		}

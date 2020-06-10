@@ -29,8 +29,8 @@ func run() {
 	}
 	defer db.Close()
 
-	// Router setup
-	r := rest.NewRouter()
+	// New router
+	r := rest.NewRouter(db)
 
 	// Server setup
 	server := &http.Server{

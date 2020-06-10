@@ -11,14 +11,21 @@ import (
 	"github.com/GGP1/palo/pkg/listing"
 	"github.com/GGP1/palo/pkg/model"
 	"github.com/gorilla/mux"
+	"github.com/jinzhu/gorm"
 )
 
-// GetReviews lists all the reviews
-func GetReviews() http.HandlerFunc {
+// ReviewHandler defines all of the handlers related to products. It holds the
+// application state needed by the handler methods.
+type ReviewHandler struct {
+	DB *gorm.DB
+}
+
+// Get lists all the reviews
+func (rh *ReviewHandler) Get() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var review []model.Review
 
-		err := listing.GetReviews(&review)
+		err := listing.GetReviews(&review, rh.DB)
 		if err != nil {
 			response.Respond(w, r, http.StatusNotFound, err)
 		}
@@ -27,15 +34,15 @@ func GetReviews() http.HandlerFunc {
 	}
 }
 
-// GetOneReview lists a review based on the id
-func GetOneReview() http.HandlerFunc {
+// GetOne lists a review based on the id
+func (rh *ReviewHandler) GetOne() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var review model.Review
 
 		param := mux.Vars(r)
 		id := param["id"]
 
-		err := listing.GetAReview(&review, id)
+		err := listing.GetAReview(&review, id, rh.DB)
 		if err != nil {
 			w.WriteHeader(http.StatusNotFound)
 			io.WriteString(w, "Review not found")
@@ -46,8 +53,8 @@ func GetOneReview() http.HandlerFunc {
 	}
 }
 
-// AddReview creates a new review and saves it
-func AddReview() http.HandlerFunc {
+// Add creates a new review and saves it
+func (rh *ReviewHandler) Add() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var review model.Review
 
@@ -56,7 +63,7 @@ func AddReview() http.HandlerFunc {
 		}
 		defer r.Body.Close()
 
-		err := adding.AddReview(&review)
+		err := adding.AddReview(&review, rh.DB)
 		if err != nil {
 			response.Respond(w, r, http.StatusNotFound, err)
 		}
@@ -66,15 +73,15 @@ func AddReview() http.HandlerFunc {
 	}
 }
 
-// DeleteReview deletes a review
-func DeleteReview() http.HandlerFunc {
+// Delete deletes a review
+func (rh *ReviewHandler) Delete() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var review model.Review
 
 		param := mux.Vars(r)
 		id := param["id"]
 
-		err := deleting.DeleteReview(&review, id)
+		err := deleting.DeleteReview(&review, id, rh.DB)
 		if err != nil {
 			response.Respond(w, r, http.StatusNotFound, err)
 		}

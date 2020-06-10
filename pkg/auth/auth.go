@@ -6,15 +6,15 @@ package auth
 import (
 	"github.com/GGP1/palo/pkg/auth/security"
 	"github.com/GGP1/palo/pkg/model"
-	"github.com/GGP1/palo/pkg/storage"
+	"github.com/jinzhu/gorm"
 )
 
 // SignIn authenticates users and returns a jwt token
-func SignIn(email, password string) (string, error) {
+func SignIn(email, password string, db *gorm.DB) (string, error) {
 	var err error
 	user := model.User{}
 
-	err = storage.DB.Where("email = ?", email).Take(&user).Error
+	err = db.Where("email = ?", email).Take(&user).Error
 	if err != nil {
 		return "", err
 	}
