@@ -20,7 +20,7 @@ type Service interface {
 	GetAShop() error
 }
 
-// GetUsers returns all the users in the database
+// GetUsers takes all the users in the database
 func GetUsers(user *[]model.User, db *gorm.DB) error {
 	if err := db.Find(user).Error; err != nil {
 		return err
@@ -28,7 +28,7 @@ func GetUsers(user *[]model.User, db *gorm.DB) error {
 	return nil
 }
 
-// GetAUser returns a single user
+// GetAUser takes a single user from the database
 func GetAUser(user *model.User, id string, db *gorm.DB) error {
 	if err := db.First(user, id).Error; err != nil {
 		return err
@@ -36,7 +36,7 @@ func GetAUser(user *model.User, id string, db *gorm.DB) error {
 	return nil
 }
 
-// GetProducts returns all the products in the database
+// GetProducts takes all the products in the database
 func GetProducts(product *[]model.Product, db *gorm.DB) error {
 	if err := db.Find(product).Error; err != nil {
 		return err
@@ -44,7 +44,7 @@ func GetProducts(product *[]model.Product, db *gorm.DB) error {
 	return nil
 }
 
-// GetAProduct returns a single product
+// GetAProduct takes a single product from the database
 func GetAProduct(product *model.Product, id string, db *gorm.DB) error {
 	if err := db.First(product, id).Error; err != nil {
 		return err
@@ -52,7 +52,7 @@ func GetAProduct(product *model.Product, id string, db *gorm.DB) error {
 	return nil
 }
 
-// GetReviews returns all the reviews in the database
+// GetReviews takes all the reviews in the database
 func GetReviews(review *[]model.Review, db *gorm.DB) error {
 	if err := db.Find(review).Error; err != nil {
 		return err
@@ -60,7 +60,7 @@ func GetReviews(review *[]model.Review, db *gorm.DB) error {
 	return nil
 }
 
-// GetAReview returns a single review
+// GetAReview takes a single review from the database
 func GetAReview(review *model.Review, id string, db *gorm.DB) error {
 	if err := db.First(review, id).Error; err != nil {
 		return err
@@ -68,7 +68,7 @@ func GetAReview(review *model.Review, id string, db *gorm.DB) error {
 	return nil
 }
 
-// GetShops returns all the shops in the database
+// GetShops takes all the shops in the database
 func GetShops(shop *[]model.Shop, db *gorm.DB) error {
 	if err := db.Find(shop).Error; err != nil {
 		return err
@@ -76,7 +76,7 @@ func GetShops(shop *[]model.Shop, db *gorm.DB) error {
 	return nil
 }
 
-// GetAShop returns a single shop
+// GetAShop takes a single shop from the database
 func GetAShop(shop *model.Shop, id string, db *gorm.DB) error {
 	if err := db.First(shop, id).Error; err != nil {
 		return err

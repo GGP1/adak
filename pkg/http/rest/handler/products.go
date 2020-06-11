@@ -36,7 +36,7 @@ func (ph *ProductHandler) Get() http.HandlerFunc {
 	}
 }
 
-// GetOne lists one product based on the id
+// GetOne lists the product with the id requested
 func (ph *ProductHandler) GetOne() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var product model.Product
@@ -74,7 +74,7 @@ func (ph *ProductHandler) Add() http.HandlerFunc {
 	}
 }
 
-// Update updates a product
+// Update updates the product with the given id
 func (ph *ProductHandler) Update() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var product model.Product

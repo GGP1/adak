@@ -37,7 +37,7 @@ func (uh *UserHandler) Get() http.HandlerFunc {
 	}
 }
 
-// GetOne lists one user based on the id
+// GetOne lists the user with the id requested
 func (uh *UserHandler) GetOne() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var user model.User
@@ -76,7 +76,7 @@ func (uh *UserHandler) Add() http.HandlerFunc {
 	}
 }
 
-// Update updates a user
+// Update updates the user with the given id
 func (uh *UserHandler) Update() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var user model.User

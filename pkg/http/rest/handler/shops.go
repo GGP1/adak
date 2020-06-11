@@ -35,7 +35,7 @@ func (sh *ShopHandler) Get() http.HandlerFunc {
 	}
 }
 
-// GetOne lists one shop based on the id
+// GetOne lists the shop with the id requested
 func (sh *ShopHandler) GetOne() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var shop model.Shop
@@ -73,7 +73,7 @@ func (sh *ShopHandler) Add() http.HandlerFunc {
 	}
 }
 
-// Update updates a shop
+// Update updates the shop with the given id
 func (sh *ShopHandler) Update() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var shop model.Shop

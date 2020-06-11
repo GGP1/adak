@@ -20,7 +20,7 @@ func main() {
 	run()
 }
 
-// func run is easier to test
+// func run for easier testing
 func run() {
 	// Connect to database
 	db, err := storage.Connect()

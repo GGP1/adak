@@ -18,6 +18,7 @@ import (
 func Confirmation(user *model.User) {
 	env.LoadEnv()
 
+	// Mail content
 	from := mail.NewEmail("Palo API", os.Getenv("EMAIL_SENDER"))
 	subject := "Email confirmation"
 	to := mail.NewEmail(user.Firstname+" "+user.Lastname, user.Email)
@@ -27,6 +28,7 @@ func Confirmation(user *model.User) {
 
 	client := sendgrid.NewSendClient(os.Getenv("SENDGRID_KEY"))
 
+	// Send mail
 	_, err := client.Send(message)
 	if err != nil {
 		log.Println(err)

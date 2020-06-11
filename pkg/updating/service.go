@@ -15,7 +15,7 @@ type Service interface {
 	UpdateShop() error
 }
 
-// UpdateUser returns nil and updates a user
+// UpdateUser returns updates a user, returns an error
 func UpdateUser(user *model.User, id string, db *gorm.DB) error {
 	err := db.Model(&user).Where("id=?", id).Update(
 		"firstname", user.Firstname,
@@ -30,7 +30,7 @@ func UpdateUser(user *model.User, id string, db *gorm.DB) error {
 	return nil
 }
 
-// UpdateProduct returns nil and updates a product
+// UpdateProduct updates a product, returns an error
 func UpdateProduct(product *model.Product, id string, db *gorm.DB) error {
 	err := db.Model(&product).Where("id=?", id).Update(
 		"brand", product.Brand,
@@ -48,7 +48,7 @@ func UpdateProduct(product *model.Product, id string, db *gorm.DB) error {
 	return nil
 }
 
-// UpdateShop returns nil and updates a shop
+// UpdateShop updates a shop, returns an error
 func UpdateShop(shop *model.Shop, id string, db *gorm.DB) error {
 	err := db.Model(&shop).Where("id=?", id).Update(
 		"name", shop.Name).

@@ -31,7 +31,7 @@ func Connect() (*gorm.DB, error) {
 		return nil, err
 	}
 
-	// Auto-migrate modelss to the db
+	// Auto-migrate models to the db
 	db.AutoMigrate(&model.Product{}, &model.User{}, &model.Review{}, &model.Shop{})
 
 	// Check if database tables are already created

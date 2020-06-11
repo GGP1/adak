@@ -34,7 +34,7 @@ func (rh *ReviewHandler) Get() http.HandlerFunc {
 	}
 }
 
-// GetOne lists a review based on the id
+// GetOne lists the review with the id requested
 func (rh *ReviewHandler) GetOne() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var review model.Review

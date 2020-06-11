@@ -59,7 +59,7 @@ func NewRouter(db *gorm.DB) http.Handler {
 	// Home
 	r.HandleFunc("/", home()).Methods("GET")
 
-	// Email validation
+	// Email verification
 	r.HandleFunc("/verify", verify()).Methods("GET")
 
 	// Middlewares

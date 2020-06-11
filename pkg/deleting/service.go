@@ -17,25 +17,25 @@ type Service interface {
 	DeleteShop() error
 }
 
-// DeleteUser returns nil and deletes a user
+// DeleteUser deletes a user, returns an error
 func DeleteUser(user *model.User, id string, db *gorm.DB) error {
 	db.Delete(user, id)
 	return nil
 }
 
-// DeleteProduct returns nil and deletes a product
+// DeleteProduct deletes a product, returns an error
 func DeleteProduct(product *model.Product, id string, db *gorm.DB) error {
 	db.Delete(product, id)
 	return nil
 }
 
-// DeleteReview returns nil and deletes a review
+// DeleteReview deletes a review, return an error
 func DeleteReview(review *model.Review, id string, db *gorm.DB) error {
 	db.Delete(review, id)
 	return nil
 }
 
-// DeleteShop returns nil and deletes a shop
+// DeleteShop deletes a shop, returns an error
 func DeleteShop(shop *model.Shop, id string, db *gorm.DB) error {
 	db.Delete(shop, id)
 	return nil
