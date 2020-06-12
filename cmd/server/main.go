@@ -41,8 +41,11 @@ func run() {
 		MaxHeaderBytes: 1 << 20,
 	}
 
-	serverErrors := make(chan error, 1)
+	startServer(server)
+}
 
+func startServer(server *http.Server) {
+	serverErrors := make(chan error, 1)
 	// Start server listening for errors
 	go func() {
 		fmt.Println("Listening on port", server.Addr)
