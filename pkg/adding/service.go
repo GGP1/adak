@@ -12,13 +12,20 @@ import (
 
 // Service provides models adding operations.
 type Service interface {
-	AddUser() error
-	AddProduct() error
-	AddReview() error
-	AddShop() error
+	Add(interface{}, *gorm.DB) error
+	AddUser(*model.User, *gorm.DB) error
 }
 
-// AddUser returns a new user and appends it to the database
+// Add takes the input model and appends it to the database
+func Add(model interface{}, db *gorm.DB) error {
+	if err := db.Create(model).Error; err != nil {
+		return err
+	}
+	return nil
+}
+
+// AddUser takes a new user, hashes its password, sends
+// a verification email and appends it to the database
 func AddUser(user *model.User, db *gorm.DB) error {
 	// Hash password
 	hash, err := security.HashPassword(user.Password)
@@ -35,29 +42,5 @@ func AddUser(user *model.User, db *gorm.DB) error {
 	// Send confirmation email to the user
 	email.Confirmation(user)
 
-	return nil
-}
-
-// AddProduct returns a product and appends it to the database
-func AddProduct(product *model.Product, db *gorm.DB) error {
-	if err := db.Create(product).Error; err != nil {
-		return err
-	}
-	return nil
-}
-
-// AddReview returns a review and appends it to the database
-func AddReview(review *model.Review, db *gorm.DB) error {
-	if err := db.Create(review).Error; err != nil {
-		return err
-	}
-	return nil
-}
-
-// AddShop returns a shop and appends it to the database
-func AddShop(shop *model.Shop, db *gorm.DB) error {
-	if err := db.Create(shop).Error; err != nil {
-		return err
-	}
 	return nil
 }

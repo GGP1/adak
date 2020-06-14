@@ -26,7 +26,7 @@ func (sh *ShopHandler) Get() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var shop []model.Shop
 
-		err := listing.GetShops(&shop, sh.DB)
+		err := listing.GetAll(&shop, sh.DB)
 		if err != nil {
 			response.Respond(w, r, http.StatusNotFound, err)
 		}
@@ -43,7 +43,7 @@ func (sh *ShopHandler) GetOne() http.HandlerFunc {
 		param := mux.Vars(r)
 		id := param["id"]
 
-		err := listing.GetAShop(&shop, id, sh.DB)
+		err := listing.GetOne(&shop, id, sh.DB)
 		if err != nil {
 			w.WriteHeader(http.StatusNotFound)
 			io.WriteString(w, "Shop not found")
@@ -64,7 +64,7 @@ func (sh *ShopHandler) Add() http.HandlerFunc {
 		}
 		defer r.Body.Close()
 
-		err := adding.AddShop(&shop, sh.DB)
+		err := adding.Add(&shop, sh.DB)
 		if err != nil {
 			response.Respond(w, r, http.StatusNotFound, err)
 		}
@@ -104,7 +104,7 @@ func (sh *ShopHandler) Delete() http.HandlerFunc {
 		param := mux.Vars(r)
 		id := param["id"]
 
-		err := deleting.DeleteShop(&shop, id, sh.DB)
+		err := deleting.Delete(&shop, id, sh.DB)
 		if err != nil {
 			response.Respond(w, r, http.StatusNotFound, err)
 		}

@@ -25,7 +25,7 @@ func (rh *ReviewHandler) Get() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var review []model.Review
 
-		err := listing.GetReviews(&review, rh.DB)
+		err := listing.GetAll(&review, rh.DB)
 		if err != nil {
 			response.Respond(w, r, http.StatusNotFound, err)
 		}
@@ -42,7 +42,7 @@ func (rh *ReviewHandler) GetOne() http.HandlerFunc {
 		param := mux.Vars(r)
 		id := param["id"]
 
-		err := listing.GetAReview(&review, id, rh.DB)
+		err := listing.GetOne(&review, id, rh.DB)
 		if err != nil {
 			w.WriteHeader(http.StatusNotFound)
 			io.WriteString(w, "Review not found")
@@ -63,7 +63,7 @@ func (rh *ReviewHandler) Add() http.HandlerFunc {
 		}
 		defer r.Body.Close()
 
-		err := adding.AddReview(&review, rh.DB)
+		err := adding.Add(&review, rh.DB)
 		if err != nil {
 			response.Respond(w, r, http.StatusNotFound, err)
 		}
@@ -81,7 +81,7 @@ func (rh *ReviewHandler) Delete() http.HandlerFunc {
 		param := mux.Vars(r)
 		id := param["id"]
 
-		err := deleting.DeleteReview(&review, id, rh.DB)
+		err := deleting.Delete(&review, id, rh.DB)
 		if err != nil {
 			response.Respond(w, r, http.StatusNotFound, err)
 		}

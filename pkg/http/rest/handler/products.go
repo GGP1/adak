@@ -27,7 +27,7 @@ func (ph *ProductHandler) Get() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var product []model.Product
 
-		err := listing.GetProducts(&product, ph.DB)
+		err := listing.GetAll(&product, ph.DB)
 		if err != nil {
 			response.Respond(w, r, http.StatusNotFound, err)
 		}
@@ -44,7 +44,7 @@ func (ph *ProductHandler) GetOne() http.HandlerFunc {
 		param := mux.Vars(r)
 		id := param["id"]
 
-		err := listing.GetAProduct(&product, id, ph.DB)
+		err := listing.GetOne(&product, id, ph.DB)
 		if err != nil {
 			w.WriteHeader(http.StatusNotFound)
 			io.WriteString(w, "Product not found")
@@ -65,7 +65,7 @@ func (ph *ProductHandler) Add() http.HandlerFunc {
 		}
 		defer r.Body.Close()
 
-		err := adding.AddProduct(&product, ph.DB)
+		err := adding.Add(&product, ph.DB)
 		if err != nil {
 			response.Respond(w, r, http.StatusNotFound, err)
 		}
@@ -104,7 +104,7 @@ func (ph *ProductHandler) Delete() http.HandlerFunc {
 		param := mux.Vars(r)
 		id := param["id"]
 
-		err := deleting.DeleteProduct(&product, id, ph.DB)
+		err := deleting.Delete(&product, id, ph.DB)
 		if err != nil {
 			response.Respond(w, r, http.StatusNotFound, err)
 		}

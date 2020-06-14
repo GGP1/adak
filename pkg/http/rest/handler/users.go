@@ -27,7 +27,7 @@ func (uh *UserHandler) Get() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var user []model.User
 
-		err := listing.GetUsers(&user, uh.DB)
+		err := listing.GetAll(&user, uh.DB)
 
 		if err != nil {
 			response.Respond(w, r, http.StatusInternalServerError, err)
@@ -45,7 +45,7 @@ func (uh *UserHandler) GetOne() http.HandlerFunc {
 		param := mux.Vars(r)
 		id := param["id"]
 
-		err := listing.GetAUser(&user, id, uh.DB)
+		err := listing.GetOne(&user, id, uh.DB)
 		if err != nil {
 			w.WriteHeader(http.StatusNotFound)
 			io.WriteString(w, "User not found")
@@ -90,7 +90,6 @@ func (uh *UserHandler) Update() http.HandlerFunc {
 		defer r.Body.Close()
 
 		err := updating.UpdateUser(&user, id, uh.DB)
-
 		if err != nil {
 			response.Respond(w, r, http.StatusInternalServerError, err)
 		}
@@ -107,7 +106,7 @@ func (uh *UserHandler) Delete() http.HandlerFunc {
 		param := mux.Vars(r)
 		id := param["id"]
 
-		err := deleting.DeleteUser(&user, id, uh.DB)
+		err := deleting.Delete(&user, id, uh.DB)
 		if err != nil {
 			response.Respond(w, r, http.StatusInternalServerError, err)
 		}

@@ -10,9 +10,9 @@ import (
 
 // Service provides models updating operations.
 type Service interface {
-	UpdateUser() error
-	UpdateProduct() error
-	UpdateShop() error
+	UpdateUser(*model.User, string, *gorm.DB) error
+	UpdateProduct(*model.Product, string, *gorm.DB) error
+	UpdateShop(*model.Shop, string, *gorm.DB) error
 }
 
 // UpdateUser returns updates a user, returns an error
