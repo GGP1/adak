@@ -41,10 +41,13 @@ func run() {
 		MaxHeaderBytes: 1 << 20,
 	}
 
-	startServer(server)
+	err = startServer(server)
+	if err != nil {
+		log.Fatal(err)
+	}
 }
 
-func startServer(server *http.Server) {
+func startServer(server *http.Server) error {
 	serverErrors := make(chan error, 1)
 	// Start server listening for errors
 	go func() {
@@ -58,7 +61,7 @@ func startServer(server *http.Server) {
 	// Shutdown
 	select {
 	case err := <-serverErrors:
-		log.Fatalf("error: Listening and serving %s", err)
+		return fmt.Errorf("error: Listening and serving failed %s", err)
 
 	case <-shutdown:
 		log.Println("main: Start shutdown")
@@ -71,12 +74,13 @@ func startServer(server *http.Server) {
 		// Asking listener to shutdown and load shed.
 		err := server.Shutdown(ctx)
 		if err != nil {
-			log.Printf("main : Graceful shutdown did not complete in %v : %v", timeout, err)
-			err = server.Close()
+			return fmt.Errorf("main : Graceful shutdown did not complete in %v : %v", timeout, err)
 		}
 
+		err = server.Close()
 		if err != nil {
-			log.Fatalf("main : Couldn't stop server gracefully : %v", err)
+			return fmt.Errorf("main : Couldn't stop server gracefully : %v", err)
 		}
+		return nil
 	}
 }
