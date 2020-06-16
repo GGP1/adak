@@ -1,5 +1,5 @@
 /*
-Package storage saves all the data and connects to the database
+Package storage makes the database connection
 */
 package storage
 
@@ -35,40 +35,17 @@ func Connect() (*gorm.DB, error) {
 	db.AutoMigrate(&model.Product{}, &model.User{}, &model.Review{}, &model.Shop{})
 
 	// Check if database tables are already created
-	productsTable(model.Product{}, db)
-	usersTable(model.User{}, db)
-	reviewsTable(model.Review{}, db)
-	shopsTable(model.Shop{}, db)
+	tableExists(db, model.Product{}, model.User{}, model.Review{}, model.Shop{})
 
 	return db, nil
 }
 
 // Check if database tables are already
 // created if not, create them
-func productsTable(m model.Product, db *gorm.DB) {
-	h := db.HasTable(m)
-	if h != true {
-		db.CreateTable(m)
-	}
-}
-
-func usersTable(m model.User, db *gorm.DB) {
-	h := db.HasTable(m)
-	if h != true {
-		db.CreateTable(m)
-	}
-}
-
-func reviewsTable(m model.Review, db *gorm.DB) {
-	h := db.HasTable(m)
-	if h != true {
-		db.CreateTable(m)
-	}
-}
-
-func shopsTable(m model.Shop, db *gorm.DB) {
-	h := db.HasTable(m)
-	if h != true {
-		db.CreateTable(m)
+func tableExists(db *gorm.DB, models ...interface{}) {
+	for _, model := range models {
+		if db.HasTable(model) != true {
+			db.CreateTable(model)
+		}
 	}
 }
