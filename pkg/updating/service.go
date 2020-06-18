@@ -4,25 +4,29 @@ Package updating includes database udpating operations
 package updating
 
 import (
+	"github.com/GGP1/palo/internal/utils/database"
 	"github.com/GGP1/palo/pkg/model"
-	"github.com/jinzhu/gorm"
 )
 
 // Service provides models updating operations.
 type Service interface {
-	UpdateUser(*model.User, string, *gorm.DB) error
-	UpdateProduct(*model.Product, string, *gorm.DB) error
-	UpdateShop(*model.Shop, string, *gorm.DB) error
+	UpdateUser(*model.User, string) error
+	UpdateProduct(*model.Product, string) error
+	UpdateShop(*model.Shop, string) error
 }
 
 // UpdateUser returns updates a user, returns an error
-func UpdateUser(user *model.User, id string, db *gorm.DB) error {
-	err := db.Model(&user).Where("id=?", id).Update(
+func UpdateUser(user *model.User, id string) error {
+	db, err := database.Connect()
+	if err != nil {
+		return err
+	}
+
+	err = db.Model(&user).Where("id=?", id).Update(
 		"firstname", user.Firstname,
 		"lastname", user.Lastname,
 		"email", user.Email).
 		Error
-
 	if err != nil {
 		return err
 	}
@@ -31,8 +35,13 @@ func UpdateUser(user *model.User, id string, db *gorm.DB) error {
 }
 
 // UpdateProduct updates a product, returns an error
-func UpdateProduct(product *model.Product, id string, db *gorm.DB) error {
-	err := db.Model(&product).Where("id=?", id).Update(
+func UpdateProduct(product *model.Product, id string) error {
+	db, err := database.Connect()
+	if err != nil {
+		return err
+	}
+
+	err = db.Model(&product).Where("id=?", id).Update(
 		"brand", product.Brand,
 		"category", product.Category,
 		"type", product.Type,
@@ -40,7 +49,6 @@ func UpdateProduct(product *model.Product, id string, db *gorm.DB) error {
 		"weight", product.Weight,
 		"price", product.Price).
 		Error
-
 	if err != nil {
 		return err
 	}
@@ -49,11 +57,15 @@ func UpdateProduct(product *model.Product, id string, db *gorm.DB) error {
 }
 
 // UpdateShop updates a shop, returns an error
-func UpdateShop(shop *model.Shop, id string, db *gorm.DB) error {
-	err := db.Model(&shop).Where("id=?", id).Update(
+func UpdateShop(shop *model.Shop, id string) error {
+	db, err := database.Connect()
+	if err != nil {
+		return err
+	}
+
+	err = db.Model(&shop).Where("id=?", id).Update(
 		"name", shop.Name).
 		Error
-
 	if err != nil {
 		return err
 	}

@@ -11,23 +11,16 @@ import (
 	"github.com/GGP1/palo/pkg/listing"
 	"github.com/GGP1/palo/pkg/model"
 	"github.com/GGP1/palo/pkg/updating"
-	"github.com/jinzhu/gorm"
 
 	"github.com/gorilla/mux"
 )
 
-// ProductHandler defines all of the handlers related to products. It holds the
-// application state needed by the handler methods.
-type ProductHandler struct {
-	DB *gorm.DB
-}
-
-// Get lists all the products
-func (ph *ProductHandler) Get() http.HandlerFunc {
+// GetProducts lists all the products
+func GetProducts() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var product []model.Product
 
-		err := listing.GetAll(&product, ph.DB)
+		err := listing.GetAll(&product)
 		if err != nil {
 			response.Respond(w, r, http.StatusNotFound, err)
 		}
@@ -36,15 +29,15 @@ func (ph *ProductHandler) Get() http.HandlerFunc {
 	}
 }
 
-// GetOne lists the product with the id requested
-func (ph *ProductHandler) GetOne() http.HandlerFunc {
+// GetOneProduct lists the product with the id requested
+func GetOneProduct() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var product model.Product
 
 		param := mux.Vars(r)
 		id := param["id"]
 
-		err := listing.GetOne(&product, id, ph.DB)
+		err := listing.GetOne(&product, id)
 		if err != nil {
 			w.WriteHeader(http.StatusNotFound)
 			io.WriteString(w, "Product not found")
@@ -55,8 +48,8 @@ func (ph *ProductHandler) GetOne() http.HandlerFunc {
 	}
 }
 
-// Add creates a new product and saves it
-func (ph *ProductHandler) Add() http.HandlerFunc {
+// AddProduct creates a new product and saves it
+func AddProduct() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var product model.Product
 
@@ -65,7 +58,7 @@ func (ph *ProductHandler) Add() http.HandlerFunc {
 		}
 		defer r.Body.Close()
 
-		err := adding.Add(&product, ph.DB)
+		err := adding.Add(&product)
 		if err != nil {
 			response.Respond(w, r, http.StatusNotFound, err)
 		}
@@ -74,8 +67,8 @@ func (ph *ProductHandler) Add() http.HandlerFunc {
 	}
 }
 
-// Update updates the product with the given id
-func (ph *ProductHandler) Update() http.HandlerFunc {
+// UpdateProduct updates the product with the given id
+func UpdateProduct() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var product model.Product
 
@@ -87,7 +80,7 @@ func (ph *ProductHandler) Update() http.HandlerFunc {
 		}
 		defer r.Body.Close()
 
-		err := updating.UpdateProduct(&product, id, ph.DB)
+		err := updating.UpdateProduct(&product, id)
 		if err != nil {
 			response.Respond(w, r, http.StatusNotFound, err)
 		}
@@ -96,15 +89,15 @@ func (ph *ProductHandler) Update() http.HandlerFunc {
 	}
 }
 
-// Delete deletes a product
-func (ph *ProductHandler) Delete() http.HandlerFunc {
+// DeleteProduct deletes a product
+func DeleteProduct() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var product model.Product
 
 		param := mux.Vars(r)
 		id := param["id"]
 
-		err := deleting.Delete(&product, id, ph.DB)
+		err := deleting.Delete(&product, id)
 		if err != nil {
 			response.Respond(w, r, http.StatusNotFound, err)
 		}

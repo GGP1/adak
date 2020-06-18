@@ -12,21 +12,14 @@ import (
 	"github.com/GGP1/palo/pkg/model"
 	"github.com/GGP1/palo/pkg/updating"
 	"github.com/gorilla/mux"
-	"github.com/jinzhu/gorm"
 )
 
-// ShopHandler defines all of the handlers related to shops. It holds the
-// application state needed by the handler methods.
-type ShopHandler struct {
-	DB *gorm.DB
-}
-
-// Get lists all the shops
-func (sh *ShopHandler) Get() http.HandlerFunc {
+// GetShops lists all the shops
+func GetShops() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var shop []model.Shop
 
-		err := listing.GetAll(&shop, sh.DB)
+		err := listing.GetAll(&shop)
 		if err != nil {
 			response.Respond(w, r, http.StatusNotFound, err)
 		}
@@ -35,15 +28,15 @@ func (sh *ShopHandler) Get() http.HandlerFunc {
 	}
 }
 
-// GetOne lists the shop with the id requested
-func (sh *ShopHandler) GetOne() http.HandlerFunc {
+// GetOneShop lists the shop with the id requested
+func GetOneShop() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var shop model.Shop
 
 		param := mux.Vars(r)
 		id := param["id"]
 
-		err := listing.GetOne(&shop, id, sh.DB)
+		err := listing.GetOne(&shop, id)
 		if err != nil {
 			w.WriteHeader(http.StatusNotFound)
 			io.WriteString(w, "Shop not found")
@@ -54,8 +47,8 @@ func (sh *ShopHandler) GetOne() http.HandlerFunc {
 	}
 }
 
-// Add creates a new shop and saves it
-func (sh *ShopHandler) Add() http.HandlerFunc {
+// AddShop creates a new shop and saves it
+func AddShop() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var shop model.Shop
 
@@ -64,7 +57,7 @@ func (sh *ShopHandler) Add() http.HandlerFunc {
 		}
 		defer r.Body.Close()
 
-		err := adding.Add(&shop, sh.DB)
+		err := adding.Add(&shop)
 		if err != nil {
 			response.Respond(w, r, http.StatusNotFound, err)
 		}
@@ -73,8 +66,8 @@ func (sh *ShopHandler) Add() http.HandlerFunc {
 	}
 }
 
-// Update updates the shop with the given id
-func (sh *ShopHandler) Update() http.HandlerFunc {
+// UpdateShop updates the shop with the given id
+func UpdateShop() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var shop model.Shop
 
@@ -86,7 +79,7 @@ func (sh *ShopHandler) Update() http.HandlerFunc {
 		}
 		defer r.Body.Close()
 
-		err := updating.UpdateShop(&shop, id, sh.DB)
+		err := updating.UpdateShop(&shop, id)
 		if err != nil {
 			response.Respond(w, r, http.StatusNotFound, err)
 		}
@@ -96,15 +89,15 @@ func (sh *ShopHandler) Update() http.HandlerFunc {
 	}
 }
 
-// Delete deletes a shop
-func (sh *ShopHandler) Delete() http.HandlerFunc {
+// DeleteShop deletes a shop
+func DeleteShop() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var shop model.Shop
 
 		param := mux.Vars(r)
 		id := param["id"]
 
-		err := deleting.Delete(&shop, id, sh.DB)
+		err := deleting.Delete(&shop, id)
 		if err != nil {
 			response.Respond(w, r, http.StatusNotFound, err)
 		}

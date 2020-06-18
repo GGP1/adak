@@ -3,8 +3,7 @@ package storage_test
 import (
 	"testing"
 
-	"github.com/GGP1/palo/pkg/storage"
-
+	db "github.com/GGP1/palo/internal/utils/database"
 	_ "github.com/lib/pq"
 )
 
@@ -23,7 +22,7 @@ func database(t *testing.T) {
 	{
 		t.Logf("\tTest 0:\tWhen checking the database connection.")
 		{
-			db, err := storage.Connect()
+			db, err := db.Connect()
 			if err != nil {
 				t.Fatalf("\t%s\tShould be able to connect to the database: %v", failed, err)
 			}

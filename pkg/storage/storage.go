@@ -12,8 +12,8 @@ import (
 	"github.com/jinzhu/gorm"
 )
 
-// Connect to the database
-func Connect() (*gorm.DB, error) {
+// Create a database
+func Database() (*gorm.DB, error) {
 	var err error
 
 	// Load env file

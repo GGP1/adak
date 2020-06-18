@@ -22,15 +22,16 @@ func main() {
 
 // func run for easier testing
 func run() {
-	// Connect to database
-	db, err := storage.Connect()
+	// Create a database connection, automigrate and
+	// check tables existence
+	db, err := storage.Database()
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer db.Close()
 
 	// New router
-	r := rest.NewRouter(db)
+	r := rest.NewRouter()
 
 	// Server setup
 	server := &http.Server{

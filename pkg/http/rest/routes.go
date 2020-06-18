@@ -7,54 +7,46 @@ import (
 	"io"
 	"net/http"
 
-	h "github.com/GGP1/palo/pkg/http/rest/handler"
+	"github.com/GGP1/palo/pkg/http/rest/handler"
 	"github.com/GGP1/palo/pkg/http/rest/middleware"
-	"github.com/jinzhu/gorm"
 
 	"github.com/gorilla/mux"
 )
 
 // NewRouter returns mux router
-func NewRouter(db *gorm.DB) http.Handler {
+func NewRouter() http.Handler {
 	r := mux.NewRouter().StrictSlash(true)
 
-	// Handlers
-	auth := h.AuthHandler{DB: db}
-	products := h.ProductHandler{DB: db}
-	users := h.UserHandler{DB: db}
-	shops := h.ShopHandler{DB: db}
-	reviews := h.ReviewHandler{DB: db}
-
 	// Auth
-	r.HandleFunc("/login", auth.Login()).Methods("POST")
-	r.HandleFunc("/logout", auth.Logout()).Methods("GET")
+	r.HandleFunc("/login", handler.Login()).Methods("POST")
+	r.HandleFunc("/logout", handler.Logout()).Methods("GET")
 
 	// Products
-	r.HandleFunc("/products", products.Get()).Methods("GET")
-	r.HandleFunc("/products/{id}", products.GetOne()).Methods("GET")
-	r.HandleFunc("/products/add", products.Add()).Methods("POST")
-	r.HandleFunc("/products/{id}", products.Update()).Methods("PUT")
-	r.HandleFunc("/products/{id}", products.Delete()).Methods("DELETE")
+	r.HandleFunc("/products", handler.GetProducts()).Methods("GET")
+	r.HandleFunc("/products/{id}", handler.GetOneProduct()).Methods("GET")
+	r.HandleFunc("/products/add", handler.AddProduct()).Methods("POST")
+	r.HandleFunc("/products/{id}", handler.UpdateProduct()).Methods("PUT")
+	r.HandleFunc("/products/{id}", handler.DeleteProduct()).Methods("DELETE")
 
 	// Reviews
-	r.HandleFunc("/reviews", reviews.Get()).Methods("GET")
-	r.HandleFunc("/reviews/{id}", reviews.GetOne()).Methods("GET")
-	r.HandleFunc("/reviews/add", reviews.Add()).Methods("POST")
-	r.HandleFunc("/reviews/{id}", reviews.Delete()).Methods("DELETE")
+	r.HandleFunc("/reviews", handler.GetReviews()).Methods("GET")
+	r.HandleFunc("/reviews/{id}", handler.GetOneReview()).Methods("GET")
+	r.HandleFunc("/reviews/add", handler.AddReview()).Methods("POST")
+	r.HandleFunc("/reviews/{id}", handler.DeleteReview()).Methods("DELETE")
 
 	// Shops
-	r.HandleFunc("/shops", shops.Get()).Methods("GET")
-	r.HandleFunc("/shops/{id}", shops.GetOne()).Methods("GET")
-	r.HandleFunc("/shops/add", shops.Add()).Methods("POST")
-	r.HandleFunc("/shops/{id}", shops.Update()).Methods("PUT")
-	r.HandleFunc("/shops/{id}", shops.Delete()).Methods("DELETE")
+	r.HandleFunc("/shops", handler.GetShops()).Methods("GET")
+	r.HandleFunc("/shops/{id}", handler.GetOneShop()).Methods("GET")
+	r.HandleFunc("/shops/add", handler.AddShop()).Methods("POST")
+	r.HandleFunc("/shops/{id}", handler.UpdateShop()).Methods("PUT")
+	r.HandleFunc("/shops/{id}", handler.DeleteShop()).Methods("DELETE")
 
 	// Users
-	r.HandleFunc("/users", users.Get()).Methods("GET")
-	r.HandleFunc("/users/{id}", users.GetOne()).Methods("GET")
-	r.HandleFunc("/users/add", users.Add()).Methods("POST")
-	r.HandleFunc("/users/{id}", users.Update()).Methods("PUT")
-	r.HandleFunc("/users/{id}", users.Delete()).Methods("DELETE")
+	r.HandleFunc("/users", handler.GetUsers()).Methods("GET")
+	r.HandleFunc("/users/{id}", handler.GetOneUser()).Methods("GET")
+	r.HandleFunc("/users/add", handler.AddUser()).Methods("POST")
+	r.HandleFunc("/users/{id}", handler.UpdateUser()).Methods("PUT")
+	r.HandleFunc("/users/{id}", handler.DeleteUser()).Methods("DELETE")
 
 	// Home
 	r.HandleFunc("/", home()).Methods("GET")
