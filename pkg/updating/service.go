@@ -17,7 +17,7 @@ type Service interface {
 
 // UpdateUser returns updates a user, returns an error
 func UpdateUser(user *model.User, id string) error {
-	db, err := database.Connect()
+	db, err := database.Connect(database.URL)
 	if err != nil {
 		return err
 	}
@@ -36,7 +36,7 @@ func UpdateUser(user *model.User, id string) error {
 
 // UpdateProduct updates a product, returns an error
 func UpdateProduct(product *model.Product, id string) error {
-	db, err := database.Connect()
+	db, err := database.Connect(database.URL)
 	if err != nil {
 		return err
 	}
@@ -58,7 +58,7 @@ func UpdateProduct(product *model.Product, id string) error {
 
 // UpdateShop updates a shop, returns an error
 func UpdateShop(shop *model.Shop, id string) error {
-	db, err := database.Connect()
+	db, err := database.Connect(database.URL)
 	if err != nil {
 		return err
 	}

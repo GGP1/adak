@@ -1,3 +1,5 @@
 .env
 
+/internal/utils/database/cfg.go
+
 /web/node_modules

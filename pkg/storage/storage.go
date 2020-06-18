@@ -4,24 +4,18 @@ Package storage makes the database connection
 package storage
 
 import (
-	"os"
-
-	"github.com/GGP1/palo/internal/utils/env"
+	"github.com/GGP1/palo/internal/utils/database"
 	"github.com/GGP1/palo/pkg/model"
 
 	"github.com/jinzhu/gorm"
 )
 
-// Create a database
+// Database creates a database and returns gorm.DB and an error
 func Database() (*gorm.DB, error) {
 	var err error
 
-	// Load env file
-	env.LoadEnv()
-	connStr := os.Getenv("PQ_URL")
-
 	// Connection
-	db, err := gorm.Open("postgres", connStr)
+	db, err := gorm.Open("postgres", database.URL)
 	if err != nil {
 		return nil, err
 	}

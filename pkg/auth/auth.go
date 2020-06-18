@@ -13,7 +13,7 @@ import (
 func SignIn(email, password string) (string, error) {
 	user := model.User{}
 
-	db, err := database.Connect()
+	db, err := database.Connect(database.URL)
 	if err != nil {
 		return "", err
 	}

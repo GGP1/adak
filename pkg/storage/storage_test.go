@@ -22,7 +22,7 @@ func database(t *testing.T) {
 	{
 		t.Logf("\tTest 0:\tWhen checking the database connection.")
 		{
-			db, err := db.Connect()
+			db, err := db.Connect(db.URL)
 			if err != nil {
 				t.Fatalf("\t%s\tShould be able to connect to the database: %v", failed, err)
 			}

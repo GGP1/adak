@@ -18,7 +18,7 @@ type Service interface {
 
 // Add takes the input model and appends it to the database
 func Add(model interface{}) error {
-	db, err := database.Connect()
+	db, err := database.Connect(database.URL)
 	if err != nil {
 		return err
 	}
@@ -32,7 +32,7 @@ func Add(model interface{}) error {
 // AddUser takes a new user, hashes its password, sends
 // a verification email and appends it to the database
 func AddUser(user *model.User) error {
-	db, err := database.Connect()
+	db, err := database.Connect(database.URL)
 	if err != nil {
 		return err
 	}

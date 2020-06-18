@@ -75,12 +75,12 @@ func startServer(server *http.Server) error {
 		// Asking listener to shutdown and load shed.
 		err := server.Shutdown(ctx)
 		if err != nil {
-			return fmt.Errorf("main : Graceful shutdown did not complete in %v : %v", timeout, err)
+			return fmt.Errorf("main: Graceful shutdown did not complete in %v : %v", timeout, err)
 		}
 
 		err = server.Close()
 		if err != nil {
-			return fmt.Errorf("main : Couldn't stop server gracefully : %v", err)
+			return fmt.Errorf("main: Couldn't stop server gracefully : %v", err)
 		}
 		return nil
 	}

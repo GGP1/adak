@@ -14,7 +14,7 @@ type Service interface {
 
 // Delete takes an item of the specified model from the database and permanently deletes it
 func Delete(model interface{}, id string) error {
-	db, err := database.Connect()
+	db, err := database.Connect(database.URL)
 	if err != nil {
 		return err
 	}
