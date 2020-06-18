@@ -4,7 +4,8 @@ Package listing includes database listing operations
 package listing
 
 import (
-	"github.com/GGP1/palo/internal/utils/database"
+	"github.com/GGP1/palo/internal/utils/cfg"
+	"github.com/jinzhu/gorm"
 )
 
 // Service provides models listing operations.
@@ -15,7 +16,7 @@ type Service interface {
 
 // GetAll lists all the items of the specified models in the database
 func GetAll(model interface{}) error {
-	db, err := database.Connect(database.URL)
+	db, err := gorm.Open("postgres", cfg.URL)
 	if err != nil {
 		return err
 	}
@@ -28,7 +29,7 @@ func GetAll(model interface{}) error {
 
 // GetOne lists just one item of the specified model from the database
 func GetOne(model interface{}, id string) error {
-	db, err := database.Connect(database.URL)
+	db, err := gorm.Open("postgres", cfg.URL)
 	if err != nil {
 		return err
 	}

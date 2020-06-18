@@ -4,10 +4,11 @@ Package adding includes database adding operations
 package adding
 
 import (
-	"github.com/GGP1/palo/internal/utils/database"
+	"github.com/GGP1/palo/internal/utils/cfg"
 	"github.com/GGP1/palo/internal/utils/email"
 	"github.com/GGP1/palo/pkg/auth/security"
 	"github.com/GGP1/palo/pkg/model"
+	"github.com/jinzhu/gorm"
 )
 
 // Service provides models adding operations.
@@ -18,7 +19,7 @@ type Service interface {
 
 // Add takes the input model and appends it to the database
 func Add(model interface{}) error {
-	db, err := database.Connect(database.URL)
+	db, err := gorm.Open("postgres", cfg.URL)
 	if err != nil {
 		return err
 	}
@@ -32,7 +33,7 @@ func Add(model interface{}) error {
 // AddUser takes a new user, hashes its password, sends
 // a verification email and appends it to the database
 func AddUser(user *model.User) error {
-	db, err := database.Connect(database.URL)
+	db, err := gorm.Open("postgres", cfg.URL)
 	if err != nil {
 		return err
 	}

@@ -3,7 +3,8 @@ package storage_test
 import (
 	"testing"
 
-	db "github.com/GGP1/palo/internal/utils/database"
+	"github.com/GGP1/palo/internal/utils/cfg"
+	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
 )
 
@@ -22,7 +23,7 @@ func database(t *testing.T) {
 	{
 		t.Logf("\tTest 0:\tWhen checking the database connection.")
 		{
-			db, err := db.Connect(db.URL)
+			db, err := gorm.Open("postgres", cfg.URL)
 			if err != nil {
 				t.Fatalf("\t%s\tShould be able to connect to the database: %v", failed, err)
 			}

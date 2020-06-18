@@ -4,8 +4,9 @@ Package updating includes database udpating operations
 package updating
 
 import (
-	"github.com/GGP1/palo/internal/utils/database"
+	"github.com/GGP1/palo/internal/utils/cfg"
 	"github.com/GGP1/palo/pkg/model"
+	"github.com/jinzhu/gorm"
 )
 
 // Service provides models updating operations.
@@ -17,11 +18,10 @@ type Service interface {
 
 // UpdateUser returns updates a user, returns an error
 func UpdateUser(user *model.User, id string) error {
-	db, err := database.Connect(database.URL)
+	db, err := gorm.Open("postgres", cfg.URL)
 	if err != nil {
 		return err
 	}
-
 	err = db.Model(&user).Where("id=?", id).Update(
 		"firstname", user.Firstname,
 		"lastname", user.Lastname,
@@ -36,11 +36,10 @@ func UpdateUser(user *model.User, id string) error {
 
 // UpdateProduct updates a product, returns an error
 func UpdateProduct(product *model.Product, id string) error {
-	db, err := database.Connect(database.URL)
+	db, err := gorm.Open("postgres", cfg.URL)
 	if err != nil {
 		return err
 	}
-
 	err = db.Model(&product).Where("id=?", id).Update(
 		"brand", product.Brand,
 		"category", product.Category,
@@ -58,11 +57,10 @@ func UpdateProduct(product *model.Product, id string) error {
 
 // UpdateShop updates a shop, returns an error
 func UpdateShop(shop *model.Shop, id string) error {
-	db, err := database.Connect(database.URL)
+	db, err := gorm.Open("postgres", cfg.URL)
 	if err != nil {
 		return err
 	}
-
 	err = db.Model(&shop).Where("id=?", id).Update(
 		"name", shop.Name).
 		Error

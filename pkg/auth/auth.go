@@ -4,18 +4,19 @@ Package auth is used for authenticating users functions
 package auth
 
 import (
-	"github.com/GGP1/palo/internal/utils/database"
+	"github.com/GGP1/palo/internal/utils/cfg"
 	"github.com/GGP1/palo/pkg/auth/security"
 	"github.com/GGP1/palo/pkg/model"
+	"github.com/jinzhu/gorm"
 )
 
 // SignIn authenticates users and returns a jwt token
 func SignIn(email, password string) (string, error) {
 	user := model.User{}
 
-	db, err := database.Connect(database.URL)
+	db, err := gorm.Open("postgres", cfg.URL)
 	if err != nil {
-		return "", err
+		return "err", nil
 	}
 
 	err = db.Where("email = ?", email).Take(&user).Error
