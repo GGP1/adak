@@ -6,7 +6,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/GGP1/palo/internal/utils/env"
+	"github.com/GGP1/palo/internal/env"
 	"github.com/GGP1/palo/pkg/model"
 	"github.com/dgrijalva/jwt-go"
 	"github.com/dgrijalva/jwt-go/request"

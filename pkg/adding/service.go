@@ -4,8 +4,8 @@ Package adding includes database adding operations
 package adding
 
 import (
-	"github.com/GGP1/palo/internal/utils/cfg"
-	"github.com/GGP1/palo/internal/utils/email"
+	"github.com/GGP1/palo/internal/cfg"
+	"github.com/GGP1/palo/internal/email"
 	"github.com/GGP1/palo/pkg/auth/security"
 	"github.com/GGP1/palo/pkg/model"
 	"github.com/jinzhu/gorm"
