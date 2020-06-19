@@ -24,11 +24,11 @@ func main() {
 func run() {
 	// Create a database connection, automigrate and
 	// check tables existence
-	db, err := storage.Database()
+	_, close, err := storage.Database()
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer db.Close()
+	defer close()
 
 	// New router
 	r := rest.NewRouter()

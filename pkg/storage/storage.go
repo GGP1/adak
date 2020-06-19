@@ -4,23 +4,24 @@ Package storage makes the database connection
 package storage
 
 import (
-	"github.com/GGP1/palo/internal/utils/cfg"
+	"github.com/GGP1/palo/internal/cfg"
 	"github.com/GGP1/palo/pkg/model"
 
 	"github.com/jinzhu/gorm"
 )
 
 // Database creates a database and returns gorm.DB and an error
-func Database() (*gorm.DB, error) {
+// Returning the close function so it's not avoided in the future
+func Database() (*gorm.DB, func() error, error) {
 	// Connection
 	db, err := gorm.Open("postgres", cfg.URL)
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	err = db.DB().Ping()
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 
 	// Auto-migrate models to the db
@@ -29,7 +30,7 @@ func Database() (*gorm.DB, error) {
 	// Check if database tables are already created
 	tableExists(db, model.Product{}, model.User{}, model.Review{}, model.Shop{})
 
-	return db, nil
+	return db, db.Close, nil
 }
 
 // Check if database tables are already
