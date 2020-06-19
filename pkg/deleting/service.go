@@ -4,7 +4,7 @@ Package deleting includes database deleting operations
 package deleting
 
 import (
-	"github.com/GGP1/palo/internal/utils/cfg"
+	"github.com/GGP1/palo/internal/cfg"
 	"github.com/jinzhu/gorm"
 )
 

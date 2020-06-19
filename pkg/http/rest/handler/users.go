@@ -5,7 +5,7 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/GGP1/palo/internal/utils/response"
+	"github.com/GGP1/palo/internal/response"
 	"github.com/GGP1/palo/pkg/adding"
 	"github.com/GGP1/palo/pkg/deleting"
 	"github.com/GGP1/palo/pkg/listing"
@@ -21,7 +21,6 @@ func GetUsers() http.HandlerFunc {
 		var user []model.User
 
 		err := listing.GetAll(&user)
-
 		if err != nil {
 			response.Respond(w, r, http.StatusInternalServerError, err)
 		}
