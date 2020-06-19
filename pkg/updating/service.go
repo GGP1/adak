@@ -4,7 +4,7 @@ Package updating includes database udpating operations
 package updating
 
 import (
-	"github.com/GGP1/palo/internal/cfg"
+	"github.com/GGP1/palo/internal/utils/cfg"
 	"github.com/GGP1/palo/pkg/model"
 	"github.com/jinzhu/gorm"
 )

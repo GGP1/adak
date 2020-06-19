@@ -4,7 +4,7 @@ Package listing includes database listing operations
 package listing
 
 import (
-	"github.com/GGP1/palo/internal/cfg"
+	"github.com/GGP1/palo/internal/utils/cfg"
 	"github.com/jinzhu/gorm"
 )
 

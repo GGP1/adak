@@ -9,7 +9,7 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/GGP1/palo/internal/response"
+	"github.com/GGP1/palo/internal/utils/response"
 	"github.com/GGP1/palo/pkg/auth"
 	"github.com/GGP1/palo/pkg/model"
 

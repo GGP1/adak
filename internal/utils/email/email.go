@@ -7,7 +7,7 @@ import (
 	"log"
 	"os"
 
-	"github.com/GGP1/palo/internal/env"
+	"github.com/GGP1/palo/internal/utils/env"
 	"github.com/GGP1/palo/pkg/model"
 
 	"github.com/sendgrid/sendgrid-go"

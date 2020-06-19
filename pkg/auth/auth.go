@@ -4,7 +4,7 @@ Package auth is used for authenticating users functions
 package auth
 
 import (
-	"github.com/GGP1/palo/internal/cfg"
+	"github.com/GGP1/palo/internal/utils/cfg"
 	"github.com/GGP1/palo/pkg/auth/security"
 	"github.com/GGP1/palo/pkg/model"
 	"github.com/jinzhu/gorm"
