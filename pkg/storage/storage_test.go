@@ -1,9 +1,11 @@
 package storage_test
 
 import (
+	"reflect"
 	"testing"
 
-	"github.com/GGP1/palo/internal/utils/cfg"
+	"github.com/GGP1/palo/internal/cfg"
+
 	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
 )
@@ -28,8 +30,15 @@ func database(t *testing.T) {
 				t.Fatalf("\t%s\tShould be able to connect to the database: %v", failed, err)
 			}
 			t.Logf("\t%s\tShould be able to connect to the database.", succeed)
-
 			defer db.Close()
+
+			t.Logf("\tTest 1:\tWhen checking the db variable is valid.")
+			{
+				if reflect.TypeOf(db) != reflect.TypeOf(&gorm.DB{}) {
+					t.Fatalf("\t%s\tShould be of type *gorm.DB: %T", failed, db)
+				}
+				t.Logf("\t%s\tShould be of type *gorm.DB.", succeed)
+			}
 		}
 	}
 }

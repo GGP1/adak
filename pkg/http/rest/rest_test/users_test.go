@@ -9,34 +9,28 @@ import (
 	"github.com/badoux/checkmail"
 )
 
-// Checkboxes
-const (
-	succeed = "\u2713"
-	failed  = "\u2717"
-)
-
 func TestUsersHandler(t *testing.T) {
 	t.Run("Add", add)
 	t.Run("List", list)
 }
 
 func list(t *testing.T) {
-	req := httptest.NewRequest("GET", "/users", nil)
+	req := httptest.NewRequest("GET", "localhost:4000/users", nil)
 	rec := httptest.NewRecorder()
 
-	handler.GetUsers().ServeHTTP(rec, req)
+	handler := handler.GetUsers()
+	handler(rec, req)
 
 	res := rec.Result()
 	defer res.Body.Close()
 
 	t.Log("Given the need to check the user handler.")
 	{
-		t.Logf("When checking status code.")
+		t.Logf("\t Test 0: When checking status code.")
 		{
 			if res.StatusCode != http.StatusOK {
-				t.Errorf("\t%s\tShould return %v: returned %v", failed, http.StatusOK, res.StatusCode)
+				t.Errorf("\t%s\tShould return %v: got %v", failed, http.StatusOK, res.StatusCode)
 			}
-			t.Logf("\t%s\tShould return %v", succeed, http.StatusOK)
 		}
 	}
 }

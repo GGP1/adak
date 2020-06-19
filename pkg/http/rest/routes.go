@@ -49,7 +49,7 @@ func NewRouter() http.Handler {
 	r.HandleFunc("/users/{id}", handler.DeleteUser()).Methods("DELETE")
 
 	// Home
-	r.HandleFunc("/", home()).Methods("GET")
+	r.HandleFunc("/", Home()).Methods("GET")
 
 	// Email verification
 	r.HandleFunc("/verify", verify()).Methods("GET")
@@ -63,7 +63,7 @@ func NewRouter() http.Handler {
 }
 
 // Home page
-func home() http.HandlerFunc {
+func Home() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html; charset=UTF-8")
 		w.WriteHeader(http.StatusOK)
