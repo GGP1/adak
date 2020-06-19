@@ -1,5 +1,5 @@
 .env
 
-/internal/utils/cfg
+/internal/cfg
 
 /web/node_modules
