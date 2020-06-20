@@ -22,10 +22,10 @@ func GetProducts() http.HandlerFunc {
 
 		err := listing.GetAll(&product)
 		if err != nil {
-			response.Respond(w, r, http.StatusNotFound, err)
+			response.Text(w, r, http.StatusNotFound, err)
 		}
 
-		response.RespondJSON(w, r, http.StatusOK, product)
+		response.JSON(w, r, http.StatusOK, product)
 	}
 }
 
@@ -44,7 +44,7 @@ func GetOneProduct() http.HandlerFunc {
 			return
 		}
 
-		response.RespondJSON(w, r, http.StatusOK, product)
+		response.JSON(w, r, http.StatusOK, product)
 	}
 }
 
@@ -54,16 +54,16 @@ func AddProduct() http.HandlerFunc {
 		var product model.Product
 
 		if err := json.NewDecoder(r.Body).Decode(&product); err != nil {
-			response.Respond(w, r, http.StatusInternalServerError, err)
+			response.Text(w, r, http.StatusInternalServerError, err)
 		}
 		defer r.Body.Close()
 
 		err := adding.Add(&product)
 		if err != nil {
-			response.Respond(w, r, http.StatusNotFound, err)
+			response.Text(w, r, http.StatusNotFound, err)
 		}
 
-		response.RespondJSON(w, r, http.StatusCreated, product)
+		response.JSON(w, r, http.StatusCreated, product)
 	}
 }
 
@@ -76,16 +76,16 @@ func UpdateProduct() http.HandlerFunc {
 		id := param["id"]
 
 		if err := json.NewDecoder(r.Body).Decode(&product); err != nil {
-			response.Respond(w, r, http.StatusInternalServerError, err)
+			response.Text(w, r, http.StatusInternalServerError, err)
 		}
 		defer r.Body.Close()
 
 		err := updating.UpdateProduct(&product, id)
 		if err != nil {
-			response.Respond(w, r, http.StatusNotFound, err)
+			response.Text(w, r, http.StatusNotFound, err)
 		}
 
-		response.RespondJSON(w, r, http.StatusOK, product)
+		response.JSON(w, r, http.StatusOK, product)
 	}
 }
 
@@ -99,7 +99,7 @@ func DeleteProduct() http.HandlerFunc {
 
 		err := deleting.Delete(&product, id)
 		if err != nil {
-			response.Respond(w, r, http.StatusNotFound, err)
+			response.Text(w, r, http.StatusNotFound, err)
 		}
 
 		w.WriteHeader(http.StatusOK)

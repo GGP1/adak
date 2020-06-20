@@ -21,10 +21,10 @@ func GetShops() http.HandlerFunc {
 
 		err := listing.GetAll(&shop)
 		if err != nil {
-			response.Respond(w, r, http.StatusNotFound, err)
+			response.Text(w, r, http.StatusNotFound, err)
 		}
 
-		response.RespondJSON(w, r, http.StatusOK, shop)
+		response.JSON(w, r, http.StatusOK, shop)
 	}
 }
 
@@ -43,7 +43,7 @@ func GetOneShop() http.HandlerFunc {
 			return
 		}
 
-		response.RespondJSON(w, r, http.StatusOK, shop)
+		response.JSON(w, r, http.StatusOK, shop)
 	}
 }
 
@@ -53,16 +53,16 @@ func AddShop() http.HandlerFunc {
 		var shop model.Shop
 
 		if err := json.NewDecoder(r.Body).Decode(&shop); err != nil {
-			response.Respond(w, r, http.StatusInternalServerError, err)
+			response.Text(w, r, http.StatusInternalServerError, err)
 		}
 		defer r.Body.Close()
 
 		err := adding.Add(&shop)
 		if err != nil {
-			response.Respond(w, r, http.StatusNotFound, err)
+			response.Text(w, r, http.StatusNotFound, err)
 		}
 
-		response.RespondJSON(w, r, http.StatusOK, shop)
+		response.JSON(w, r, http.StatusOK, shop)
 	}
 }
 
@@ -75,13 +75,13 @@ func UpdateShop() http.HandlerFunc {
 		id := param["id"]
 
 		if err := json.NewDecoder(r.Body).Decode(&shop); err != nil {
-			response.Respond(w, r, http.StatusInternalServerError, err)
+			response.Text(w, r, http.StatusInternalServerError, err)
 		}
 		defer r.Body.Close()
 
 		err := updating.UpdateShop(&shop, id)
 		if err != nil {
-			response.Respond(w, r, http.StatusNotFound, err)
+			response.Text(w, r, http.StatusNotFound, err)
 		}
 
 		w.WriteHeader(http.StatusOK)
@@ -99,7 +99,7 @@ func DeleteShop() http.HandlerFunc {
 
 		err := deleting.Delete(&shop, id)
 		if err != nil {
-			response.Respond(w, r, http.StatusNotFound, err)
+			response.Text(w, r, http.StatusNotFound, err)
 		}
 
 		w.WriteHeader(http.StatusOK)

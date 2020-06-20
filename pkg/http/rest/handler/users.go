@@ -23,10 +23,10 @@ func GetUsers() http.HandlerFunc {
 		err := listing.GetAll(&user)
 
 		if err != nil {
-			response.Respond(w, r, http.StatusInternalServerError, err)
+			response.Text(w, r, http.StatusInternalServerError, err)
 		}
 
-		response.RespondJSON(w, r, http.StatusOK, user)
+		response.JSON(w, r, http.StatusOK, user)
 	}
 }
 
@@ -45,7 +45,7 @@ func GetOneUser() http.HandlerFunc {
 			return
 		}
 
-		response.RespondJSON(w, r, http.StatusOK, user)
+		response.JSON(w, r, http.StatusOK, user)
 	}
 }
 
@@ -55,16 +55,16 @@ func AddUser() http.HandlerFunc {
 		var user model.User
 
 		if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
-			response.Respond(w, r, http.StatusInternalServerError, err)
+			response.Text(w, r, http.StatusInternalServerError, err)
 		}
 		defer r.Body.Close()
 
 		err := adding.AddUser(&user)
 		if err != nil {
-			response.Respond(w, r, http.StatusInternalServerError, err)
+			response.Text(w, r, http.StatusInternalServerError, err)
 		}
 
-		response.RespondJSON(w, r, http.StatusOK, user)
+		response.JSON(w, r, http.StatusOK, user)
 		io.WriteString(w, "Please validate your email")
 	}
 }
@@ -78,16 +78,16 @@ func UpdateUser() http.HandlerFunc {
 		id := param["id"]
 
 		if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
-			response.Respond(w, r, http.StatusInternalServerError, err)
+			response.Text(w, r, http.StatusInternalServerError, err)
 		}
 		defer r.Body.Close()
 
 		err := updating.UpdateUser(&user, id)
 		if err != nil {
-			response.Respond(w, r, http.StatusInternalServerError, err)
+			response.Text(w, r, http.StatusInternalServerError, err)
 		}
 
-		response.RespondJSON(w, r, http.StatusOK, user)
+		response.JSON(w, r, http.StatusOK, user)
 	}
 }
 
@@ -101,7 +101,7 @@ func DeleteUser() http.HandlerFunc {
 
 		err := deleting.Delete(&user, id)
 		if err != nil {
-			response.Respond(w, r, http.StatusInternalServerError, err)
+			response.Text(w, r, http.StatusInternalServerError, err)
 		}
 
 		w.WriteHeader(http.StatusOK)
