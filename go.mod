@@ -13,4 +13,5 @@ require (
 	github.com/sendgrid/rest v2.4.1+incompatible // indirect
 	github.com/sendgrid/sendgrid-go v3.5.0+incompatible
 	golang.org/x/crypto v0.0.0-20200510223506-06a226fb4e37
+	golang.org/x/time v0.0.0-20200416051211-89c76fbcd5d1
 )

@@ -56,6 +56,7 @@ func NewRouter() http.Handler {
 
 	// Middlewares
 	r.Use(middleware.AllowCrossOrigin)
+	r.Use(middleware.LimitRate)
 
 	http.Handle("/", r)
 
