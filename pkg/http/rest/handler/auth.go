@@ -16,30 +16,57 @@ import (
 	"github.com/google/uuid"
 )
 
+// Repository provides access to the auth storage
+type Repository interface {
+	Login() http.HandlerFunc
+	Logout() http.HandlerFunc
+	AlreadyLoggedIn(http.ResponseWriter, *http.Request) bool
+}
+
+// Session provides auth operations
+type Session interface {
+	Login() http.HandlerFunc
+	Logout() http.HandlerFunc
+	AlreadyLoggedIn(http.ResponseWriter, *http.Request) bool
+}
+
+type userInfo struct {
+	email    string
+	lastSeen time.Time
+}
+
+type session struct {
+	store  map[string]userInfo
+	clean  time.Time
+	length int
+	r      Repository
+}
+
+// NewSession creates a new session with the necessary dependencies
+func NewSession(r Repository) Session {
+	return &session{
+		store:  make(map[string]userInfo),
+		clean:  time.Now(),
+		length: 0,
+		r:      r,
+	}
+}
+
 // Login takes a user and authenticates it
-func Login() http.HandlerFunc {
+func (s *session) Login() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		user := model.User{}
 
-		// Check if cookie already exists, if not, create it
-		_, err := r.Cookie("SID")
-		if err != nil {
-			id := uuid.New()
-
-			http.SetCookie(w, &http.Cookie{
-				Name:     "SID",
-				Value:    id.String(),
-				Path:     "/",
-				Domain:   "localhost",
-				Secure:   false,
-				HttpOnly: true,
-			})
+		// Check if the user is already logged in or not
+		if s.AlreadyLoggedIn(w, r) {
+			http.Redirect(w, r, "/", http.StatusSeeOther)
+			return
 		}
 
 		// Decode request body
-		err = json.NewDecoder(r.Body).Decode(&user)
+		err := json.NewDecoder(r.Body).Decode(&user)
 		if err != nil {
-			response.Respond(w, r, http.StatusUnauthorized, err)
+			response.Text(w, r, http.StatusUnauthorized, err)
 			return
 		}
 		defer r.Body.Close()
@@ -47,28 +74,49 @@ func Login() http.HandlerFunc {
 		// Validate it has no empty values
 		err = user.Validate("login")
 		if err != nil {
-			w.WriteHeader(http.StatusUnauthorized)
+			w.WriteHeader(http.StatusBadRequest)
 			io.WriteString(w, err.Error())
 			return
 		}
 
 		// Authenticate user
-		token, err := auth.SignIn(user.Email, user.Password)
+		_, err = auth.SignIn(user.Email, user.Password)
 		if err != nil {
 			w.WriteHeader(http.StatusUnauthorized)
 			io.WriteString(w, "Invalid email or password")
 			return
 		}
 
+		// Create uuid and cookie
+		sID := uuid.New()
+
+		cookie := &http.Cookie{
+			Name:     "SID",
+			Value:    sID.String(),
+			Path:     "/",
+			Domain:   "localhost",
+			Secure:   false,
+			HttpOnly: true,
+			MaxAge:   s.length,
+		}
+		http.SetCookie(w, cookie)
+		// Store user email and last connection in the session
+		s.store[cookie.Value] = userInfo{user.Email, time.Now()}
+
 		w.WriteHeader(http.StatusOK)
-		io.WriteString(w, token)
+		io.WriteString(w, "You are now logged in.")
 	}
 }
 
 // Logout removes the authentication cookie
-func Logout() http.HandlerFunc {
+func (s *session) Logout() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		http.SetCookie(w, &http.Cookie{
+		c, _ := r.Cookie("SID")
+
+		// delete session
+		delete(s.store, c.Value)
+
+		cookie := &http.Cookie{
 			Name:     "SID",
 			Value:    "0",
 			Expires:  time.Unix(1414414788, 1414414788000),
@@ -76,9 +124,45 @@ func Logout() http.HandlerFunc {
 			Domain:   "localhost",
 			Secure:   false,
 			HttpOnly: true,
-		})
+			MaxAge:   -1,
+		}
+
+		http.SetCookie(w, cookie)
+
+		// Clean up session
+		if time.Now().Sub(s.clean) > (time.Second * 30) {
+			go s.sessionClean()
+		}
 
 		w.WriteHeader(http.StatusOK)
-		io.WriteString(w, "You are now logged out")
+		io.WriteString(w, "You are now logged out.")
 	}
+}
+
+// AlreadyLoggedIn checks if the user have previously logged in
+func (s *session) AlreadyLoggedIn(w http.ResponseWriter, r *http.Request) bool {
+	cookie, err := r.Cookie("SID")
+	if err != nil {
+		return false
+	}
+
+	user, ok := s.store[cookie.Value]
+	if ok {
+		user.lastSeen = time.Now()
+		s.store[cookie.Value] = user
+	}
+
+	cookie.MaxAge = s.length
+	http.SetCookie(w, cookie)
+	return ok
+}
+
+// sessionClean deletes all the sessions that have expired
+func (s *session) sessionClean() {
+	for key, value := range s.store {
+		if time.Now().Sub(value.lastSeen) > (time.Hour * 120) {
+			delete(s.store, key)
+		}
+	}
+	s.clean = time.Now()
 }

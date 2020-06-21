@@ -7,46 +7,46 @@ import (
 	"io"
 	"net/http"
 
-	"github.com/GGP1/palo/pkg/http/rest/handler"
+	h "github.com/GGP1/palo/pkg/http/rest/handler"
 	"github.com/GGP1/palo/pkg/http/rest/middleware"
 
 	"github.com/gorilla/mux"
 )
 
 // NewRouter returns mux router
-func NewRouter() http.Handler {
+func NewRouter(authSession h.Session) http.Handler {
 	r := mux.NewRouter().StrictSlash(true)
 
 	// Auth
-	r.HandleFunc("/login", handler.Login()).Methods("POST")
-	r.HandleFunc("/logout", handler.Logout()).Methods("GET")
+	r.HandleFunc("/login", h.Session.Login(authSession)).Methods("POST")
+	r.HandleFunc("/logout", h.Session.Logout(authSession)).Methods("GET")
 
 	// Products
-	r.HandleFunc("/products", handler.GetProducts()).Methods("GET")
-	r.HandleFunc("/products/{id}", handler.GetOneProduct()).Methods("GET")
-	r.HandleFunc("/products/add", handler.AddProduct()).Methods("POST")
-	r.HandleFunc("/products/{id}", handler.UpdateProduct()).Methods("PUT")
-	r.HandleFunc("/products/{id}", handler.DeleteProduct()).Methods("DELETE")
+	r.HandleFunc("/products", h.GetProducts()).Methods("GET")
+	r.HandleFunc("/products/{id}", h.GetOneProduct()).Methods("GET")
+	r.HandleFunc("/products/add", h.AddProduct()).Methods("POST")
+	r.HandleFunc("/products/{id}", middleware.IsLoggedIn(h.UpdateProduct())).Methods("PUT")
+	r.HandleFunc("/products/{id}", middleware.IsLoggedIn(h.DeleteProduct())).Methods("DELETE")
 
 	// Reviews
-	r.HandleFunc("/reviews", handler.GetReviews()).Methods("GET")
-	r.HandleFunc("/reviews/{id}", handler.GetOneReview()).Methods("GET")
-	r.HandleFunc("/reviews/add", handler.AddReview()).Methods("POST")
-	r.HandleFunc("/reviews/{id}", handler.DeleteReview()).Methods("DELETE")
+	r.HandleFunc("/reviews", h.GetReviews()).Methods("GET")
+	r.HandleFunc("/reviews/{id}", h.GetOneReview()).Methods("GET")
+	r.HandleFunc("/reviews/add", middleware.IsLoggedIn(h.AddReview())).Methods("POST")
+	r.HandleFunc("/reviews/{id}", middleware.IsLoggedIn(h.DeleteReview())).Methods("DELETE")
 
 	// Shops
-	r.HandleFunc("/shops", handler.GetShops()).Methods("GET")
-	r.HandleFunc("/shops/{id}", handler.GetOneShop()).Methods("GET")
-	r.HandleFunc("/shops/add", handler.AddShop()).Methods("POST")
-	r.HandleFunc("/shops/{id}", handler.UpdateShop()).Methods("PUT")
-	r.HandleFunc("/shops/{id}", handler.DeleteShop()).Methods("DELETE")
+	r.HandleFunc("/shops", h.GetShops()).Methods("GET")
+	r.HandleFunc("/shops/{id}", h.GetOneShop()).Methods("GET")
+	r.HandleFunc("/shops/add", h.AddShop()).Methods("POST")
+	r.HandleFunc("/shops/{id}", middleware.IsLoggedIn(h.UpdateShop())).Methods("PUT")
+	r.HandleFunc("/shops/{id}", middleware.IsLoggedIn(h.DeleteShop())).Methods("DELETE")
 
 	// Users
-	r.HandleFunc("/users", handler.GetUsers()).Methods("GET")
-	r.HandleFunc("/users/{id}", handler.GetOneUser()).Methods("GET")
-	r.HandleFunc("/users/add", handler.AddUser()).Methods("POST")
-	r.HandleFunc("/users/{id}", handler.UpdateUser()).Methods("PUT")
-	r.HandleFunc("/users/{id}", handler.DeleteUser()).Methods("DELETE")
+	r.HandleFunc("/users", h.GetUsers()).Methods("GET")
+	r.HandleFunc("/users/{id}", h.GetOneUser()).Methods("GET")
+	r.HandleFunc("/users/add", h.AddUser()).Methods("POST")
+	r.HandleFunc("/users/{id}", middleware.IsLoggedIn(h.UpdateUser())).Methods("PUT")
+	r.HandleFunc("/users/{id}", middleware.IsLoggedIn(h.DeleteUser())).Methods("DELETE")
 
 	// Home
 	r.HandleFunc("/", Home()).Methods("GET")

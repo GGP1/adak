@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/GGP1/palo/pkg/http/rest"
+	"github.com/GGP1/palo/pkg/http/rest/handler"
 	"github.com/GGP1/palo/pkg/storage"
 
 	_ "github.com/lib/pq"
@@ -30,8 +31,12 @@ func run() {
 	}
 	defer close()
 
+	// Create auth session
+	repo := new(handler.Repository)
+	session := handler.NewSession(*repo)
+
 	// New router
-	r := rest.NewRouter()
+	r := rest.NewRouter(session)
 
 	// Server setup
 	server := &http.Server{
