@@ -4,6 +4,8 @@ Package adding includes database adding operations
 package adding
 
 import (
+	"errors"
+
 	"github.com/GGP1/palo/internal/cfg"
 	"github.com/GGP1/palo/internal/email"
 	"github.com/GGP1/palo/pkg/auth/security"
@@ -27,6 +29,7 @@ func Add(model interface{}) error {
 	if err := db.Create(model).Error; err != nil {
 		return err
 	}
+
 	return nil
 }
 
@@ -36,6 +39,10 @@ func AddUser(user *model.User) error {
 	db, err := gorm.Open("postgres", cfg.URL)
 	if err != nil {
 		return err
+	}
+
+	if user.Email == "" || user.Password == "" {
+		return errors.New("email or password missing")
 	}
 
 	// Hash password
