@@ -24,6 +24,7 @@ func GetUsers() http.HandlerFunc {
 
 		if err != nil {
 			response.Text(w, r, http.StatusInternalServerError, err)
+			return
 		}
 
 		response.JSON(w, r, http.StatusOK, user)
@@ -56,12 +57,14 @@ func AddUser() http.HandlerFunc {
 
 		if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
 			response.Text(w, r, http.StatusInternalServerError, err)
+			return
 		}
 		defer r.Body.Close()
 
 		err := adding.AddUser(&user)
 		if err != nil {
 			response.Text(w, r, http.StatusInternalServerError, err)
+			return
 		}
 
 		response.JSON(w, r, http.StatusOK, user)
@@ -79,12 +82,14 @@ func UpdateUser() http.HandlerFunc {
 
 		if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
 			response.Text(w, r, http.StatusInternalServerError, err)
+			return
 		}
 		defer r.Body.Close()
 
 		err := updating.UpdateUser(&user, id)
 		if err != nil {
 			response.Text(w, r, http.StatusInternalServerError, err)
+			return
 		}
 
 		response.JSON(w, r, http.StatusOK, user)
@@ -102,6 +107,7 @@ func DeleteUser() http.HandlerFunc {
 		err := deleting.Delete(&user, id)
 		if err != nil {
 			response.Text(w, r, http.StatusInternalServerError, err)
+			return
 		}
 
 		w.WriteHeader(http.StatusOK)

@@ -4,8 +4,6 @@ Package adding includes database adding operations
 package adding
 
 import (
-	"errors"
-
 	"github.com/GGP1/palo/internal/cfg"
 	"github.com/GGP1/palo/internal/email"
 	"github.com/GGP1/palo/pkg/auth/security"
@@ -41,8 +39,9 @@ func AddUser(user *model.User) error {
 		return err
 	}
 
-	if user.Email == "" || user.Password == "" {
-		return errors.New("email or password missing")
+	err = user.Validate("login")
+	if err != nil {
+		return err
 	}
 
 	// Hash password

@@ -22,6 +22,7 @@ func GetShops() http.HandlerFunc {
 		err := listing.GetAll(&shop)
 		if err != nil {
 			response.Text(w, r, http.StatusNotFound, err)
+			return
 		}
 
 		response.JSON(w, r, http.StatusOK, shop)
@@ -54,12 +55,14 @@ func AddShop() http.HandlerFunc {
 
 		if err := json.NewDecoder(r.Body).Decode(&shop); err != nil {
 			response.Text(w, r, http.StatusInternalServerError, err)
+			return
 		}
 		defer r.Body.Close()
 
 		err := adding.Add(&shop)
 		if err != nil {
 			response.Text(w, r, http.StatusNotFound, err)
+			return
 		}
 
 		response.JSON(w, r, http.StatusOK, shop)
@@ -76,12 +79,14 @@ func UpdateShop() http.HandlerFunc {
 
 		if err := json.NewDecoder(r.Body).Decode(&shop); err != nil {
 			response.Text(w, r, http.StatusInternalServerError, err)
+			return
 		}
 		defer r.Body.Close()
 
 		err := updating.UpdateShop(&shop, id)
 		if err != nil {
 			response.Text(w, r, http.StatusNotFound, err)
+			return
 		}
 
 		w.WriteHeader(http.StatusOK)

@@ -23,6 +23,7 @@ func GetProducts() http.HandlerFunc {
 		err := listing.GetAll(&product)
 		if err != nil {
 			response.Text(w, r, http.StatusNotFound, err)
+			return
 		}
 
 		response.JSON(w, r, http.StatusOK, product)
@@ -55,12 +56,14 @@ func AddProduct() http.HandlerFunc {
 
 		if err := json.NewDecoder(r.Body).Decode(&product); err != nil {
 			response.Text(w, r, http.StatusInternalServerError, err)
+			return
 		}
 		defer r.Body.Close()
 
 		err := adding.Add(&product)
 		if err != nil {
 			response.Text(w, r, http.StatusNotFound, err)
+			return
 		}
 
 		response.JSON(w, r, http.StatusCreated, product)
@@ -77,12 +80,14 @@ func UpdateProduct() http.HandlerFunc {
 
 		if err := json.NewDecoder(r.Body).Decode(&product); err != nil {
 			response.Text(w, r, http.StatusInternalServerError, err)
+			return
 		}
 		defer r.Body.Close()
 
 		err := updating.UpdateProduct(&product, id)
 		if err != nil {
 			response.Text(w, r, http.StatusNotFound, err)
+			return
 		}
 
 		response.JSON(w, r, http.StatusOK, product)
@@ -100,6 +105,7 @@ func DeleteProduct() http.HandlerFunc {
 		err := deleting.Delete(&product, id)
 		if err != nil {
 			response.Text(w, r, http.StatusNotFound, err)
+			return
 		}
 
 		w.WriteHeader(http.StatusOK)

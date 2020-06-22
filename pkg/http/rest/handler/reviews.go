@@ -21,6 +21,7 @@ func GetReviews() http.HandlerFunc {
 		err := listing.GetAll(&review)
 		if err != nil {
 			response.Text(w, r, http.StatusNotFound, err)
+			return
 		}
 
 		response.JSON(w, r, http.StatusOK, review)
@@ -53,12 +54,14 @@ func AddReview() http.HandlerFunc {
 
 		if err := json.NewDecoder(r.Body).Decode(&review); err != nil {
 			response.Text(w, r, http.StatusInternalServerError, err)
+			return
 		}
 		defer r.Body.Close()
 
 		err := adding.Add(&review)
 		if err != nil {
 			response.Text(w, r, http.StatusNotFound, err)
+			return
 		}
 
 		w.WriteHeader(http.StatusOK)
@@ -77,6 +80,7 @@ func DeleteReview() http.HandlerFunc {
 		err := deleting.Delete(&review, id)
 		if err != nil {
 			response.Text(w, r, http.StatusNotFound, err)
+			return
 		}
 
 		w.WriteHeader(http.StatusOK)
