@@ -22,53 +22,53 @@ func (u *User) Validate(action string) error {
 	switch strings.ToLower(action) {
 	case "update":
 		if u.Firstname == "" {
-			return errors.New("Firstname is required")
+			return errors.New("firstname is required")
 		}
 
 		if u.Lastname == "" {
-			return errors.New("Lastname is required")
+			return errors.New("lastname is required")
 		}
 
 		if u.Email == "" {
-			return errors.New("Email is required")
+			return errors.New("email is required")
 		}
 
 		if err := checkmail.ValidateFormat(u.Email); err != nil {
-			return errors.New("Invalid email")
+			return errors.New("invalid email")
 		}
 
 	case "login":
 		if u.Email == "" {
-			return errors.New("Email is required")
+			return errors.New("email is required")
 		}
 
 		if err := checkmail.ValidateFormat(u.Email); err != nil {
-			return errors.New("Invalid email")
+			return errors.New("invalid email")
 		}
 
 		if u.Password == "" {
-			return errors.New("Password is required")
+			return errors.New("password is required")
 		}
 
 	default:
 		if u.Firstname == "" {
-			return errors.New("Firstname is required")
+			return errors.New("firstname is required")
 		}
 
 		if u.Lastname == "" {
-			return errors.New("Lastname is required")
+			return errors.New("lastname is required")
 		}
 
 		if u.Password == "" {
-			return errors.New("Password is required")
+			return errors.New("password is required")
 		}
 
 		if u.Email == "" {
-			return errors.New("Email is required")
+			return errors.New("email is required")
 		}
 
 		if err := checkmail.ValidateFormat(u.Email); err != nil {
-			return errors.New("Invalid email")
+			return errors.New("invalid email")
 		}
 	}
 

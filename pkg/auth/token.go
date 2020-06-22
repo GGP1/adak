@@ -51,11 +51,11 @@ func ExtractToken(w http.ResponseWriter, r *http.Request) (*jwt.Token, error) {
 			vError := err.(*jwt.ValidationError)
 			switch vError.Errors {
 			case jwt.ValidationErrorExpired:
-				err = errors.New("Your token has expired")
+				err = errors.New("your token has expired")
 				w.WriteHeader(http.StatusUnauthorized)
 				return nil, err
 			case jwt.ValidationErrorSignatureInvalid:
-				err = errors.New("The signature is invalid")
+				err = errors.New("the signature is invalid")
 				w.WriteHeader(http.StatusUnauthorized)
 				return nil, err
 			default:
