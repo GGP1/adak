@@ -16,18 +16,18 @@ import (
 	"github.com/google/uuid"
 )
 
-// Repository provides access to the auth storage
-type Repository interface {
+// AuthRepository provides access to the auth storage
+type AuthRepository interface {
 	Login() http.HandlerFunc
 	Logout() http.HandlerFunc
-	AlreadyLoggedIn(http.ResponseWriter, *http.Request) bool
+	alreadyLoggedIn(http.ResponseWriter, *http.Request) bool
 }
 
 // Session provides auth operations
 type Session interface {
 	Login() http.HandlerFunc
 	Logout() http.HandlerFunc
-	AlreadyLoggedIn(http.ResponseWriter, *http.Request) bool
+	alreadyLoggedIn(http.ResponseWriter, *http.Request) bool
 }
 
 type userInfo struct {
@@ -36,19 +36,19 @@ type userInfo struct {
 }
 
 type session struct {
-	store  map[string]userInfo
-	clean  time.Time
-	length int
-	r      Repository
+	store      map[string]userInfo
+	clean      time.Time
+	length     int
+	repository AuthRepository
 }
 
 // NewSession creates a new session with the necessary dependencies
-func NewSession(r Repository) Session {
+func NewSession(r AuthRepository) Session {
 	return &session{
-		store:  make(map[string]userInfo),
-		clean:  time.Now(),
-		length: 0,
-		r:      r,
+		store:      make(map[string]userInfo),
+		clean:      time.Now(),
+		length:     0,
+		repository: r,
 	}
 }
 
@@ -58,7 +58,7 @@ func (s *session) Login() http.HandlerFunc {
 		user := model.User{}
 
 		// Check if the user is already logged in or not
-		if s.AlreadyLoggedIn(w, r) {
+		if s.alreadyLoggedIn(w, r) {
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			return
 		}
@@ -100,7 +100,7 @@ func (s *session) Login() http.HandlerFunc {
 			MaxAge:   s.length,
 		}
 		http.SetCookie(w, cookie)
-		// Store user email and last connection in the session
+		// Map store - cookieValue: userInfo
 		s.store[cookie.Value] = userInfo{user.Email, time.Now()}
 
 		w.WriteHeader(http.StatusOK)
@@ -113,7 +113,7 @@ func (s *session) Logout() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		c, _ := r.Cookie("SID")
 
-		// delete session
+		// Delete map key equal to the cookieValue
 		delete(s.store, c.Value)
 
 		cookie := &http.Cookie{
@@ -139,8 +139,8 @@ func (s *session) Logout() http.HandlerFunc {
 	}
 }
 
-// AlreadyLoggedIn checks if the user have previously logged in
-func (s *session) AlreadyLoggedIn(w http.ResponseWriter, r *http.Request) bool {
+// alreadyLoggedIn checks if the user have previously logged in
+func (s *session) alreadyLoggedIn(w http.ResponseWriter, r *http.Request) bool {
 	cookie, err := r.Cookie("SID")
 	if err != nil {
 		return false

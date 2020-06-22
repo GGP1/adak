@@ -14,12 +14,16 @@ import (
 )
 
 // NewRouter returns mux router
-func NewRouter(authSession h.Session) http.Handler {
+func NewRouter() http.Handler {
 	r := mux.NewRouter().StrictSlash(true)
 
+	// Create auth session
+	repo := new(h.AuthRepository)
+	session := h.NewSession(*repo)
+
 	// Auth
-	r.HandleFunc("/login", h.Session.Login(authSession)).Methods("POST")
-	r.HandleFunc("/logout", h.Session.Logout(authSession)).Methods("GET")
+	r.HandleFunc("/login", h.Session.Login(session)).Methods("POST")
+	r.HandleFunc("/logout", h.Session.Logout(session)).Methods("GET")
 
 	// Products
 	r.HandleFunc("/products", h.GetProducts()).Methods("GET")
