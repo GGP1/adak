@@ -58,6 +58,12 @@ func NewRouter() http.Handler {
 	// Email verification
 	r.HandleFunc("/verify", verify()).Methods("GET")
 
+	// Handle not found
+	r.NotFoundHandler = notFound()
+
+	// Handle method not allowed
+	r.MethodNotAllowedHandler = methodNotAllowed()
+
 	// Middlewares
 	r.Use(middleware.AllowCrossOrigin)
 	r.Use(middleware.LimitRate)
@@ -83,5 +89,17 @@ func verify() http.HandlerFunc {
 		w.Header().Set("Content-Type", "text/html; charset=UTF-8")
 		w.WriteHeader(http.StatusOK)
 		io.WriteString(w, "You have successfully confirmed your email!")
+	}
+}
+
+func notFound() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		http.NotFound(w, r)
+	}
+}
+
+func methodNotAllowed() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		http.Error(w, "405 method not allowed", http.StatusMethodNotAllowed)
 	}
 }
