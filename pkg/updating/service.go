@@ -4,6 +4,8 @@ Package updating includes database udpating operations
 package updating
 
 import (
+	"errors"
+
 	"github.com/GGP1/palo/internal/cfg"
 	"github.com/GGP1/palo/pkg/model"
 	"github.com/jinzhu/gorm"
@@ -22,13 +24,15 @@ func UpdateUser(user *model.User, id string) error {
 	if err != nil {
 		return err
 	}
+	defer db.Close()
+
 	err = db.Model(&user).Where("id=?", id).Update(
 		"firstname", user.Firstname,
 		"lastname", user.Lastname,
 		"email", user.Email).
 		Error
 	if err != nil {
-		return err
+		return errors.New("error: couldn't update the user")
 	}
 
 	return nil
@@ -40,6 +44,8 @@ func UpdateProduct(product *model.Product, id string) error {
 	if err != nil {
 		return err
 	}
+	defer db.Close()
+
 	err = db.Model(&product).Where("id=?", id).Update(
 		"brand", product.Brand,
 		"category", product.Category,
@@ -49,7 +55,7 @@ func UpdateProduct(product *model.Product, id string) error {
 		"price", product.Price).
 		Error
 	if err != nil {
-		return err
+		return errors.New("error: couldn't update the product")
 	}
 
 	return nil
@@ -61,11 +67,13 @@ func UpdateShop(shop *model.Shop, id string) error {
 	if err != nil {
 		return err
 	}
+	defer db.Close()
+
 	err = db.Model(&shop).Where("id=?", id).Update(
 		"name", shop.Name).
 		Error
 	if err != nil {
-		return err
+		return errors.New("error: couldn't update the shop")
 	}
 
 	return nil

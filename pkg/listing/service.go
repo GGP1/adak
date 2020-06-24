@@ -4,6 +4,8 @@ Package listing includes database listing operations
 package listing
 
 import (
+	"errors"
+
 	"github.com/GGP1/palo/internal/cfg"
 	"github.com/jinzhu/gorm"
 )
@@ -20,9 +22,10 @@ func GetAll(model interface{}) error {
 	if err != nil {
 		return err
 	}
+	defer db.Close()
 
 	if err = db.Find(model).Error; err != nil {
-		return err
+		return errors.New("error: couldn't find the models")
 	}
 	return nil
 }
@@ -33,9 +36,10 @@ func GetOne(model interface{}, id string) error {
 	if err != nil {
 		return err
 	}
+	defer db.Close()
 
 	if err := db.First(model, id).Error; err != nil {
-		return err
+		return errors.New("error: couldn't find the model")
 	}
 	return nil
 }
