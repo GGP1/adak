@@ -29,7 +29,7 @@ const (
 	reset  = "\033[0m"
 )
 
-// This struct helps us intercept the response status code
+// LoggingResponseWriter helps us intercept the response status code
 type loggingResponseWriter struct {
 	http.ResponseWriter
 	statusCode int
@@ -40,7 +40,7 @@ func newLoggingResponseWriter(w http.ResponseWriter) *loggingResponseWriter {
 	return &loggingResponseWriter{w, http.StatusOK}
 }
 
-// Intercept write header input (status code) and store it in our
+// WriteHeader intercepts write header input (status code) and store it in our
 // loggingResponseWriter struct to use it later
 func (lrw *loggingResponseWriter) WriteHeader(code int) {
 	lrw.statusCode = code
@@ -49,7 +49,8 @@ func (lrw *loggingResponseWriter) WriteHeader(code int) {
 
 // LogFormatter prints the server requests on the console.
 // It uses different colors depending on the request status
-// and the method called
+// and the method called.
+// Mux NotFound and MethodNotAllowed handlers not working
 func LogFormatter(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		lrw := newLoggingResponseWriter(w)
@@ -64,13 +65,13 @@ func LogFormatter(next http.Handler) http.Handler {
 		methodColor := methodColor(method)
 		resetColor := resetColor()
 
-		logString := fmt.Sprintf("[PALO] %v | %s %3d %s | %s %-7s %s | %#v",
+		log := fmt.Sprintf("[PALO] %v | %s %3d %s | %s %-7s %s | %#v",
 			timestamp,
 			statusColor, status, resetColor,
 			methodColor, method, resetColor,
 			path)
 
-		fmt.Println(logString)
+		fmt.Println(log)
 	})
 }
 
@@ -87,9 +88,7 @@ func statusCodeColor(code int) string {
 	}
 }
 
-func methodColor(reqMethod string) string {
-	method := reqMethod
-
+func methodColor(method string) string {
 	switch method {
 	case http.MethodGet:
 		return green

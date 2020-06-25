@@ -1,5 +1,5 @@
 /*
-Package auth is used for authenticating users functions
+Package auth provides authentication and authorization support.
 */
 package auth
 
