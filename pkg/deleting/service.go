@@ -4,10 +4,10 @@ Package deleting includes database deleting operations
 package deleting
 
 import (
-	"errors"
-
 	"github.com/GGP1/palo/internal/cfg"
+
 	"github.com/jinzhu/gorm"
+	"github.com/pkg/errors"
 )
 
 // Service provides models deleting operations.
@@ -24,7 +24,7 @@ func Delete(model interface{}, id string) error {
 	defer db.Close()
 
 	if err := db.Delete(model, id).Error; err != nil {
-		return errors.New("error: couldn't delete the model")
+		return errors.Wrapf(err, "error: couldn't delete the %s", model)
 	}
 	return nil
 }

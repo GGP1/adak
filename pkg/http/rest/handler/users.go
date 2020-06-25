@@ -2,7 +2,7 @@ package handler
 
 import (
 	"encoding/json"
-	"io"
+	"fmt"
 	"net/http"
 
 	"github.com/GGP1/palo/internal/response"
@@ -21,9 +21,8 @@ func GetUsers() http.HandlerFunc {
 		var user []model.User
 
 		err := listing.GetAll(&user)
-
 		if err != nil {
-			response.Text(w, r, http.StatusInternalServerError, err)
+			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
 
@@ -41,8 +40,7 @@ func GetOneUser() http.HandlerFunc {
 
 		err := listing.GetOne(&user, id)
 		if err != nil {
-			w.WriteHeader(http.StatusNotFound)
-			io.WriteString(w, "User not found")
+			response.Error(w, r, http.StatusNotFound, err)
 			return
 		}
 
@@ -56,19 +54,19 @@ func AddUser() http.HandlerFunc {
 		var user model.User
 
 		if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
-			response.Text(w, r, http.StatusInternalServerError, err)
+			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
 		defer r.Body.Close()
 
 		err := adding.AddUser(&user)
 		if err != nil {
-			response.Text(w, r, http.StatusInternalServerError, err)
+			response.Error(w, r, http.StatusBadRequest, err)
 			return
 		}
 
 		response.JSON(w, r, http.StatusOK, user)
-		io.WriteString(w, "Please validate your email")
+		fmt.Fprintln(w, "Please validate your email")
 	}
 }
 
@@ -81,14 +79,14 @@ func UpdateUser() http.HandlerFunc {
 		id := param["id"]
 
 		if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
-			response.Text(w, r, http.StatusInternalServerError, err)
+			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
 		defer r.Body.Close()
 
 		err := updating.UpdateUser(&user, id)
 		if err != nil {
-			response.Text(w, r, http.StatusInternalServerError, err)
+			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
 
@@ -106,11 +104,10 @@ func DeleteUser() http.HandlerFunc {
 
 		err := deleting.Delete(&user, id)
 		if err != nil {
-			response.Text(w, r, http.StatusInternalServerError, err)
+			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
 
-		w.WriteHeader(http.StatusOK)
-		io.WriteString(w, "User deleted")
+		response.Text(w, r, http.StatusOK, "User deleted successfully.")
 	}
 }

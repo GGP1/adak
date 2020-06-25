@@ -4,13 +4,13 @@ Package adding includes database adding operations
 package adding
 
 import (
-	"errors"
-
 	"github.com/GGP1/palo/internal/cfg"
 	"github.com/GGP1/palo/internal/email"
 	"github.com/GGP1/palo/pkg/auth/security"
 	"github.com/GGP1/palo/pkg/model"
+
 	"github.com/jinzhu/gorm"
+	"github.com/pkg/errors"
 )
 
 // Service provides models adding operations.
@@ -28,7 +28,7 @@ func Add(model interface{}) error {
 	defer db.Close()
 
 	if err := db.Create(model).Error; err != nil {
-		return errors.New("error: couldn't create the model")
+		return errors.Wrapf(err, "error: couldn't create the %s", model)
 	}
 
 	return nil
@@ -57,7 +57,7 @@ func AddUser(user *model.User) error {
 
 	// Create user
 	if err := db.Create(user).Error; err != nil {
-		return errors.New("error: couldn't create the user")
+		return errors.Wrap(err, "couldn't create the user")
 	}
 
 	// Send confirmation email to the user

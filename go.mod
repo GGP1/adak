@@ -14,4 +14,5 @@ require (
 	github.com/sendgrid/sendgrid-go v3.5.0+incompatible
 	golang.org/x/crypto v0.0.0-20200510223506-06a226fb4e37
 	golang.org/x/time v0.0.0-20200416051211-89c76fbcd5d1
+	github.com/pkg/errors v0.9.1
 )

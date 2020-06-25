@@ -2,7 +2,6 @@ package handler
 
 import (
 	"encoding/json"
-	"io"
 	"net/http"
 
 	"github.com/GGP1/palo/internal/response"
@@ -21,7 +20,7 @@ func GetShops() http.HandlerFunc {
 
 		err := listing.GetAll(&shop)
 		if err != nil {
-			response.Text(w, r, http.StatusNotFound, err)
+			response.Error(w, r, http.StatusNotFound, err)
 			return
 		}
 
@@ -39,8 +38,7 @@ func GetOneShop() http.HandlerFunc {
 
 		err := listing.GetOne(&shop, id)
 		if err != nil {
-			w.WriteHeader(http.StatusNotFound)
-			io.WriteString(w, "Shop not found")
+			response.Error(w, r, http.StatusNotFound, err)
 			return
 		}
 
@@ -54,14 +52,14 @@ func AddShop() http.HandlerFunc {
 		var shop model.Shop
 
 		if err := json.NewDecoder(r.Body).Decode(&shop); err != nil {
-			response.Text(w, r, http.StatusInternalServerError, err)
+			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
 		defer r.Body.Close()
 
 		err := adding.Add(&shop)
 		if err != nil {
-			response.Text(w, r, http.StatusNotFound, err)
+			response.Error(w, r, http.StatusNotFound, err)
 			return
 		}
 
@@ -78,19 +76,18 @@ func UpdateShop() http.HandlerFunc {
 		id := param["id"]
 
 		if err := json.NewDecoder(r.Body).Decode(&shop); err != nil {
-			response.Text(w, r, http.StatusInternalServerError, err)
+			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
 		defer r.Body.Close()
 
 		err := updating.UpdateShop(&shop, id)
 		if err != nil {
-			response.Text(w, r, http.StatusNotFound, err)
+			response.Error(w, r, http.StatusNotFound, err)
 			return
 		}
 
-		w.WriteHeader(http.StatusOK)
-		io.WriteString(w, "Shop updated")
+		response.Text(w, r, http.StatusOK, "Shop updated successfully.")
 	}
 }
 
@@ -104,10 +101,9 @@ func DeleteShop() http.HandlerFunc {
 
 		err := deleting.Delete(&shop, id)
 		if err != nil {
-			response.Text(w, r, http.StatusNotFound, err)
+			response.Error(w, r, http.StatusNotFound, err)
 		}
 
-		w.WriteHeader(http.StatusOK)
-		io.WriteString(w, "Shop deleted")
+		response.Text(w, r, http.StatusOK, "Shop deleted successfully.")
 	}
 }

@@ -4,9 +4,9 @@ Package rest contains all the functions related to the rest api
 package rest
 
 import (
-	"io"
 	"net/http"
 
+	"github.com/GGP1/palo/internal/response"
 	h "github.com/GGP1/palo/pkg/http/rest/handler"
 	"github.com/GGP1/palo/pkg/http/rest/middleware"
 
@@ -77,18 +77,14 @@ func NewRouter() http.Handler {
 // Home page
 func Home() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "text/html; charset=UTF-8")
-		w.WriteHeader(http.StatusOK)
-		io.WriteString(w, "Welcome to the Palo home page")
+		response.Text(w, r, http.StatusOK, "Welcome to the Palo home page")
 	}
 }
 
 // Email verification page
 func verify() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		w.Header().Set("Content-Type", "text/html; charset=UTF-8")
-		w.WriteHeader(http.StatusOK)
-		io.WriteString(w, "You have successfully confirmed your email!")
+		response.Text(w, r, http.StatusOK, "You have successfully confirmed your email!")
 	}
 }
 

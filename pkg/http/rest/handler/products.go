@@ -2,7 +2,6 @@ package handler
 
 import (
 	"encoding/json"
-	"io"
 	"net/http"
 
 	"github.com/GGP1/palo/internal/response"
@@ -22,7 +21,7 @@ func GetProducts() http.HandlerFunc {
 
 		err := listing.GetAll(&product)
 		if err != nil {
-			response.Text(w, r, http.StatusNotFound, err)
+			response.Error(w, r, http.StatusNotFound, err)
 			return
 		}
 
@@ -40,8 +39,7 @@ func GetOneProduct() http.HandlerFunc {
 
 		err := listing.GetOne(&product, id)
 		if err != nil {
-			w.WriteHeader(http.StatusNotFound)
-			io.WriteString(w, "Product not found")
+			response.Error(w, r, http.StatusNotFound, err)
 			return
 		}
 
@@ -55,14 +53,14 @@ func AddProduct() http.HandlerFunc {
 		var product model.Product
 
 		if err := json.NewDecoder(r.Body).Decode(&product); err != nil {
-			response.Text(w, r, http.StatusInternalServerError, err)
+			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
 		defer r.Body.Close()
 
 		err := adding.Add(&product)
 		if err != nil {
-			response.Text(w, r, http.StatusNotFound, err)
+			response.Error(w, r, http.StatusNotFound, err)
 			return
 		}
 
@@ -79,14 +77,14 @@ func UpdateProduct() http.HandlerFunc {
 		id := param["id"]
 
 		if err := json.NewDecoder(r.Body).Decode(&product); err != nil {
-			response.Text(w, r, http.StatusInternalServerError, err)
+			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
 		defer r.Body.Close()
 
 		err := updating.UpdateProduct(&product, id)
 		if err != nil {
-			response.Text(w, r, http.StatusNotFound, err)
+			response.Error(w, r, http.StatusNotFound, err)
 			return
 		}
 
@@ -104,11 +102,10 @@ func DeleteProduct() http.HandlerFunc {
 
 		err := deleting.Delete(&product, id)
 		if err != nil {
-			response.Text(w, r, http.StatusNotFound, err)
+			response.Error(w, r, http.StatusNotFound, err)
 			return
 		}
 
-		w.WriteHeader(http.StatusOK)
-		io.WriteString(w, "Product deleted")
+		response.Text(w, r, http.StatusOK, "Product deleted successfully.")
 	}
 }

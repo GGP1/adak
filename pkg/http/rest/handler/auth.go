@@ -66,7 +66,7 @@ func (s *session) Login() http.HandlerFunc {
 		// Decode request body
 		err := json.NewDecoder(r.Body).Decode(&user)
 		if err != nil {
-			response.Text(w, r, http.StatusUnauthorized, err)
+			response.Error(w, r, http.StatusUnauthorized, err)
 			return
 		}
 		defer r.Body.Close()
@@ -134,8 +134,7 @@ func (s *session) Logout() http.HandlerFunc {
 			go s.sessionClean()
 		}
 
-		w.WriteHeader(http.StatusOK)
-		io.WriteString(w, "You are now logged out.")
+		response.Text(w, r, http.StatusOK, "You are now logged out.")
 	}
 }
 

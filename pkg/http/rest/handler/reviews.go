@@ -2,7 +2,6 @@ package handler
 
 import (
 	"encoding/json"
-	"io"
 	"net/http"
 
 	"github.com/GGP1/palo/internal/response"
@@ -20,7 +19,7 @@ func GetReviews() http.HandlerFunc {
 
 		err := listing.GetAll(&review)
 		if err != nil {
-			response.Text(w, r, http.StatusNotFound, err)
+			response.Error(w, r, http.StatusNotFound, err)
 			return
 		}
 
@@ -38,8 +37,7 @@ func GetOneReview() http.HandlerFunc {
 
 		err := listing.GetOne(&review, id)
 		if err != nil {
-			w.WriteHeader(http.StatusNotFound)
-			io.WriteString(w, "Review not found")
+			response.Error(w, r, http.StatusNotFound, err)
 			return
 		}
 
@@ -53,19 +51,18 @@ func AddReview() http.HandlerFunc {
 		var review model.Review
 
 		if err := json.NewDecoder(r.Body).Decode(&review); err != nil {
-			response.Text(w, r, http.StatusInternalServerError, err)
+			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
 		defer r.Body.Close()
 
 		err := adding.Add(&review)
 		if err != nil {
-			response.Text(w, r, http.StatusNotFound, err)
+			response.Error(w, r, http.StatusNotFound, err)
 			return
 		}
 
-		w.WriteHeader(http.StatusOK)
-		io.WriteString(w, "Review deleted")
+		response.JSON(w, r, http.StatusOK, review)
 	}
 }
 
@@ -79,11 +76,10 @@ func DeleteReview() http.HandlerFunc {
 
 		err := deleting.Delete(&review, id)
 		if err != nil {
-			response.Text(w, r, http.StatusNotFound, err)
+			response.Error(w, r, http.StatusNotFound, err)
 			return
 		}
 
-		w.WriteHeader(http.StatusOK)
-		io.WriteString(w, "Review deleted")
+		response.Text(w, r, http.StatusOK, "Review deleted successfully.")
 	}
 }
