@@ -11,4 +11,5 @@ type Review struct {
 	Comment   string `json:"comment"`
 	UserID    uint   `json:"user_id"`
 	ProductID uint   `json:"product_id"`
+	ShopID    uint   `json:"shop_id"`
 }

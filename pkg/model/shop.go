@@ -9,6 +9,7 @@ type Shop struct {
 	gorm.Model
 	Name     string    `json:"name;omitempty"`
 	Location Location  `json:"location;omitempty"`
+	Reviews  []Review  `json:"reviews;omitempty" gorm:"foreignkey:ShopID"`
 	Products []Product `json:"products;omitempty" gorm:"foreignkey:ShopID"`
 }
 
