@@ -15,20 +15,52 @@ import (
 
 // Service provides models adding operations.
 type Service interface {
-	Add(interface{}) error
+	AddProduct(*model.Product) error
+	AddReview(*model.Review) error
+	AddShop(*model.Shop) error
 	AddUser(*model.User) error
 }
 
-// Add takes the input model and appends it to the database
-func Add(model interface{}) error {
+// AddProduct takes a new product and appends it to the database
+func AddProduct(product *model.Product) error {
 	db, err := gorm.Open("postgres", cfg.URL)
 	if err != nil {
 		return err
 	}
 	defer db.Close()
 
-	if err := db.Create(model).Error; err != nil {
-		return errors.Wrapf(err, "error: couldn't create the %s", model)
+	if err := db.Create(product).Error; err != nil {
+		return errors.Wrap(err, "error: couldn't create the product")
+	}
+
+	return nil
+}
+
+// AddReview takes a new review and appends it to the database
+func AddReview(review *model.Review) error {
+	db, err := gorm.Open("postgres", cfg.URL)
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+
+	if err := db.Create(review).Error; err != nil {
+		return errors.Wrap(err, "error: couldn't create the review")
+	}
+
+	return nil
+}
+
+// AddShop takes a new shop and appends it to the database
+func AddShop(shop *model.Shop) error {
+	db, err := gorm.Open("postgres", cfg.URL)
+	if err != nil {
+		return err
+	}
+	defer db.Close()
+
+	if err := db.Create(shop).Error; err != nil {
+		return errors.Wrap(err, "error: couldn't create the shop")
 	}
 
 	return nil

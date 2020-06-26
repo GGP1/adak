@@ -17,9 +17,9 @@ func GetReviews() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var review []model.Review
 
-		err := listing.GetAll(&review)
+		err := listing.GetReviews(&review)
 		if err != nil {
-			response.Error(w, r, http.StatusNotFound, err)
+			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
 
@@ -35,9 +35,9 @@ func GetOneReview() http.HandlerFunc {
 		param := mux.Vars(r)
 		id := param["id"]
 
-		err := listing.GetOne(&review, id)
+		err := listing.GetOneReview(&review, id)
 		if err != nil {
-			response.Error(w, r, http.StatusNotFound, err)
+			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
 
@@ -51,14 +51,14 @@ func AddReview() http.HandlerFunc {
 		var review model.Review
 
 		if err := json.NewDecoder(r.Body).Decode(&review); err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
+			response.Error(w, r, http.StatusBadRequest, err)
 			return
 		}
 		defer r.Body.Close()
 
-		err := adding.Add(&review)
+		err := adding.AddReview(&review)
 		if err != nil {
-			response.Error(w, r, http.StatusNotFound, err)
+			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
 
@@ -74,12 +74,12 @@ func DeleteReview() http.HandlerFunc {
 		param := mux.Vars(r)
 		id := param["id"]
 
-		err := deleting.Delete(&review, id)
+		err := deleting.DeleteReview(&review, id)
 		if err != nil {
-			response.Error(w, r, http.StatusNotFound, err)
+			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
 
-		response.Text(w, r, http.StatusOK, "Review deleted successfully.")
+		response.HTMLText(w, r, http.StatusOK, "Review deleted successfully.")
 	}
 }

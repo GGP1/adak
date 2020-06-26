@@ -18,9 +18,9 @@ func GetShops() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var shop []model.Shop
 
-		err := listing.GetAll(&shop)
+		err := listing.GetShops(&shop)
 		if err != nil {
-			response.Error(w, r, http.StatusNotFound, err)
+			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
 
@@ -36,9 +36,9 @@ func GetOneShop() http.HandlerFunc {
 		param := mux.Vars(r)
 		id := param["id"]
 
-		err := listing.GetOne(&shop, id)
+		err := listing.GetOneShop(&shop, id)
 		if err != nil {
-			response.Error(w, r, http.StatusNotFound, err)
+			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
 
@@ -52,14 +52,14 @@ func AddShop() http.HandlerFunc {
 		var shop model.Shop
 
 		if err := json.NewDecoder(r.Body).Decode(&shop); err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
+			response.Error(w, r, http.StatusBadRequest, err)
 			return
 		}
 		defer r.Body.Close()
 
-		err := adding.Add(&shop)
+		err := adding.AddShop(&shop)
 		if err != nil {
-			response.Error(w, r, http.StatusNotFound, err)
+			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
 
@@ -76,18 +76,18 @@ func UpdateShop() http.HandlerFunc {
 		id := param["id"]
 
 		if err := json.NewDecoder(r.Body).Decode(&shop); err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
+			response.Error(w, r, http.StatusBadRequest, err)
 			return
 		}
 		defer r.Body.Close()
 
 		err := updating.UpdateShop(&shop, id)
 		if err != nil {
-			response.Error(w, r, http.StatusNotFound, err)
+			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
 
-		response.Text(w, r, http.StatusOK, "Shop updated successfully.")
+		response.HTMLText(w, r, http.StatusOK, "Shop updated successfully.")
 	}
 }
 
@@ -99,11 +99,11 @@ func DeleteShop() http.HandlerFunc {
 		param := mux.Vars(r)
 		id := param["id"]
 
-		err := deleting.Delete(&shop, id)
+		err := deleting.DeleteShop(&shop, id)
 		if err != nil {
-			response.Error(w, r, http.StatusNotFound, err)
+			response.Error(w, r, http.StatusInternalServerError, err)
 		}
 
-		response.Text(w, r, http.StatusOK, "Shop deleted successfully.")
+		response.HTMLText(w, r, http.StatusOK, "Shop deleted successfully.")
 	}
 }

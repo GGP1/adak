@@ -19,9 +19,9 @@ func GetProducts() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var product []model.Product
 
-		err := listing.GetAll(&product)
+		err := listing.GetProducts(&product)
 		if err != nil {
-			response.Error(w, r, http.StatusNotFound, err)
+			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
 
@@ -37,9 +37,9 @@ func GetOneProduct() http.HandlerFunc {
 		param := mux.Vars(r)
 		id := param["id"]
 
-		err := listing.GetOne(&product, id)
+		err := listing.GetOneProduct(&product, id)
 		if err != nil {
-			response.Error(w, r, http.StatusNotFound, err)
+			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
 
@@ -53,14 +53,14 @@ func AddProduct() http.HandlerFunc {
 		var product model.Product
 
 		if err := json.NewDecoder(r.Body).Decode(&product); err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
+			response.Error(w, r, http.StatusBadRequest, err)
 			return
 		}
 		defer r.Body.Close()
 
-		err := adding.Add(&product)
+		err := adding.AddProduct(&product)
 		if err != nil {
-			response.Error(w, r, http.StatusNotFound, err)
+			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
 
@@ -77,14 +77,14 @@ func UpdateProduct() http.HandlerFunc {
 		id := param["id"]
 
 		if err := json.NewDecoder(r.Body).Decode(&product); err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
+			response.Error(w, r, http.StatusBadRequest, err)
 			return
 		}
 		defer r.Body.Close()
 
 		err := updating.UpdateProduct(&product, id)
 		if err != nil {
-			response.Error(w, r, http.StatusNotFound, err)
+			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
 
@@ -100,12 +100,12 @@ func DeleteProduct() http.HandlerFunc {
 		param := mux.Vars(r)
 		id := param["id"]
 
-		err := deleting.Delete(&product, id)
+		err := deleting.DeleteProduct(&product, id)
 		if err != nil {
-			response.Error(w, r, http.StatusNotFound, err)
+			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
 
-		response.Text(w, r, http.StatusOK, "Product deleted successfully.")
+		response.HTMLText(w, r, http.StatusOK, "Product deleted successfully.")
 	}
 }

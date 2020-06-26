@@ -20,7 +20,7 @@ func GetUsers() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var user []model.User
 
-		err := listing.GetAll(&user)
+		err := listing.GetUsers(&user)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
@@ -38,9 +38,9 @@ func GetOneUser() http.HandlerFunc {
 		param := mux.Vars(r)
 		id := param["id"]
 
-		err := listing.GetOne(&user, id)
+		err := listing.GetOneUser(&user, id)
 		if err != nil {
-			response.Error(w, r, http.StatusNotFound, err)
+			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
 
@@ -54,14 +54,14 @@ func AddUser() http.HandlerFunc {
 		var user model.User
 
 		if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
+			response.Error(w, r, http.StatusBadRequest, err)
 			return
 		}
 		defer r.Body.Close()
 
 		err := adding.AddUser(&user)
 		if err != nil {
-			response.Error(w, r, http.StatusBadRequest, err)
+			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
 
@@ -79,7 +79,7 @@ func UpdateUser() http.HandlerFunc {
 		id := param["id"]
 
 		if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
+			response.Error(w, r, http.StatusBadRequest, err)
 			return
 		}
 		defer r.Body.Close()
@@ -102,12 +102,12 @@ func DeleteUser() http.HandlerFunc {
 		param := mux.Vars(r)
 		id := param["id"]
 
-		err := deleting.Delete(&user, id)
+		err := deleting.DeleteUser(&user, id)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
 
-		response.Text(w, r, http.StatusOK, "User deleted successfully.")
+		response.HTMLText(w, r, http.StatusOK, "User deleted successfully.")
 	}
 }

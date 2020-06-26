@@ -15,9 +15,11 @@ import (
 func NewDatabase() (*gorm.DB, func() error, error) {
 	// Connection
 	db, err := gorm.Open("postgres", cfg.URL)
+	db.LogMode(true)
 	if err != nil {
 		return nil, nil, err
 	}
+	defer db.Close()
 
 	// Check connectivity
 	err = db.DB().Ping()
@@ -26,9 +28,9 @@ func NewDatabase() (*gorm.DB, func() error, error) {
 	}
 
 	// Auto-migrate models
-	db.AutoMigrate(&model.Product{}, &model.User{}, &model.Review{}, &model.Shop{})
+	db.AutoMigrate(&model.Product{}, &model.User{}, &model.Review{}, &model.Shop{}, &model.Location{})
 
-	tableExists(db, model.Product{}, model.User{}, model.Review{}, model.Shop{})
+	tableExists(db, model.Product{}, model.User{}, model.Review{}, model.Shop{}, model.Location{})
 
 	return db, db.Close, nil
 }
