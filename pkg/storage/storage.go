@@ -10,24 +10,24 @@ import (
 	"github.com/jinzhu/gorm"
 )
 
-// Database creates a database and returns gorm.DB and an error
-// Returning the close function so it's not avoided in the future
-func Database() (*gorm.DB, func() error, error) {
+// NewDatabase creates a database and returns gorm.DB and an error
+// Return the close function so it's not avoided in the future
+func NewDatabase() (*gorm.DB, func() error, error) {
 	// Connection
 	db, err := gorm.Open("postgres", cfg.URL)
 	if err != nil {
 		return nil, nil, err
 	}
 
+	// Check connectivity
 	err = db.DB().Ping()
 	if err != nil {
 		return nil, nil, err
 	}
 
-	// Auto-migrate models to the db
+	// Auto-migrate models
 	db.AutoMigrate(&model.Product{}, &model.User{}, &model.Review{}, &model.Shop{})
 
-	// Check if database tables are already created
 	tableExists(db, model.Product{}, model.User{}, model.Review{}, model.Shop{})
 
 	return db, db.Close, nil

@@ -20,11 +20,10 @@ func main() {
 	run()
 }
 
-// func run for easier testing
 func run() {
 	// Create a database connection, automigrate and
 	// check tables existence
-	_, close, err := storage.Database()
+	_, close, err := storage.NewDatabase()
 	if err != nil {
 		log.Fatal(err)
 	}

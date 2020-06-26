@@ -8,9 +8,9 @@ import (
 	"net/http"
 )
 
-// Text is the protocol function for plain text resposes
+// Text is the protocol function for html text resposes
 func Text(w http.ResponseWriter, r *http.Request, status int, text string) {
-	w.Header().Set("Content-Type", "plain/text; charset=UTF-8")
+	w.Header().Set("Content-Type", "text/html; charset=UTF-8")
 
 	w.WriteHeader(status)
 
