@@ -11,10 +11,11 @@ import (
 // User model
 type User struct {
 	gorm.Model
-	Firstname string `json:"firstname;not null"`
-	Lastname  string `json:"lastname;not null"`
-	Email     string `json:"email;unique;not null"`
-	Password  string `json:"password;not null"`
+	Firstname string   `json:"firstname;omitempty"`
+	Lastname  string   `json:"lastname;omitempty"`
+	Email     string   `json:"email;unique;omitempty"`
+	Password  string   `json:"password;omitempty"`
+	Reviews   []Review `json:"reviews" gorm:"foreignkey:UserID"`
 }
 
 // Validate checks if the inputs are correct
