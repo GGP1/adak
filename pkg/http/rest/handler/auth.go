@@ -134,7 +134,7 @@ func (s *session) Logout() http.HandlerFunc {
 			go s.sessionClean()
 		}
 
-		response.Text(w, r, http.StatusOK, "You are now logged out.")
+		response.HTMLText(w, r, http.StatusOK, "You are now logged out.")
 	}
 }
 
