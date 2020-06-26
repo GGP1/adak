@@ -20,14 +20,9 @@ func IsLoggedIn(f http.HandlerFunc) http.HandlerFunc {
 			}
 		}
 
-		cookie, err := r.Cookie("SID")
+		_, err := r.Cookie("SID")
 		if err != nil {
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
-			return
-		}
-
-		if cookie == nil {
-			http.Error(w, "Please log in to access", http.StatusUnauthorized)
+			http.Error(w, "Please log in to access.", http.StatusUnauthorized)
 			return
 		}
 

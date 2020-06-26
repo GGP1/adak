@@ -13,7 +13,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
-// NewRouter returns mux router
+// NewRouter creates and returns a mux router
 func NewRouter() http.Handler {
 	r := mux.NewRouter().StrictSlash(true)
 
@@ -58,12 +58,6 @@ func NewRouter() http.Handler {
 	// Email verification
 	r.HandleFunc("/verify", verify()).Methods("GET")
 
-	// Handle not found
-	r.NotFoundHandler = notFound()
-
-	// Handle method not allowed
-	r.MethodNotAllowedHandler = methodNotAllowed()
-
 	// Middlewares
 	r.Use(middleware.AllowCrossOrigin)
 	r.Use(middleware.LimitRate)
@@ -77,25 +71,13 @@ func NewRouter() http.Handler {
 // Home page
 func Home() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		response.Text(w, r, http.StatusOK, "Welcome to the Palo home page")
+		response.HTMLText(w, r, http.StatusOK, "Welcome to the Palo home page")
 	}
 }
 
 // Email verification page
 func verify() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		response.Text(w, r, http.StatusOK, "You have successfully confirmed your email!")
-	}
-}
-
-func notFound() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		http.NotFound(w, r)
-	}
-}
-
-func methodNotAllowed() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		http.Error(w, "405 method not allowed", http.StatusMethodNotAllowed)
+		response.HTMLText(w, r, http.StatusOK, "You have successfully confirmed your email!")
 	}
 }
