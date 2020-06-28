@@ -1,6 +1,6 @@
 package storage
 
-// This is a simplified cache inspired on
+// This is a custom cache inspired on
 // github.com/patrickmn/go-cache
 
 import (
@@ -15,6 +15,15 @@ const (
 	DefaultExpiration time.Duration = 0
 )
 
+// Cache holds a default expiration, a map of items,
+// the mutexes and its name
+type Cache struct {
+	name              string
+	defaultExpiration time.Duration
+	items             map[string]Item
+	mu                sync.RWMutex
+}
+
 // Item represents the object that the user stores
 // in the cache, with its expiration
 type Item struct {
@@ -22,16 +31,10 @@ type Item struct {
 	Expiration int64
 }
 
-// Cache holds a default expiration, a map of items
-// and the mutexes
-type Cache struct {
-	defaultExpiration time.Duration
-	items             map[string]Item
-	mu                sync.RWMutex
-}
-
 // NewCache creates a cache
-func NewCache(defaultExpiration time.Duration) *Cache {
+// TODO: Create a file that contains the cache map
+// and set 2 functions: load and save
+func NewCache(name string, defaultExpiration time.Duration) *Cache {
 	items := make(map[string]Item)
 
 	if defaultExpiration == 0 {
@@ -39,6 +42,7 @@ func NewCache(defaultExpiration time.Duration) *Cache {
 	}
 
 	newCache := &Cache{
+		name:              name,
 		defaultExpiration: defaultExpiration,
 		items:             items,
 	}
@@ -47,16 +51,20 @@ func NewCache(defaultExpiration time.Duration) *Cache {
 }
 
 // Add checks if an item doesn't exist yet, if not, stores it
-func (c *Cache) Add(key string, obj interface{}, defaultExpiration time.Duration) error {
+func (c *Cache) Add(name, key string, obj interface{}, defaultExpiration time.Duration) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	_, found := c.Get(key)
+	_, found := c.Get(name, key)
 	if found {
 		c.mu.Unlock()
 		return fmt.Errorf("Item %s already exists", key)
 	}
-	c.Set(key, obj, defaultExpiration)
+	if name != c.name {
+		return fmt.Errorf("Cache %s does not exist", name)
+	}
+
+	c.Set(name, key, obj, defaultExpiration)
 
 	return nil
 }
@@ -69,9 +77,13 @@ func (c *Cache) Delete(key string) {
 }
 
 // Get an item
-func (c *Cache) Get(key string) (interface{}, bool) {
+func (c *Cache) Get(name, key string) (interface{}, bool) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
+
+	if name != c.name {
+		return nil, false
+	}
 
 	item, found := c.items[key]
 	if !found {
@@ -89,10 +101,27 @@ func (c *Cache) Get(key string) (interface{}, bool) {
 	return item.Object, true
 }
 
+// ItemCount returns the number of items stored in the cache
+func (c *Cache) ItemCount(name string) (int, error) {
+	if name != c.name {
+		return 0, fmt.Errorf("Cache %s does not exist", name)
+	}
+
+	c.mu.RLock()
+	count := len(c.items)
+	c.mu.RUnlock()
+
+	return count, nil
+}
+
 // Items returns a map copy of the items stored in the cache
-func (c *Cache) Items() map[string]Item {
+func (c *Cache) Items(name string) (map[string]Item, error) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
+
+	if name != c.name {
+		return nil, fmt.Errorf("Cache %s does not exist", name)
+	}
 
 	newMap := make(map[string]Item, len(c.items))
 	now := time.Now().UnixNano()
@@ -105,27 +134,48 @@ func (c *Cache) Items() map[string]Item {
 		}
 		newMap[k] = v
 	}
-	return newMap
+	return newMap, nil
 }
 
 // Replace an item with a new one and store it
-func (c *Cache) Replace(key string, obj interface{}, defaultExpiration time.Duration) error {
+func (c *Cache) Replace(name, key string, obj interface{}, defaultExpiration time.Duration) error {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	_, found := c.Get(key)
+	if name != c.name {
+		return fmt.Errorf("Cache %s does not exist", name)
+	}
+
+	_, found := c.Get(name, key)
 	if !found {
 		c.mu.Unlock()
 		return fmt.Errorf("Item %s doesn't exist", key)
 	}
-	c.Set(key, obj, defaultExpiration)
+	c.Set(name, key, obj, defaultExpiration)
+
+	return nil
+}
+
+// Reset deletes all the items from the cache
+func (c *Cache) Reset(name string) error {
+	if name != c.name {
+		return fmt.Errorf("Cache %s does not exist", name)
+	}
+
+	c.mu.Lock()
+	c.items = map[string]Item{}
+	c.mu.Unlock()
 
 	return nil
 }
 
 // Set a new item to the cache
-func (c *Cache) Set(key string, obj interface{}, defaultExpiration time.Duration) {
+func (c *Cache) Set(name, key string, obj interface{}, defaultExpiration time.Duration) error {
 	var expiration int64
+
+	if name != c.name {
+		return fmt.Errorf("Cache %s does not exist", name)
+	}
 
 	if defaultExpiration == DefaultExpiration {
 		defaultExpiration = c.defaultExpiration
@@ -143,4 +193,6 @@ func (c *Cache) Set(key string, obj interface{}, defaultExpiration time.Duration
 	}
 
 	c.mu.Unlock()
+
+	return nil
 }
