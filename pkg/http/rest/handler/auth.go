@@ -5,7 +5,6 @@ package handler
 
 import (
 	"encoding/json"
-	"io"
 	"net/http"
 	"time"
 
@@ -74,16 +73,14 @@ func (s *session) Login() http.HandlerFunc {
 		// Validate it has no empty values
 		err = user.Validate("login")
 		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			io.WriteString(w, err.Error())
+			response.Error(w, r, http.StatusBadRequest, err)
 			return
 		}
 
 		// Authenticate user
 		_, err = auth.SignIn(user.Email, user.Password)
 		if err != nil {
-			w.WriteHeader(http.StatusUnauthorized)
-			io.WriteString(w, "Invalid email or password")
+			response.HTMLText(w, r, http.StatusUnauthorized, "error: Invalid email or password")
 			return
 		}
 
@@ -103,8 +100,7 @@ func (s *session) Login() http.HandlerFunc {
 		// Map store - cookieValue: userInfo
 		s.store[cookie.Value] = userInfo{user.Email, time.Now()}
 
-		w.WriteHeader(http.StatusOK)
-		io.WriteString(w, "You are now logged in.")
+		response.HTMLText(w, r, http.StatusOK, "You logged in!")
 	}
 }
 
