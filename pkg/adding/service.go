@@ -13,8 +13,8 @@ import (
 	"github.com/pkg/errors"
 )
 
-// Service provides models adding operations.
-type Service interface {
+// Adder provides models adding operations.
+type Adder interface {
 	AddProduct(*model.Product) error
 	AddReview(*model.Review) error
 	AddShop(*model.Shop) error

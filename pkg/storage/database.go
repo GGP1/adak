@@ -11,6 +11,7 @@ import (
 )
 
 // NewDatabase creates a database and returns gorm.DB and an error
+//
 // Return the close function so it's not avoided in the future
 func NewDatabase() (*gorm.DB, func() error, error) {
 	// Connection

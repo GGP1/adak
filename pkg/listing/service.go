@@ -11,8 +11,8 @@ import (
 	"github.com/pkg/errors"
 )
 
-// Service provides models listing operations.
-type Service interface {
+// Lister provides models listing operations.
+type Lister interface {
 	GetProducts(*[]model.Product) error
 	GetOneProduct(*model.Product, string) error
 	GetReviews(*[]model.Review) error

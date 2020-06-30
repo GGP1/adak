@@ -11,8 +11,8 @@ import (
 	"github.com/pkg/errors"
 )
 
-// Service provides models deleting operations.
-type Service interface {
+// Deleter provides models deleting operations.
+type Deleter interface {
 	DeleteProduct(*model.Product, string) error
 	DeleteReview(*model.Review, string) error
 	DeleteShop(*model.Shop, string) error

@@ -11,8 +11,8 @@ import (
 	"github.com/jinzhu/gorm"
 )
 
-// Service provides models updating operations.
-type Service interface {
+// Updater provides models updating operations.
+type Updater interface {
 	UpdateUser(*model.User, string) error
 	UpdateProduct(*model.Product, string) error
 	UpdateShop(*model.Shop, string) error

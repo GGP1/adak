@@ -14,8 +14,7 @@ import (
 
 // GenerateJWT creates a new jwt token
 func GenerateJWT(user model.User) (string, error) {
-	// Load env file
-	env.LoadEnv()
+	env.Load()
 
 	key := []byte(os.Getenv("SECRET_KEY"))
 
@@ -31,8 +30,7 @@ func GenerateJWT(user model.User) (string, error) {
 
 // ExtractToken retrieves the token from headers as a query
 func ExtractToken(w http.ResponseWriter, r *http.Request) (*jwt.Token, error) {
-	// Load env variables
-	env.LoadEnv()
+	env.Load()
 
 	key := []byte(os.Getenv("SECRET_KEY"))
 

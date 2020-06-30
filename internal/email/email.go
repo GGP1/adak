@@ -16,7 +16,7 @@ import (
 
 // Confirmation sends a confirmation email to the user
 func Confirmation(user *model.User) {
-	env.LoadEnv()
+	env.Load()
 
 	// Mail content
 	from := mail.NewEmail("Palo API", os.Getenv("EMAIL_SENDER"))
