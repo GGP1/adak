@@ -28,8 +28,8 @@ func GetShops() http.HandlerFunc {
 	}
 }
 
-// GetOneShop lists the shop with the id requested
-func GetOneShop() http.HandlerFunc {
+// GetShopByID lists the shop with the id requested
+func GetShopByID() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var shop model.Shop
 

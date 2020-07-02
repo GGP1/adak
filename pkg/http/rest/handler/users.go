@@ -30,8 +30,8 @@ func GetUsers() http.HandlerFunc {
 	}
 }
 
-// GetOneUser lists the user with the id requested
-func GetOneUser() http.HandlerFunc {
+// GetUserByID lists the user with the id requested
+func GetUserByID() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var user model.User
 

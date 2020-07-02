@@ -2,5 +2,6 @@
 TODO.txt
 
 internal/cfg
+cmd/server/server.exe
 
 /web/node_modules

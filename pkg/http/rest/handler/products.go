@@ -29,8 +29,8 @@ func GetProducts() http.HandlerFunc {
 	}
 }
 
-// GetOneProduct lists the product with the id requested
-func GetOneProduct() http.HandlerFunc {
+// GetProductByID lists the product with the id requested
+func GetProductByID() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var product model.Product
 

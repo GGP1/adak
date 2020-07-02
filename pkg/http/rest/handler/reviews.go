@@ -27,8 +27,8 @@ func GetReviews() http.HandlerFunc {
 	}
 }
 
-// GetOneReview lists the review with the id requested
-func GetOneReview() http.HandlerFunc {
+// GetReviewByID lists the review with the id requested
+func GetReviewByID() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var review model.Review
 

@@ -27,27 +27,27 @@ func NewRouter() http.Handler {
 
 	// Products
 	r.HandleFunc("/products", h.GetProducts()).Methods("GET")
-	r.HandleFunc("/products/{id}", h.GetOneProduct()).Methods("GET")
+	r.HandleFunc("/products/{id}", h.GetProductByID()).Methods("GET")
 	r.HandleFunc("/products/add", h.AddProduct()).Methods("POST")
 	r.HandleFunc("/products/{id}", middleware.IsLoggedIn(h.UpdateProduct())).Methods("PUT")
 	r.HandleFunc("/products/{id}", middleware.IsLoggedIn(h.DeleteProduct())).Methods("DELETE")
 
 	// Reviews
 	r.HandleFunc("/reviews", h.GetReviews()).Methods("GET")
-	r.HandleFunc("/reviews/{id}", h.GetOneReview()).Methods("GET")
+	r.HandleFunc("/reviews/{id}", h.GetReviewByID()).Methods("GET")
 	r.HandleFunc("/reviews/add", middleware.IsLoggedIn(h.AddReview())).Methods("POST")
 	r.HandleFunc("/reviews/{id}", middleware.IsLoggedIn(h.DeleteReview())).Methods("DELETE")
 
 	// Shops
 	r.HandleFunc("/shops", h.GetShops()).Methods("GET")
-	r.HandleFunc("/shops/{id}", h.GetOneShop()).Methods("GET")
+	r.HandleFunc("/shops/{id}", h.GetShopByID()).Methods("GET")
 	r.HandleFunc("/shops/add", h.AddShop()).Methods("POST")
 	r.HandleFunc("/shops/{id}", middleware.IsLoggedIn(h.UpdateShop())).Methods("PUT")
 	r.HandleFunc("/shops/{id}", middleware.IsLoggedIn(h.DeleteShop())).Methods("DELETE")
 
 	// Users
 	r.HandleFunc("/users", h.GetUsers()).Methods("GET")
-	r.HandleFunc("/users/{id}", h.GetOneUser()).Methods("GET")
+	r.HandleFunc("/users/{id}", h.GetUserByID()).Methods("GET")
 	r.HandleFunc("/users/add", h.AddUser()).Methods("POST")
 	r.HandleFunc("/users/{id}", middleware.IsLoggedIn(h.UpdateUser())).Methods("PUT")
 	r.HandleFunc("/users/{id}", middleware.IsLoggedIn(h.DeleteUser())).Methods("DELETE")

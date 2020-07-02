@@ -148,7 +148,7 @@ func (s *session) alreadyLoggedIn(w http.ResponseWriter, r *http.Request) bool {
 	}
 
 	cookie.MaxAge = s.length
-	http.SetCookie(w, cookie)
+
 	return ok
 }
 
