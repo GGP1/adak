@@ -52,7 +52,10 @@ func UpdateProduct(product *model.Product, id string) error {
 		"type", product.Type,
 		"description", product.Description,
 		"weight", product.Weight,
-		"price", product.Price).
+		"discount", product.Discount,
+		"taxes", product.Taxes,
+		"subtotal", product.Subtotal,
+		"total", product.Total).
 		Error
 	if err != nil {
 		return errors.New("error: couldn't update the product")
