@@ -38,7 +38,7 @@ func GetUserByID() http.HandlerFunc {
 		param := mux.Vars(r)
 		id := param["id"]
 
-		err := listing.GetOneUser(&user, id)
+		err := listing.GetUserByID(&user, id)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return

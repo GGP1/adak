@@ -14,13 +14,13 @@ import (
 // Lister provides models listing operations.
 type Lister interface {
 	GetProducts(*[]model.Product) error
-	GetOneProduct(*model.Product, string) error
+	GetProductByID(*model.Product, string) error
 	GetReviews(*[]model.Review) error
-	GetOneReview(*model.Review, string) error
+	GetReviewByID(*model.Review, string) error
 	GetShops(*[]model.Shop) error
-	GetOneShop(*model.Shop, string) error
+	GetShopByID(*model.Shop, string) error
 	GetUsers(*[]model.User) error
-	GetOneUser(*model.User, string) error
+	GetUserByID(*model.User, string) error
 }
 
 // GetProducts lists all the products stored in the database
@@ -38,8 +38,8 @@ func GetProducts(product *[]model.Product) error {
 	return nil
 }
 
-// GetOneProduct lists the product requested from the database
-func GetOneProduct(product *model.Product, id string) error {
+// GetProductByID lists the product requested from the database
+func GetProductByID(product *model.Product, id string) error {
 	db, err := gorm.Open("postgres", cfg.URL)
 	if err != nil {
 		return err
@@ -68,8 +68,8 @@ func GetReviews(review *[]model.Review) error {
 	return nil
 }
 
-// GetOneReview lists the review requested from the database
-func GetOneReview(review *model.Review, id string) error {
+// GetReviewByID lists the review requested from the database
+func GetReviewByID(review *model.Review, id string) error {
 	db, err := gorm.Open("postgres", cfg.URL)
 	if err != nil {
 		return err
@@ -98,15 +98,15 @@ func GetShops(shop *[]model.Shop) error {
 	return nil
 }
 
-// GetOneShop lists the shop requested from the database
-func GetOneShop(shop *model.Shop, id string) error {
+// GetShopByID lists the shop requested from the database
+func GetShopByID(shop *model.Shop, id string) error {
 	db, err := gorm.Open("postgres", cfg.URL)
 	if err != nil {
 		return err
 	}
 	defer db.Close()
 
-	err = db.Preload("Location").Preload("Products").First(shop, id).Error
+	err = db.Preload("Location").Preload("Reviews").Preload("Products").First(shop, id).Error
 	if err != nil {
 		return errors.Wrap(err, "error")
 	}
@@ -128,8 +128,8 @@ func GetUsers(user *[]model.User) error {
 	return nil
 }
 
-// GetOneUser lists the user requested from the database
-func GetOneUser(user *model.User, id string) error {
+// GetUserByID lists the user requested from the database
+func GetUserByID(user *model.User, id string) error {
 	db, err := gorm.Open("postgres", cfg.URL)
 	if err != nil {
 		return err

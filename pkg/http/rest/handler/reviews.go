@@ -35,7 +35,7 @@ func GetReviewByID() http.HandlerFunc {
 		param := mux.Vars(r)
 		id := param["id"]
 
-		err := listing.GetOneReview(&review, id)
+		err := listing.GetReviewByID(&review, id)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return

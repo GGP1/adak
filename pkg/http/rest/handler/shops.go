@@ -36,7 +36,7 @@ func GetShopByID() http.HandlerFunc {
 		param := mux.Vars(r)
 		id := param["id"]
 
-		err := listing.GetOneShop(&shop, id)
+		err := listing.GetShopByID(&shop, id)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return

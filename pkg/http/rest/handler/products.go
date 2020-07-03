@@ -37,7 +37,7 @@ func GetProductByID() http.HandlerFunc {
 		param := mux.Vars(r)
 		id := param["id"]
 
-		err := listing.GetOneProduct(&product, id)
+		err := listing.GetProductByID(&product, id)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
