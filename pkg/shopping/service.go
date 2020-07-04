@@ -17,8 +17,8 @@ type Cart struct {
 	mutex    sync.RWMutex
 }
 
-// New returns a cart with the default values
-func (c *Cart) New() *Cart {
+// NewCart returns a cart with the default values
+func NewCart() *Cart {
 	return &Cart{
 		Products: make(map[uint]model.Product),
 		Price:    0,
@@ -30,7 +30,7 @@ func (c *Cart) New() *Cart {
 }
 
 // Add a product to the cart
-func (c *Cart) Add(product model.Product) {
+func (c *Cart) Add(product *model.Product) {
 	c.mutex.Lock()
 	defer c.mutex.Unlock()
 
@@ -40,7 +40,7 @@ func (c *Cart) Add(product model.Product) {
 	tax = (product.Subtotal / 100) * product.Taxes
 	discount = (product.Subtotal / 100) * product.Discount
 
-	c.Products[product.ID] = product
+	c.Products[product.ID] = *product
 	c.Price = c.Price + product.Subtotal
 	c.Weight = c.Weight + product.Weight
 	c.Discount = c.Discount + discount
@@ -68,10 +68,27 @@ func (c *Cart) Remove(key uint) {
 // Reset cart products
 func (c *Cart) Reset() {
 	c.mutex.Lock()
+	defer c.mutex.Unlock()
+
+	// Delete all the key/values from the map
 	for key := range c.Products {
 		delete(c.Products, key)
 	}
-	c.mutex.Unlock()
+
+	// Set cart variables to 0
+	c.Price = 0
+	c.Weight = 0
+	c.Discount = 0
+	c.Tax = 0
+	c.Total = 0
+}
+
+// ShowItems prints cart items
+func (c *Cart) ShowItems() *Cart {
+	c.mutex.RLock()
+	defer c.mutex.RUnlock()
+
+	return c
 }
 
 // Size returns the amount of products in the cart
