@@ -9,6 +9,7 @@ import (
 	"github.com/GGP1/palo/internal/response"
 	h "github.com/GGP1/palo/pkg/http/rest/handler"
 	"github.com/GGP1/palo/pkg/http/rest/middleware"
+	"github.com/GGP1/palo/pkg/shopping"
 
 	"github.com/gorilla/mux"
 )
@@ -20,6 +21,9 @@ func NewRouter() http.Handler {
 	// Create auth session
 	repo := new(h.AuthRepository)
 	session := h.NewSession(*repo)
+
+	// Create shopping cart
+	cart := shopping.NewCart()
 
 	// Auth
 	r.HandleFunc("/login", h.Session.Login(session)).Methods("POST")
@@ -37,6 +41,14 @@ func NewRouter() http.Handler {
 	r.HandleFunc("/reviews/{id}", h.GetReviewByID()).Methods("GET")
 	r.HandleFunc("/reviews/add", middleware.IsLoggedIn(h.AddReview())).Methods("POST")
 	r.HandleFunc("/reviews/{id}", middleware.IsLoggedIn(h.DeleteReview())).Methods("DELETE")
+
+	// Shopping
+	r.HandleFunc("/shopping", h.CartShowItems(cart)).Methods("GET")
+	r.HandleFunc("/shopping/add", h.CartAdd(cart)).Methods("POST")
+	r.HandleFunc("/shopping/checkout", h.CartCheckout(cart)).Methods("GET")
+	r.HandleFunc("/shopping/{id}", h.CartRemove(cart)).Methods("DELETE")
+	r.HandleFunc("/shopping/reset", h.CartReset(cart)).Methods("GET")
+	r.HandleFunc("/shopping/size", h.CartSize(cart)).Methods("GET")
 
 	// Shops
 	r.HandleFunc("/shops", h.GetShops()).Methods("GET")
