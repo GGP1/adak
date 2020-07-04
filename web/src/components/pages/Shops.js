@@ -21,11 +21,14 @@ export default class Shops extends Component {
                         <div className="card-body">
                             <p className="card-text">ID: {shop.ID}</p>
                             <p className="card-text">Name: {shop.Name}</p>
-                            <p className="card-text">Location: {shop.Location}</p>
+                            <p className="card-text">Country: {shop.Location.Country}</p>
+                            <p className="card-text">City: {shop.Location.City}</p>
+                            <p className="card-text">Address: {shop.Location.Address}</p>
+                            <p className="card-text">Reviews: {shop.Reviews}</p>
+                            <p className="card-text">Products: {shop.Products}</p>
                         </div>
                     </div>
             ))}
-                
             </div>
         )
     }
