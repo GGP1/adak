@@ -2,21 +2,3 @@ html{
   height: 100%;
   width: 100%;
 }
-
-.LeftBar{
-  position: fixed;
-  float: left;
-  clear: both;
-  width: 25%;
-  height: 100%;
-  background-color: #1c2441;
-}
-
-.Main{
-  position: fixed;
-  height: 100%;
-  width: 100%;
-  margin-left: 25%;
-  padding-left: 10px;
-  background-color: aliceblue;
-}
