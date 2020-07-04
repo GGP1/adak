@@ -1,4 +1,4 @@
-package storage
+package cache
 
 // This is a custom cache inspired on
 // github.com/patrickmn/go-cache
