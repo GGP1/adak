@@ -34,8 +34,7 @@ func GetProductByID() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var product model.Product
 
-		param := mux.Vars(r)
-		id := param["id"]
+		id := mux.Vars(r)["id"]
 
 		err := listing.GetProductByID(&product, id)
 		if err != nil {
@@ -73,8 +72,7 @@ func UpdateProduct() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var product model.Product
 
-		param := mux.Vars(r)
-		id := param["id"]
+		id := mux.Vars(r)["id"]
 
 		if err := json.NewDecoder(r.Body).Decode(&product); err != nil {
 			response.Error(w, r, http.StatusBadRequest, err)
@@ -97,8 +95,7 @@ func DeleteProduct() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var product model.Product
 
-		param := mux.Vars(r)
-		id := param["id"]
+		id := mux.Vars(r)["id"]
 
 		err := deleting.DeleteProduct(&product, id)
 		if err != nil {

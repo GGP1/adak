@@ -33,8 +33,7 @@ func GetShopByID() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var shop model.Shop
 
-		param := mux.Vars(r)
-		id := param["id"]
+		id := mux.Vars(r)["id"]
 
 		err := listing.GetShopByID(&shop, id)
 		if err != nil {
@@ -72,8 +71,7 @@ func UpdateShop() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var shop model.Shop
 
-		param := mux.Vars(r)
-		id := param["id"]
+		id := mux.Vars(r)["id"]
 
 		if err := json.NewDecoder(r.Body).Decode(&shop); err != nil {
 			response.Error(w, r, http.StatusBadRequest, err)
@@ -96,8 +94,7 @@ func DeleteShop() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var shop model.Shop
 
-		param := mux.Vars(r)
-		id := param["id"]
+		id := mux.Vars(r)["id"]
 
 		err := deleting.DeleteShop(&shop, id)
 		if err != nil {

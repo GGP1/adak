@@ -29,7 +29,7 @@ func CartAdd(cart *shopping.Cart) http.HandlerFunc {
 
 // CartCheckout returns the final purchase
 func CartCheckout(cart *shopping.Cart) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request)  {
+	return func(w http.ResponseWriter, r *http.Request) {
 		checkout := cart.Checkout()
 		response.JSON(w, r, http.StatusOK, checkout)
 	}
@@ -38,8 +38,7 @@ func CartCheckout(cart *shopping.Cart) http.HandlerFunc {
 // CartRemove takes out a product from the shopping cart
 func CartRemove(cart *shopping.Cart) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		param := mux.Vars(r)
-		id := param["id"]
+		id := mux.Vars(r)["id"]
 
 		key, err := strconv.Atoi(id)
 		if err != nil {

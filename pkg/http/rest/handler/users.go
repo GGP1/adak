@@ -35,8 +35,7 @@ func GetUserByID() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var user model.User
 
-		param := mux.Vars(r)
-		id := param["id"]
+		id := mux.Vars(r)["id"]
 
 		err := listing.GetUserByID(&user, id)
 		if err != nil {
@@ -75,8 +74,7 @@ func UpdateUser() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var user model.User
 
-		param := mux.Vars(r)
-		id := param["id"]
+		id := mux.Vars(r)["id"]
 
 		if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
 			response.Error(w, r, http.StatusBadRequest, err)
@@ -99,8 +97,7 @@ func DeleteUser() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var user model.User
 
-		param := mux.Vars(r)
-		id := param["id"]
+		id := mux.Vars(r)["id"]
 
 		err := deleting.DeleteUser(&user, id)
 		if err != nil {

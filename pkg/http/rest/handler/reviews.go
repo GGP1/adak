@@ -32,8 +32,7 @@ func GetReviewByID() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var review model.Review
 
-		param := mux.Vars(r)
-		id := param["id"]
+		id := mux.Vars(r)["id"]
 
 		err := listing.GetReviewByID(&review, id)
 		if err != nil {
@@ -71,8 +70,7 @@ func DeleteReview() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var review model.Review
 
-		param := mux.Vars(r)
-		id := param["id"]
+		id := mux.Vars(r)["id"]
 
 		err := deleting.DeleteReview(&review, id)
 		if err != nil {
