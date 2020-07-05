@@ -1,5 +1,5 @@
 /*
-Package email contains the methods relevant to email confirmation
+Package email helps us to send an email to verify the identity of the user
 */
 package email
 
@@ -14,8 +14,8 @@ import (
 	"github.com/sendgrid/sendgrid-go/helpers/mail"
 )
 
-// Confirmation sends a confirmation email to the user
-func Confirmation(user *model.User) {
+// SendValidation sends a confirmation email to the user
+func SendValidation(user model.User, token string) {
 	env.Load()
 
 	// Mail content
@@ -23,7 +23,7 @@ func Confirmation(user *model.User) {
 	subject := "Email confirmation"
 	to := mail.NewEmail(user.Firstname+" "+user.Lastname, user.Email)
 	plainTextContent := "Palo dev team"
-	htmlContent := "<h4>Palo email confirmation</h4><br><p>Please validate your account by clicking the following link:</p><br><a>http://localhost:4000/verify</a>"
+	htmlContent := "<h4>Palo email confirmation</h4><br><p>Please validate your account by clicking the following link:</p><br><a>http://localhost:4000/email/" + token + "</a>"
 	message := mail.NewSingleEmail(from, subject, to, plainTextContent, htmlContent)
 
 	client := sendgrid.NewSendClient(os.Getenv("SENDGRID_KEY"))

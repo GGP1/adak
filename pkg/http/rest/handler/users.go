@@ -5,8 +5,10 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/GGP1/palo/internal/email"
 	"github.com/GGP1/palo/internal/response"
 	"github.com/GGP1/palo/pkg/adding"
+	"github.com/GGP1/palo/pkg/auth"
 	"github.com/GGP1/palo/pkg/deleting"
 	"github.com/GGP1/palo/pkg/listing"
 	"github.com/GGP1/palo/pkg/model"
@@ -48,7 +50,7 @@ func GetUserByID() http.HandlerFunc {
 }
 
 // AddUser creates a new user and saves it
-func AddUser() http.HandlerFunc {
+func AddUser(pendingList *email.PendingList) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var user model.User
 
@@ -63,6 +65,18 @@ func AddUser() http.HandlerFunc {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
+
+		token, err := auth.GenerateJWT(user)
+		if err != nil {
+			fmt.Printf("%v", err)
+		}
+
+		// Add user mail and token to the email pending
+		// confirmation list
+		pendingList.Add(user, token)
+
+		// Send validation email
+		email.SendValidation(user, token)
 
 		response.JSON(w, r, http.StatusOK, user)
 		fmt.Fprintln(w, "Please validate your email")

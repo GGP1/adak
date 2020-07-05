@@ -5,9 +5,11 @@ package handler
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"time"
 
+	"github.com/GGP1/palo/internal/email"
 	"github.com/GGP1/palo/internal/response"
 	"github.com/GGP1/palo/pkg/auth"
 	"github.com/GGP1/palo/pkg/model"
@@ -17,14 +19,14 @@ import (
 
 // AuthRepository provides access to the auth storage
 type AuthRepository interface {
-	Login() http.HandlerFunc
+	Login(*email.VerifiedList) http.HandlerFunc
 	Logout() http.HandlerFunc
 	alreadyLoggedIn(http.ResponseWriter, *http.Request) bool
 }
 
 // Session provides auth operations
 type Session interface {
-	Login() http.HandlerFunc
+	Login(*email.VerifiedList) http.HandlerFunc
 	Logout() http.HandlerFunc
 	alreadyLoggedIn(http.ResponseWriter, *http.Request) bool
 }
@@ -52,17 +54,15 @@ func NewSession(r AuthRepository) Session {
 }
 
 // Login takes a user and authenticates it
-func (s *session) Login() http.HandlerFunc {
+func (s *session) Login(verifiedList *email.VerifiedList) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		user := model.User{}
-
-		// Check if the user is already logged in or not
 		if s.alreadyLoggedIn(w, r) {
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			return
 		}
 
-		// Decode request body
+		user := model.User{}
+
 		err := json.NewDecoder(r.Body).Decode(&user)
 		if err != nil {
 			response.Error(w, r, http.StatusUnauthorized, err)
@@ -77,30 +77,37 @@ func (s *session) Login() http.HandlerFunc {
 			return
 		}
 
-		// Authenticate user
-		_, err = auth.SignIn(user.Email, user.Password)
-		if err != nil {
-			response.HTMLText(w, r, http.StatusUnauthorized, "error: Invalid email or password")
-			return
+		// Check if the email is validated
+		for k := range verifiedList.UserList {
+			if k == user.Email {
+
+				// Authenticate user
+				err = auth.SignIn(user.Email, user.Password)
+				if err != nil {
+					response.HTMLText(w, r, http.StatusUnauthorized, "error: Invalid email or password")
+					return
+				}
+
+				sID := uuid.New()
+				cookie := &http.Cookie{
+					Name:     "SID",
+					Value:    sID.String(),
+					Path:     "/",
+					Domain:   "localhost",
+					Secure:   false,
+					HttpOnly: true,
+					MaxAge:   s.length,
+				}
+				http.SetCookie(w, cookie)
+				// store[cookieValue] = userInfo
+				s.store[cookie.Value] = userInfo{user.Email, time.Now()}
+
+				response.HTMLText(w, r, http.StatusOK, "You logged in!")
+				return
+			}
 		}
 
-		// Create uuid and cookie
-		sID := uuid.New()
-
-		cookie := &http.Cookie{
-			Name:     "SID",
-			Value:    sID.String(),
-			Path:     "/",
-			Domain:   "localhost",
-			Secure:   false,
-			HttpOnly: true,
-			MaxAge:   s.length,
-		}
-		http.SetCookie(w, cookie)
-		// Map store - cookieValue: userInfo
-		s.store[cookie.Value] = userInfo{user.Email, time.Now()}
-
-		response.HTMLText(w, r, http.StatusOK, "You logged in!")
+		response.Error(w, r, http.StatusUnauthorized, errors.New("Please verify your email before logging in"))
 	}
 }
 

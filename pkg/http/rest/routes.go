@@ -4,8 +4,10 @@ Package rest contains all the functions related to the rest api
 package rest
 
 import (
+	"errors"
 	"net/http"
 
+	"github.com/GGP1/palo/internal/email"
 	"github.com/GGP1/palo/internal/response"
 	h "github.com/GGP1/palo/pkg/http/rest/handler"
 	"github.com/GGP1/palo/pkg/http/rest/middleware"
@@ -18,6 +20,10 @@ import (
 func NewRouter() http.Handler {
 	r := mux.NewRouter().StrictSlash(true)
 
+	// Create users mail lists
+	pendingList := email.NewPendingList()
+	verifiedList := email.NewVerifiedList()
+
 	// Create auth session
 	repo := new(h.AuthRepository)
 	session := h.NewSession(*repo)
@@ -26,7 +32,7 @@ func NewRouter() http.Handler {
 	cart := shopping.NewCart()
 
 	// Auth
-	r.HandleFunc("/login", h.Session.Login(session)).Methods("POST")
+	r.HandleFunc("/login", h.Session.Login(session, verifiedList)).Methods("POST")
 	r.HandleFunc("/logout", h.Session.Logout(session)).Methods("GET")
 
 	// Products
@@ -60,7 +66,7 @@ func NewRouter() http.Handler {
 	// Users
 	r.HandleFunc("/users", h.GetUsers()).Methods("GET")
 	r.HandleFunc("/users/{id}", h.GetUserByID()).Methods("GET")
-	r.HandleFunc("/users/add", h.AddUser()).Methods("POST")
+	r.HandleFunc("/users/add", h.AddUser(pendingList)).Methods("POST")
 	r.HandleFunc("/users/{id}", middleware.IsLoggedIn(h.UpdateUser())).Methods("PUT")
 	r.HandleFunc("/users/{id}", middleware.IsLoggedIn(h.DeleteUser())).Methods("DELETE")
 
@@ -68,7 +74,7 @@ func NewRouter() http.Handler {
 	r.HandleFunc("/", Home()).Methods("GET")
 
 	// Email verification
-	r.HandleFunc("/verify", verify()).Methods("GET")
+	r.HandleFunc("/email/{token}", verify(pendingList, verifiedList)).Methods("GET")
 
 	// Middlewares
 	r.Use(middleware.AllowCrossOrigin)
@@ -88,8 +94,26 @@ func Home() http.HandlerFunc {
 }
 
 // Email verification page
-func verify() http.HandlerFunc {
+func verify(pendigList *email.PendingList, verifiedList *email.VerifiedList) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		var validated bool = false
+
+		token := mux.Vars(r)["token"]
+
+		for k, v := range pendigList.UserList {
+			if v == token {
+				// k = pendigList[user.Email]
+				verifiedList.Add(k, token)
+
+				validated = true
+			}
+		}
+
+		if !validated {
+			response.Error(w, r, http.StatusInternalServerError, errors.New("An error ocurred when validating your email"))
+			return
+		}
+
 		response.HTMLText(w, r, http.StatusOK, "You have successfully confirmed your email!")
 	}
 }

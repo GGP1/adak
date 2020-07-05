@@ -5,7 +5,6 @@ package adding
 
 import (
 	"github.com/GGP1/palo/internal/cfg"
-	"github.com/GGP1/palo/internal/email"
 	"github.com/GGP1/palo/pkg/auth/security"
 	"github.com/GGP1/palo/pkg/model"
 
@@ -80,20 +79,15 @@ func AddUser(user *model.User) error {
 		return err
 	}
 
-	// Hash password
 	hash, err := security.HashPassword(user.Password)
 	if err != nil {
 		return err
 	}
 	user.Password = string(hash)
 
-	// Create user
 	if err := db.Create(user).Error; err != nil {
 		return errors.Wrap(err, "couldn't create the user")
 	}
-
-	// Send confirmation email to the user
-	email.Confirmation(user)
 
 	return nil
 }
