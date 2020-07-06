@@ -73,7 +73,10 @@ func UpdateShop(shop *model.Shop, id string) error {
 	defer db.Close()
 
 	err = db.Model(&shop).Where("id=?", id).Update(
-		"name", shop.Name).
+		"name", shop.Name,
+		"country", shop.Location.Country,
+		"city", shop.Location.City,
+		"address", shop.Location.Address).
 		Error
 	if err != nil {
 		return errors.New("error: couldn't update the shop")

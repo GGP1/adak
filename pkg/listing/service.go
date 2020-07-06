@@ -15,10 +15,13 @@ import (
 type Lister interface {
 	GetProducts(*[]model.Product) error
 	GetProductByID(*model.Product, string) error
+
 	GetReviews(*[]model.Review) error
 	GetReviewByID(*model.Review, string) error
+
 	GetShops(*[]model.Shop) error
 	GetShopByID(*model.Shop, string) error
+
 	GetUsers(*[]model.User) error
 	GetUserByID(*model.User, string) error
 }

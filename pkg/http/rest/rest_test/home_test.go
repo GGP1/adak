@@ -6,14 +6,14 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/GGP1/palo/pkg/http/rest"
+	"github.com/GGP1/palo/pkg/http/rest/handler"
 )
 
 func TestHome(t *testing.T) {
 	req := httptest.NewRequest("GET", "localhost:4000/", nil)
 	rec := httptest.NewRecorder()
 
-	rest.Home().ServeHTTP(rec, req)
+	handler.Home().ServeHTTP(rec, req)
 
 	res := rec.Result()
 	defer res.Body.Close()

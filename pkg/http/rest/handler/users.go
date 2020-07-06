@@ -107,7 +107,7 @@ func UpdateUser() http.HandlerFunc {
 }
 
 // DeleteUser deletes a user
-func DeleteUser() http.HandlerFunc {
+func DeleteUser(pendingList *email.PendingList, verifiedList *email.VerifiedList) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var user model.User
 
@@ -118,6 +118,10 @@ func DeleteUser() http.HandlerFunc {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
+
+		// Remove user from emails lists
+		pendingList.Remove(user.Email)
+		verifiedList.Remove(user.Email)
 
 		response.HTMLText(w, r, http.StatusOK, "User deleted successfully.")
 	}
