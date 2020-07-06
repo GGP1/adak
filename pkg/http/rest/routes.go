@@ -4,13 +4,13 @@ Package rest contains all the functions related to the rest api
 package rest
 
 import (
-	"errors"
 	"net/http"
 
 	"github.com/GGP1/palo/internal/email"
-	"github.com/GGP1/palo/internal/response"
+	// h -> handler
 	h "github.com/GGP1/palo/pkg/http/rest/handler"
-	"github.com/GGP1/palo/pkg/http/rest/middleware"
+	// m -> middleware
+	m "github.com/GGP1/palo/pkg/http/rest/middleware"
 	"github.com/GGP1/palo/pkg/shopping"
 
 	"github.com/gorilla/mux"
@@ -31,89 +31,73 @@ func NewRouter() http.Handler {
 	// Create shopping cart
 	cart := shopping.NewCart()
 
-	// Auth
+	// ==========
+	// 	Auth
+	// ==========
 	r.HandleFunc("/login", h.Session.Login(session, verifiedList)).Methods("POST")
 	r.HandleFunc("/logout", h.Session.Logout(session)).Methods("GET")
 
-	// Products
+	// ==========
+	// 	Products
+	// ==========
 	r.HandleFunc("/products", h.GetProducts()).Methods("GET")
 	r.HandleFunc("/products/{id}", h.GetProductByID()).Methods("GET")
 	r.HandleFunc("/products/add", h.AddProduct()).Methods("POST")
-	r.HandleFunc("/products/{id}", middleware.IsLoggedIn(h.UpdateProduct())).Methods("PUT")
-	r.HandleFunc("/products/{id}", middleware.IsLoggedIn(h.DeleteProduct())).Methods("DELETE")
+	r.HandleFunc("/products/{id}", m.RequireLogin(h.UpdateProduct())).Methods("PUT")
+	r.HandleFunc("/products/{id}", m.RequireLogin(h.DeleteProduct())).Methods("DELETE")
 
-	// Reviews
+	// ==========
+	// 	Reviews
+	// ==========
 	r.HandleFunc("/reviews", h.GetReviews()).Methods("GET")
 	r.HandleFunc("/reviews/{id}", h.GetReviewByID()).Methods("GET")
-	r.HandleFunc("/reviews/add", middleware.IsLoggedIn(h.AddReview())).Methods("POST")
-	r.HandleFunc("/reviews/{id}", middleware.IsLoggedIn(h.DeleteReview())).Methods("DELETE")
+	r.HandleFunc("/reviews/add", m.RequireLogin(h.AddReview())).Methods("POST")
+	r.HandleFunc("/reviews/{id}", m.RequireLogin(h.DeleteReview())).Methods("DELETE")
 
-	// Shopping
+	// ==========
+	// 	Shopping
+	// ==========
 	r.HandleFunc("/shopping", h.CartShowItems(cart)).Methods("GET")
-	r.HandleFunc("/shopping/add", h.CartAdd(cart)).Methods("POST")
-	r.HandleFunc("/shopping/checkout", h.CartCheckout(cart)).Methods("GET")
-	r.HandleFunc("/shopping/{id}", h.CartRemove(cart)).Methods("DELETE")
-	r.HandleFunc("/shopping/reset", h.CartReset(cart)).Methods("GET")
-	r.HandleFunc("/shopping/size", h.CartSize(cart)).Methods("GET")
+	r.HandleFunc("/shopping/add", m.RequireLogin(h.CartAdd(cart))).Methods("POST")
+	r.HandleFunc("/shopping/checkout", m.RequireLogin(h.CartCheckout(cart))).Methods("GET")
+	r.HandleFunc("/shopping/{id}", m.RequireLogin(h.CartRemove(cart))).Methods("DELETE")
+	r.HandleFunc("/shopping/reset", m.RequireLogin(h.CartReset(cart))).Methods("GET")
+	r.HandleFunc("/shopping/size", m.RequireLogin(h.CartSize(cart))).Methods("GET")
 
-	// Shops
+	// ==========
+	// 	Shops
+	// ==========
 	r.HandleFunc("/shops", h.GetShops()).Methods("GET")
 	r.HandleFunc("/shops/{id}", h.GetShopByID()).Methods("GET")
 	r.HandleFunc("/shops/add", h.AddShop()).Methods("POST")
-	r.HandleFunc("/shops/{id}", middleware.IsLoggedIn(h.UpdateShop())).Methods("PUT")
-	r.HandleFunc("/shops/{id}", middleware.IsLoggedIn(h.DeleteShop())).Methods("DELETE")
+	r.HandleFunc("/shops/{id}", m.RequireLogin(h.UpdateShop())).Methods("PUT")
+	r.HandleFunc("/shops/{id}", m.RequireLogin(h.DeleteShop())).Methods("DELETE")
 
-	// Users
+	// ==========
+	// 	Users
+	// ==========
 	r.HandleFunc("/users", h.GetUsers()).Methods("GET")
 	r.HandleFunc("/users/{id}", h.GetUserByID()).Methods("GET")
 	r.HandleFunc("/users/add", h.AddUser(pendingList)).Methods("POST")
-	r.HandleFunc("/users/{id}", middleware.IsLoggedIn(h.UpdateUser())).Methods("PUT")
-	r.HandleFunc("/users/{id}", middleware.IsLoggedIn(h.DeleteUser())).Methods("DELETE")
+	r.HandleFunc("/users/{id}", m.RequireLogin(h.UpdateUser())).Methods("PUT")
+	r.HandleFunc("/users/{id}", m.RequireLogin(h.DeleteUser(pendingList, verifiedList))).Methods("DELETE")
 
-	// Home
-	r.HandleFunc("/", Home()).Methods("GET")
+	// ==========
+	// 	Home
+	// ==========
+	r.HandleFunc("/", h.Home()).Methods("GET")
 
-	// Email verification
-	r.HandleFunc("/email/{token}", verify(pendingList, verifiedList)).Methods("GET")
+	// ==========
+	// 	Email
+	// ==========
+	r.HandleFunc("/email/{token}", h.Verify(pendingList, verifiedList)).Methods("GET")
 
 	// Middlewares
-	r.Use(middleware.AllowCrossOrigin)
-	r.Use(middleware.LimitRate)
-	r.Use(middleware.LogFormatter)
+	r.Use(m.AllowCrossOrigin)
+	r.Use(m.LimitRate)
+	r.Use(m.LogFormatter)
 
 	http.Handle("/", r)
 
 	return r
-}
-
-// Home page
-func Home() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		response.HTMLText(w, r, http.StatusOK, "Welcome to the Palo home page")
-	}
-}
-
-// Email verification page
-func verify(pendigList *email.PendingList, verifiedList *email.VerifiedList) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		var validated bool = false
-
-		token := mux.Vars(r)["token"]
-
-		for k, v := range pendigList.UserList {
-			if v == token {
-				// k = pendigList[user.Email]
-				verifiedList.Add(k, token)
-
-				validated = true
-			}
-		}
-
-		if !validated {
-			response.Error(w, r, http.StatusInternalServerError, errors.New("An error ocurred when validating your email"))
-			return
-		}
-
-		response.HTMLText(w, r, http.StatusOK, "You have successfully confirmed your email!")
-	}
 }
