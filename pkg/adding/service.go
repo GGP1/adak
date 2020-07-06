@@ -5,8 +5,8 @@ package adding
 
 import (
 	"github.com/GGP1/palo/internal/cfg"
-	"github.com/GGP1/palo/pkg/auth/security"
 	"github.com/GGP1/palo/pkg/model"
+	"golang.org/x/crypto/bcrypt"
 
 	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
@@ -79,14 +79,14 @@ func AddUser(user *model.User) error {
 		return err
 	}
 
-	hash, err := security.HashPassword(user.Password)
+	hash, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
 	if err != nil {
 		return err
 	}
 	user.Password = string(hash)
 
 	if err := db.Create(user).Error; err != nil {
-		return errors.Wrap(err, "couldn't create the user")
+		return errors.Wrap(err, "error: couldn't create the user")
 	}
 
 	return nil

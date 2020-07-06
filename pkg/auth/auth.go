@@ -5,8 +5,9 @@ package auth
 
 import (
 	"github.com/GGP1/palo/internal/cfg"
-	"github.com/GGP1/palo/pkg/auth/security"
 	"github.com/GGP1/palo/pkg/model"
+	"golang.org/x/crypto/bcrypt"
+
 	"github.com/jinzhu/gorm"
 )
 
@@ -24,7 +25,7 @@ func SignIn(email, password string) error {
 		return err
 	}
 
-	err = security.ComparePasswords(user.Password, password)
+	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
 	if err != nil {
 		return err
 	}
