@@ -1,5 +1,5 @@
 /*
-Package email helps us to send an email to verify the identity of the user
+Package email helps us to use the email as the tool to identify each user
 */
 package email
 

@@ -9,8 +9,8 @@ import (
 	"github.com/gorilla/mux"
 )
 
-// Email verification page
-func Verify(pendigList *email.PendingList, verifiedList *email.VerifiedList) http.HandlerFunc {
+// ValidateEmail is the email verification page
+func ValidateEmail(pendigList *email.PendingList, validatedList *email.ValidatedList) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var validated bool = false
 
@@ -19,7 +19,7 @@ func Verify(pendigList *email.PendingList, verifiedList *email.VerifiedList) htt
 		for k, v := range pendigList.UserList {
 			if v == token {
 				// k = pendigList[user.Email]
-				verifiedList.Add(k, token)
+				validatedList.Add(k, token)
 
 				validated = true
 			}
@@ -30,6 +30,6 @@ func Verify(pendigList *email.PendingList, verifiedList *email.VerifiedList) htt
 			return
 		}
 
-		response.HTMLText(w, r, http.StatusOK, "You have successfully confirmed your email!")
+		response.HTMLText(w, r, http.StatusOK, "You have successfully validated your email!")
 	}
 }

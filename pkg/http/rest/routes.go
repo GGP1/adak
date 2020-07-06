@@ -22,7 +22,7 @@ func NewRouter() http.Handler {
 
 	// Create users mail lists
 	pendingList := email.NewPendingList()
-	verifiedList := email.NewVerifiedList()
+	validatedList := email.NewValidatedList()
 
 	// Create auth session
 	repo := new(h.AuthRepository)
@@ -34,8 +34,18 @@ func NewRouter() http.Handler {
 	// ==========
 	// 	Auth
 	// ==========
-	r.HandleFunc("/login", h.Session.Login(session, verifiedList)).Methods("POST")
+	r.HandleFunc("/login", h.Session.Login(session, validatedList)).Methods("POST")
 	r.HandleFunc("/logout", h.Session.Logout(session)).Methods("GET")
+
+	// ==========
+	// 	Email
+	// ==========
+	r.HandleFunc("/email/{token}", h.ValidateEmail(pendingList, validatedList)).Methods("GET")
+
+	// ==========
+	// 	Home
+	// ==========
+	r.HandleFunc("/", h.Home()).Methods("GET")
 
 	// ==========
 	// 	Products
@@ -80,17 +90,7 @@ func NewRouter() http.Handler {
 	r.HandleFunc("/users/{id}", h.GetUserByID()).Methods("GET")
 	r.HandleFunc("/users/add", h.AddUser(pendingList)).Methods("POST")
 	r.HandleFunc("/users/{id}", m.RequireLogin(h.UpdateUser())).Methods("PUT")
-	r.HandleFunc("/users/{id}", m.RequireLogin(h.DeleteUser(pendingList, verifiedList))).Methods("DELETE")
-
-	// ==========
-	// 	Home
-	// ==========
-	r.HandleFunc("/", h.Home()).Methods("GET")
-
-	// ==========
-	// 	Email
-	// ==========
-	r.HandleFunc("/email/{token}", h.Verify(pendingList, verifiedList)).Methods("GET")
+	r.HandleFunc("/users/{id}", m.RequireLogin(h.DeleteUser(pendingList, validatedList))).Methods("DELETE")
 
 	// Middlewares
 	r.Use(m.AllowCrossOrigin)

@@ -71,8 +71,7 @@ func AddUser(pendingList *email.PendingList) http.HandlerFunc {
 			fmt.Printf("%v", err)
 		}
 
-		// Add user mail and token to the email pending
-		// confirmation list
+		// Add user mail and token to the email pending confirmation list
 		pendingList.Add(user, token)
 
 		// Send validation email
@@ -107,7 +106,7 @@ func UpdateUser() http.HandlerFunc {
 }
 
 // DeleteUser deletes a user
-func DeleteUser(pendingList *email.PendingList, verifiedList *email.VerifiedList) http.HandlerFunc {
+func DeleteUser(pendingList *email.PendingList, validatedList *email.ValidatedList) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var user model.User
 
@@ -119,9 +118,9 @@ func DeleteUser(pendingList *email.PendingList, verifiedList *email.VerifiedList
 			return
 		}
 
-		// Remove user from emails lists
+		// Remove user from email lists
 		pendingList.Remove(user.Email)
-		verifiedList.Remove(user.Email)
+		validatedList.Remove(user.Email)
 
 		response.HTMLText(w, r, http.StatusOK, "User deleted successfully.")
 	}

@@ -19,14 +19,14 @@ import (
 
 // AuthRepository provides access to the auth storage
 type AuthRepository interface {
-	Login(*email.VerifiedList) http.HandlerFunc
+	Login(*email.ValidatedList) http.HandlerFunc
 	Logout() http.HandlerFunc
 	alreadyLoggedIn(http.ResponseWriter, *http.Request) bool
 }
 
 // Session provides auth operations
 type Session interface {
-	Login(*email.VerifiedList) http.HandlerFunc
+	Login(*email.ValidatedList) http.HandlerFunc
 	Logout() http.HandlerFunc
 	alreadyLoggedIn(http.ResponseWriter, *http.Request) bool
 }
@@ -54,7 +54,7 @@ func NewSession(r AuthRepository) Session {
 }
 
 // Login takes a user and authenticates it
-func (s *session) Login(verifiedList *email.VerifiedList) http.HandlerFunc {
+func (s *session) Login(validatedList *email.ValidatedList) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if s.alreadyLoggedIn(w, r) {
 			http.Redirect(w, r, "/", http.StatusSeeOther)
@@ -78,7 +78,7 @@ func (s *session) Login(verifiedList *email.VerifiedList) http.HandlerFunc {
 		}
 
 		// Check if the email is validated
-		for k := range verifiedList.UserList {
+		for k := range validatedList.UserList {
 			if k == user.Email {
 
 				// Authenticate user
