@@ -4,11 +4,11 @@ import (
 	"net/http"
 )
 
-// IsLoggedIn verifies if the user is logged in
-func IsLoggedIn(f http.HandlerFunc) http.HandlerFunc {
+// RequireLogin verifies if the user is logged in
+func RequireLogin(f http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 
-		notAuth := []string{"/", "/verify", "/users", "/shops", "/products", "/reviews"}
+		notAuth := []string{"/", "/users", "/shops", "/products", "/reviews"}
 		requestPath := r.URL.Path
 
 		// Iterate through the paths allowed to access without logging in and
