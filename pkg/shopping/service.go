@@ -14,7 +14,7 @@ type Cart struct {
 	Discount float32
 	Tax      float32
 	Total    float32
-	mutex    sync.RWMutex
+	sync.RWMutex
 }
 
 // NewCart returns a cart with the default values
@@ -31,8 +31,8 @@ func NewCart() *Cart {
 
 // Add a product to the cart
 func (c *Cart) Add(product *model.Product) {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
+	c.Lock()
+	defer c.Unlock()
 
 	var tax float32
 	var discount float32
@@ -50,8 +50,8 @@ func (c *Cart) Add(product *model.Product) {
 
 // Checkout takes all the products and returns the final purchase
 func (c *Cart) Checkout() float32 {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
+	c.Lock()
+	defer c.Unlock()
 
 	total := c.Total + c.Tax - c.Discount
 
@@ -60,15 +60,15 @@ func (c *Cart) Checkout() float32 {
 
 // Remove takes away a product from the cart
 func (c *Cart) Remove(key uint) {
-	c.mutex.Lock()
+	c.Lock()
 	delete(c.Products, key)
-	c.mutex.Unlock()
+	c.Unlock()
 }
 
 // Reset cart products
 func (c *Cart) Reset() {
-	c.mutex.Lock()
-	defer c.mutex.Unlock()
+	c.Lock()
+	defer c.Unlock()
 
 	// Delete all the key/values from the map
 	for key := range c.Products {
@@ -85,16 +85,16 @@ func (c *Cart) Reset() {
 
 // ShowItems prints cart items
 func (c *Cart) ShowItems() *Cart {
-	c.mutex.RLock()
-	defer c.mutex.RUnlock()
+	c.RLock()
+	defer c.RUnlock()
 
 	return c
 }
 
 // Size returns the amount of products in the cart
 func (c *Cart) Size() int {
-	c.mutex.RLock()
-	defer c.mutex.RUnlock()
+	c.RLock()
+	defer c.RUnlock()
 
 	return len(c.Products)
 }
