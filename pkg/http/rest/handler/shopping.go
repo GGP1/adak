@@ -23,6 +23,7 @@ func CartAdd(cart *shopping.Cart) http.HandlerFunc {
 		defer r.Body.Close()
 
 		cart.Add(&product)
+
 		response.JSON(w, r, http.StatusOK, cart)
 	}
 }
@@ -31,6 +32,7 @@ func CartAdd(cart *shopping.Cart) http.HandlerFunc {
 func CartCheckout(cart *shopping.Cart) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		checkout := cart.Checkout()
+
 		response.JSON(w, r, http.StatusOK, checkout)
 	}
 }

@@ -84,11 +84,11 @@ func (c *Cart) Reset() {
 }
 
 // ShowItems prints cart items
-func (c *Cart) ShowItems() *Cart {
+func (c *Cart) ShowItems() map[uint]model.Product {
 	c.RLock()
 	defer c.RUnlock()
 
-	return c
+	return c.Products
 }
 
 // Size returns the amount of products in the cart
