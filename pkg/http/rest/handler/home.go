@@ -22,24 +22,44 @@ func Home() http.HandlerFunc {
 }
 
 func getLanguage(lang string) string {
+	english := "en-US"
 	spanish := "es-ES"
 	chinese := "zh-CN"
 	portuguese := "pt-BR"
 	german := "de"
+	french := "fr"
+	italian := "it"
+	russian := "ru"
+	hindi := "in"
+	japanese := "jp"
 
 	langs := strings.Split(lang, ";")
 	parts := strings.Split(langs[0], ",")
 
 	var sentence string
 
-	if parts[0] == spanish {
+	switch parts[0] {
+	case english:
+		sentence = "Welcome to the Palo home page"
+	case spanish:
 		sentence = "Bienvenido a la página pincipal de Palo"
-	} else if parts[0] == chinese {
-		sentence = "歡迎來到帕洛首頁"
-	} else if parts[0] == portuguese {
+	case portuguese:
 		sentence = "Bem-vindo a página principal do Palo"
-	} else if parts[0] == german {
+	case chinese:
+		sentence = "歡迎來到帕洛首頁"
+	case german:
 		sentence = "Wilkommen auf der Palo homepage"
+	case french:
+		sentence = "Bienvenue sur la page d'accueil de Palo"
+	case italian:
+		sentence = "Benvenuti nella home page di Palo"
+	case russian:
+		sentence = "Добро пожаловать на домашнюю страницу Пало"
+	case hindi:
+		sentence = "पालो होम पेज पर आपका स्वागत है"
+	case japanese:
+		sentence = "パロのホームページへようこそ"
 	}
+
 	return sentence
 }
