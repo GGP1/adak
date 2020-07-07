@@ -62,7 +62,7 @@ func AddUser(pendingList *email.PendingList) http.HandlerFunc {
 
 		err := adding.AddUser(&user)
 		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
+			response.Error(w, r, http.StatusBadRequest, err)
 			return
 		}
 
