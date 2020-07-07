@@ -1,9 +1,12 @@
 package email
 
 import (
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"sync"
 
+	"github.com/GGP1/palo/internal/cfg"
 	"github.com/GGP1/palo/pkg/model"
 )
 
@@ -23,18 +26,37 @@ func NewPendingList() *PendingList {
 // Add pending user to the list
 func (p *PendingList) Add(user model.User, token string) {
 	p.Lock()
+	defer p.Unlock()
+
 	p.UserList[user.Email] = token
-	p.Unlock()
+
+	jsonMap, err := json.Marshal(p.UserList)
+	if err != nil {
+		fmt.Printf("error: %s\n", err)
+	}
+
+	err = ioutil.WriteFile(cfg.PendingJSONPath, jsonMap, 0644)
+	if err != nil {
+		fmt.Printf("error: %s\n", err)
+	}
 }
 
-// Print pending users list
-func (p *PendingList) Print() {
+// Read pending emails list
+func (p *PendingList) Read() map[string]string {
 	p.RLock()
-	for k, v := range p.UserList {
-		fmt.Println("Pending list:")
-		fmt.Printf("[%s] %s\n", k, v)
+	defer p.RUnlock()
+
+	jsonFile, err := ioutil.ReadFile(cfg.PendingJSONPath)
+	if err != nil {
+		fmt.Printf("error: %s\n", err)
 	}
-	p.RUnlock()
+
+	err = json.Unmarshal(jsonFile, &p.UserList)
+	if err != nil {
+		fmt.Printf("error: %s\n", err)
+	}
+
+	return p.UserList
 }
 
 // Remove deletes a key from the map

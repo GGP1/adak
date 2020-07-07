@@ -1,8 +1,12 @@
 package email
 
 import (
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"sync"
+
+	"github.com/GGP1/palo/internal/cfg"
 )
 
 // ValidatedList contains users that already verified their email
@@ -21,18 +25,37 @@ func NewValidatedList() *ValidatedList {
 // Add user to the list
 func (v *ValidatedList) Add(email, token string) {
 	v.Lock()
+	defer v.Unlock()
+
 	v.UserList[email] = token
-	v.Unlock()
+
+	jsonMap, err := json.Marshal(v.UserList)
+	if err != nil {
+		fmt.Printf("error: %s\n", err)
+	}
+
+	err = ioutil.WriteFile(cfg.ValidatedJSONPath, jsonMap, 0644)
+	if err != nil {
+		fmt.Printf("error: %s\n", err)
+	}
 }
 
-// Print users list
-func (v *ValidatedList) Print() {
+// Read validated emails list
+func (v *ValidatedList) Read() map[string]string {
 	v.RLock()
-	for k, val := range v.UserList {
-		fmt.Println("Verified list:")
-		fmt.Printf("[%s] %s\n", k, val)
+	defer v.RUnlock()
+
+	jsonFile, err := ioutil.ReadFile(cfg.ValidatedJSONPath)
+	if err != nil {
+		fmt.Printf("error: %s\n", err)
 	}
-	v.RUnlock()
+
+	err = json.Unmarshal(jsonFile, &v.UserList)
+	if err != nil {
+		fmt.Printf("error: %s\n", err)
+	}
+
+	return v.UserList
 }
 
 // Remove deletes a key from the map

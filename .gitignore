@@ -1,7 +1,9 @@
 .env
 TODO.txt
 
-internal/cfg
 cmd/server/server.exe
+internal/cfg
+internal/email/pendingList.json
+internal/email/validatedList.json
 
 /web/node_modules

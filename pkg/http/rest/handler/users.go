@@ -123,5 +123,8 @@ func DeleteUser(pendingList *email.PendingList, validatedList *email.ValidatedLi
 		validatedList.Remove(user.Email)
 
 		response.HTMLText(w, r, http.StatusOK, "User deleted successfully.")
+		/*
+			time.Sleep(2 * time.Second)
+			http.Redirect(w, r, "/logout", http.StatusTemporaryRedirect) */
 	}
 }

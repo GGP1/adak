@@ -78,9 +78,9 @@ func (s *session) Login(validatedList *email.ValidatedList) http.HandlerFunc {
 		}
 
 		// Check if the email is validated
-		for k := range validatedList.UserList {
+		list := validatedList.Read()
+		for k := range list {
 			if k == user.Email {
-
 				// Authenticate user
 				err = auth.SignIn(user.Email, user.Password)
 				if err != nil {
