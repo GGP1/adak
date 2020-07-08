@@ -37,6 +37,89 @@ func CartCheckout(cart *shopping.Cart) http.HandlerFunc {
 	}
 }
 
+// CartFilterByBrand returns the products filtered by brand
+func CartFilterByBrand(cart *shopping.Cart) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		brand := mux.Vars(r)["brand"]
+
+		products, err := cart.FilterByBrand(brand)
+		if err != nil {
+			response.Error(w, r, http.StatusNotFound, err)
+			return
+		}
+
+		response.JSON(w, r, http.StatusOK, products)
+	}
+}
+
+// CartFilterByCategory returns the products filtered by category
+func CartFilterByCategory(cart *shopping.Cart) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		category := mux.Vars(r)["category"]
+
+		products, err := cart.FilterByCategory(category)
+		if err != nil {
+			response.Error(w, r, http.StatusNotFound, err)
+			return
+		}
+
+		response.JSON(w, r, http.StatusOK, products)
+	}
+}
+
+// CartFilterByTotal returns the products filtered by total
+func CartFilterByTotal(cart *shopping.Cart) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		min := mux.Vars(r)["min"]
+		max := mux.Vars(r)["max"]
+
+		minTotal, _ := strconv.Atoi(min)
+		maxTotal, _ := strconv.Atoi(max)
+
+		products, err := cart.FilterByTotal(float32(minTotal), float32(maxTotal))
+		if err != nil {
+			response.Error(w, r, http.StatusNotFound, err)
+			return
+		}
+
+		response.JSON(w, r, http.StatusOK, products)
+	}
+}
+
+// CartFilterByType returns the products filtered by type
+func CartFilterByType(cart *shopping.Cart) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		productType := mux.Vars(r)["type"]
+
+		products, err := cart.FilterByType(productType)
+		if err != nil {
+			response.Error(w, r, http.StatusNotFound, err)
+			return
+		}
+
+		response.JSON(w, r, http.StatusOK, products)
+	}
+}
+
+// CartFilterByWeight returns the products filtered by total
+func CartFilterByWeight(cart *shopping.Cart) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		min := mux.Vars(r)["min"]
+		max := mux.Vars(r)["max"]
+
+		minWeight, _ := strconv.Atoi(min)
+		maxWeight, _ := strconv.Atoi(max)
+
+		products, err := cart.FilterByWeight(float32(minWeight), float32(maxWeight))
+		if err != nil {
+			response.Error(w, r, http.StatusNotFound, err)
+			return
+		}
+
+		response.JSON(w, r, http.StatusOK, products)
+	}
+}
+
 // CartRemove takes out a product from the shopping cart
 func CartRemove(cart *shopping.Cart) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -45,6 +128,7 @@ func CartRemove(cart *shopping.Cart) http.HandlerFunc {
 		key, err := strconv.Atoi(id)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
+			return
 		}
 
 		cart.Remove(uint(key))
