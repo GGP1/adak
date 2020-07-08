@@ -11,10 +11,17 @@
     "axios": "^0.19.2",
     "bootstrap": "^4.5.0",
     "clsx": "^1.1.1",
+    "jwt-decode": "^2.2.0",
+    "prop-types": "^15.7.2",
     "react": "^16.13.1",
+    "react-bootstrap": "^1.1.1",
     "react-dom": "^16.13.1",
+    "react-modal": "^3.11.2",
+    "react-redux": "^7.2.0",
     "react-router-dom": "^5.2.0",
-    "react-scripts": "3.4.1"
+    "react-scripts": "3.4.1",
+    "redux": "^4.0.5",
+    "styled-components": "^5.1.1"
   },
   "scripts": {
     "start": "react-scripts start",

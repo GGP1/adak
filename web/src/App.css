@@ -1,4 +1,90 @@
-html{
+@import url('https://fonts.googleapis.com/css?family=Fredoka+One|Righteous|Roboto|Roboto+Slab|Ubuntu:700|Archivo+Black|Caladea|Spartan|Roboto+Condensed|Open+Sans:600&display=swap');
+
+/* ----- Overall Styles ----- */
+
+html {
   height: 100%;
+  box-sizing: border-box;
+}
+
+*,
+*:before,
+*:after {
+box-sizing: inherit;
+}
+
+body{
+  position: relative;
+  margin: 0;
+  padding-bottom: 6rem;
+  min-height: 100%;
+}
+
+/* ----- Navbar Styles ----- */
+
+#brand-text {
+  font-family: Ubuntu; 
+  font-size: 1.8em;
+  color: #fff
+}
+
+#navLi {
+  width: 100px;
+  font-size: .95rem;
+}
+
+#navLi :hover{
+  background-color: rgba(32, 134, 175, 0.438);
+}
+
+#navLink::after {
+  content: '';
+  display: block;
+  height: 3px;
+  background-color: rgba(255, 255, 255, 0.829);
+  position: relative;
+  width: 0%;
+  top: 0;
+  margin-top: 10px;
+  transition: all ease-in-out 200ms;
+}
+
+#navLink:hover::after {
   width: 100%;
+}
+
+#questions :active{
+  background-color: white;
+}
+#questions :hover{
+  background-color: rgb(163, 154, 154);
+}
+
+/* ----- Deployable Navbar Styles ----- */ 
+#toggleLi {
+  background-color: rgba(32, 49, 59, 1);
+}
+
+#toggleLi :hover{
+  background-color: rgba(32, 49, 59, 1);
+  border-radius: 10px;
+  text-decoration: none;
+  transform: translate3D(-15%, 0, 0) scale(1.1);
+  transition-duration: 1.5s;
+}
+
+#dnav-link {
+  background: none;
+font: inherit;
+cursor: pointer;
+  outline: inherit;
+  text-decoration: none;
+}
+
+/* Hide when the screen is larger than 768px */
+
+@media only screen and (min-width: 990px) {
+  #dep-navbar {
+    display: none;
+  }
 }

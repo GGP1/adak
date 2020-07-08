@@ -3,6 +3,8 @@ import './App.css';
 import { Route, BrowserRouter, Switch } from 'react-router-dom';
 import 'bootstrap/dist/css/bootstrap.min.css';
 
+// Layout
+import Navbar from './components/layout/Navbar'
 
 // Pages
 import Main from './components/pages/Main'
@@ -14,6 +16,8 @@ import Reviews from './components/pages/Reviews'
 function App() {
   return (
     <BrowserRouter>
+
+    <Navbar />
 
       <Switch>
         <Route exact path="/" component={Main} />
