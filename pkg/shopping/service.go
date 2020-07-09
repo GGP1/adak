@@ -2,6 +2,7 @@ package shopping
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 	"sync"
 
@@ -14,22 +15,25 @@ var (
 
 // Cart stores the products that the user chose to buy
 type Cart struct {
+	sync.RWMutex
+	Error error
+
 	Products map[uint]model.Product
 	Weight   float32
 	Discount float32
-	Tax      float32
+	Taxes    float32
 	Subtotal float32
 	Total    float32
-	sync.RWMutex
 }
 
 // NewCart returns a cart with the default values
 func NewCart() *Cart {
 	return &Cart{
+		Error:    nil,
 		Products: make(map[uint]model.Product),
 		Weight:   0,
 		Discount: 0,
-		Tax:      0,
+		Taxes:    0,
 		Total:    0,
 	}
 }
@@ -39,18 +43,15 @@ func (c *Cart) Add(product *model.Product) {
 	c.Lock()
 	defer c.Unlock()
 
-	var tax float32
-	var discount float32
-
-	tax = (product.Subtotal / 100) * product.Taxes
-	discount = (product.Subtotal / 100) * product.Discount
+	taxes := (product.Subtotal / 100) * product.Taxes
+	discount := (product.Subtotal / 100) * product.Discount
 
 	c.Products[product.ID] = *product
 	c.Weight = c.Weight + product.Weight
 	c.Discount = c.Discount + discount
-	c.Tax = c.Tax + tax
+	c.Taxes = c.Taxes + taxes
 	c.Subtotal = c.Subtotal + product.Subtotal
-	c.Total = c.Total + c.Subtotal + c.Tax - c.Discount
+	c.Total = c.Total + product.Subtotal + taxes - discount
 }
 
 // Checkout takes all the products and returns the final purchase
@@ -58,7 +59,7 @@ func (c *Cart) Checkout() float32 {
 	c.Lock()
 	defer c.Unlock()
 
-	total := c.Total + c.Tax - c.Discount
+	total := c.Total + c.Taxes - c.Discount
 
 	return total
 }
@@ -148,11 +149,30 @@ func (c *Cart) FilterByWeight(minWeight, maxWeight float32) ([]model.Product, er
 	return nil, errNotFound
 }
 
+// Items prints cart items
+func (c *Cart) Items() map[uint]model.Product {
+	c.RLock()
+	defer c.RUnlock()
+
+	return c.Products
+}
+
 // Remove takes away a product from the cart
 func (c *Cart) Remove(key uint) {
 	c.Lock()
+	defer c.Unlock()
+
+	product := c.Products[key]
+
+	tax := (product.Subtotal / 100) * product.Taxes
+	discount := (product.Subtotal / 100) * product.Discount
+
+	c.Weight = c.Weight - product.Weight
+	c.Discount = c.Discount - discount
+	c.Taxes = c.Taxes - tax
+	c.Total = c.Total - product.Subtotal - tax + discount
+
 	delete(c.Products, key)
-	c.Unlock()
 }
 
 // Reset cart products
@@ -160,25 +180,12 @@ func (c *Cart) Reset() {
 	c.Lock()
 	defer c.Unlock()
 
-	// Delete all the key/values from the map
-	for key := range c.Products {
-		delete(c.Products, key)
-	}
-
-	// Set cart variables to 0
+	c.Products = map[uint]model.Product{}
 	c.Weight = 0
 	c.Discount = 0
-	c.Tax = 0
+	c.Taxes = 0
 	c.Subtotal = 0
 	c.Total = 0
-}
-
-// ShowItems prints cart items
-func (c *Cart) ShowItems() map[uint]model.Product {
-	c.RLock()
-	defer c.RUnlock()
-
-	return c.Products
 }
 
 // Size returns the amount of products in the cart
@@ -187,4 +194,9 @@ func (c *Cart) Size() int {
 	defer c.RUnlock()
 
 	return len(c.Products)
+}
+
+// String returns a string with the cart details
+func (c *Cart) String() string {
+	return fmt.Sprintf("The cart has a weight of %2.f kg, $%2.f of discounts, $%2.f of taxes and a total of $%2.f", c.Weight, c.Discount, c.Taxes, c.Total)
 }
