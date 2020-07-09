@@ -120,6 +120,22 @@ func CartFilterByWeight(cart *shopping.Cart) http.HandlerFunc {
 	}
 }
 
+// CartGet returns the cart in a JSON format
+func CartGet(cart *shopping.Cart) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		response.JSON(w, r, http.StatusOK, cart)
+	}
+}
+
+// CartItems prints cart items
+func CartItems(cart *shopping.Cart) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		items := cart.Items()
+
+		response.JSON(w, r, http.StatusOK, items)
+	}
+}
+
 // CartRemove takes out a product from the shopping cart
 func CartRemove(cart *shopping.Cart) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -143,15 +159,6 @@ func CartReset(cart *shopping.Cart) http.HandlerFunc {
 		cart.Reset()
 
 		response.JSON(w, r, http.StatusOK, cart)
-	}
-}
-
-// CartShowItems prints cart items
-func CartShowItems(cart *shopping.Cart) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		items := cart.ShowItems()
-
-		response.JSON(w, r, http.StatusOK, items)
 	}
 }
 
