@@ -11,15 +11,31 @@ import (
 	"github.com/jinzhu/gorm"
 )
 
-// Updater provides models updating operations.
-type Updater interface {
+// Repository provides access to the storage
+type Repository interface {
 	UpdateUser(*model.User, string) error
 	UpdateProduct(*model.Product, string) error
 	UpdateShop(*model.Shop, string) error
 }
 
+// Service provides models updating operations.
+type Service interface {
+	UpdateUser(*model.User, string) error
+	UpdateProduct(*model.Product, string) error
+	UpdateShop(*model.Shop, string) error
+}
+
+type service struct {
+	r Repository
+}
+
+// NewService creates a updating service with the necessary dependencies
+func NewService(r Repository) Service {
+	return &service{r}
+}
+
 // UpdateUser returns updates a user, returns an error
-func UpdateUser(user *model.User, id string) error {
+func (s *service) UpdateUser(user *model.User, id string) error {
 	db, err := gorm.Open("postgres", cfg.URL)
 	if err != nil {
 		return err
@@ -39,7 +55,7 @@ func UpdateUser(user *model.User, id string) error {
 }
 
 // UpdateProduct updates a product, returns an error
-func UpdateProduct(product *model.Product, id string) error {
+func (s *service) UpdateProduct(product *model.Product, id string) error {
 	db, err := gorm.Open("postgres", cfg.URL)
 	if err != nil {
 		return err
@@ -65,7 +81,7 @@ func UpdateProduct(product *model.Product, id string) error {
 }
 
 // UpdateShop updates a shop, returns an error
-func UpdateShop(shop *model.Shop, id string) error {
+func (s *service) UpdateShop(shop *model.Shop, id string) error {
 	db, err := gorm.Open("postgres", cfg.URL)
 	if err != nil {
 		return err

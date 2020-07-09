@@ -21,7 +21,6 @@ import (
 type AuthRepository interface {
 	Login(*email.ValidatedList) http.HandlerFunc
 	Logout() http.HandlerFunc
-	alreadyLoggedIn(http.ResponseWriter, *http.Request) bool
 }
 
 // Session provides auth operations

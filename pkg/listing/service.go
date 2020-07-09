@@ -11,8 +11,8 @@ import (
 	"github.com/pkg/errors"
 )
 
-// Lister provides models listing operations.
-type Lister interface {
+// Repository provides access to the storage
+type Repository interface {
 	GetProducts(*[]model.Product) error
 	GetProductByID(*model.Product, string) error
 
@@ -26,8 +26,32 @@ type Lister interface {
 	GetUserByID(*model.User, string) error
 }
 
+// Service provides models listing operations.
+type Service interface {
+	GetProducts(*[]model.Product) error
+	GetProductByID(*model.Product, string) error
+
+	GetReviews(*[]model.Review) error
+	GetReviewByID(*model.Review, string) error
+
+	GetShops(*[]model.Shop) error
+	GetShopByID(*model.Shop, string) error
+
+	GetUsers(*[]model.User) error
+	GetUserByID(*model.User, string) error
+}
+
+type service struct {
+	r Repository
+}
+
+// NewService creates a listing service with the necessary dependencies
+func NewService(r Repository) Service {
+	return &service{r}
+}
+
 // GetProducts lists all the products stored in the database
-func GetProducts(product *[]model.Product) error {
+func (s *service) GetProducts(product *[]model.Product) error {
 	db, err := gorm.Open("postgres", cfg.URL)
 	if err != nil {
 		return err
@@ -42,7 +66,7 @@ func GetProducts(product *[]model.Product) error {
 }
 
 // GetProductByID lists the product requested from the database
-func GetProductByID(product *model.Product, id string) error {
+func (s *service) GetProductByID(product *model.Product, id string) error {
 	db, err := gorm.Open("postgres", cfg.URL)
 	if err != nil {
 		return err
@@ -57,7 +81,7 @@ func GetProductByID(product *model.Product, id string) error {
 }
 
 // GetReviews lists all the reviews stored in the database
-func GetReviews(review *[]model.Review) error {
+func (s *service) GetReviews(review *[]model.Review) error {
 	db, err := gorm.Open("postgres", cfg.URL)
 	if err != nil {
 		return err
@@ -72,7 +96,7 @@ func GetReviews(review *[]model.Review) error {
 }
 
 // GetReviewByID lists the review requested from the database
-func GetReviewByID(review *model.Review, id string) error {
+func (s *service) GetReviewByID(review *model.Review, id string) error {
 	db, err := gorm.Open("postgres", cfg.URL)
 	if err != nil {
 		return err
@@ -87,7 +111,7 @@ func GetReviewByID(review *model.Review, id string) error {
 }
 
 // GetShops lists all the shops stored in the database
-func GetShops(shop *[]model.Shop) error {
+func (s *service) GetShops(shop *[]model.Shop) error {
 	db, err := gorm.Open("postgres", cfg.URL)
 	if err != nil {
 		return err
@@ -102,7 +126,7 @@ func GetShops(shop *[]model.Shop) error {
 }
 
 // GetShopByID lists the shop requested from the database
-func GetShopByID(shop *model.Shop, id string) error {
+func (s *service) GetShopByID(shop *model.Shop, id string) error {
 	db, err := gorm.Open("postgres", cfg.URL)
 	if err != nil {
 		return err
@@ -117,7 +141,7 @@ func GetShopByID(shop *model.Shop, id string) error {
 }
 
 // GetUsers lists all the users stored in the database
-func GetUsers(user *[]model.User) error {
+func (s *service) GetUsers(user *[]model.User) error {
 	db, err := gorm.Open("postgres", cfg.URL)
 	if err != nil {
 		return err
@@ -132,7 +156,7 @@ func GetUsers(user *[]model.User) error {
 }
 
 // GetUserByID lists the user requested from the database
-func GetUserByID(user *model.User, id string) error {
+func (s *service) GetUserByID(user *model.User, id string) error {
 	db, err := gorm.Open("postgres", cfg.URL)
 	if err != nil {
 		return err

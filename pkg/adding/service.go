@@ -12,16 +12,33 @@ import (
 	"github.com/pkg/errors"
 )
 
-// Adder provides models adding operations.
-type Adder interface {
+// Repository provides access to the storage
+type Repository interface {
 	AddProduct(*model.Product) error
 	AddReview(*model.Review) error
 	AddShop(*model.Shop) error
 	AddUser(*model.User) error
 }
 
+// Service provides models adding operations.
+type Service interface {
+	AddProduct(*model.Product) error
+	AddReview(*model.Review) error
+	AddShop(*model.Shop) error
+	AddUser(*model.User) error
+}
+
+type service struct {
+	r Repository
+}
+
+// NewService creates a deleting service with the necessary dependencies
+func NewService(r Repository) Service {
+	return &service{r}
+}
+
 // AddProduct takes a new product and appends it to the database
-func AddProduct(product *model.Product) error {
+func (s *service) AddProduct(product *model.Product) error {
 	db, err := gorm.Open("postgres", cfg.URL)
 	if err != nil {
 		return err
@@ -36,7 +53,7 @@ func AddProduct(product *model.Product) error {
 }
 
 // AddReview takes a new review and appends it to the database
-func AddReview(review *model.Review) error {
+func (s *service) AddReview(review *model.Review) error {
 	db, err := gorm.Open("postgres", cfg.URL)
 	if err != nil {
 		return err
@@ -51,7 +68,7 @@ func AddReview(review *model.Review) error {
 }
 
 // AddShop takes a new shop and appends it to the database
-func AddShop(shop *model.Shop) error {
+func (s *service) AddShop(shop *model.Shop) error {
 	db, err := gorm.Open("postgres", cfg.URL)
 	if err != nil {
 		return err
@@ -67,7 +84,7 @@ func AddShop(shop *model.Shop) error {
 
 // AddUser takes a new user, hashes its password, sends
 // a verification email and appends it to the database
-func AddUser(user *model.User) error {
+func (s *service) AddUser(user *model.User) error {
 	db, err := gorm.Open("postgres", cfg.URL)
 	if err != nil {
 		return err

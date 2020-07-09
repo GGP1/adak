@@ -11,16 +11,33 @@ import (
 	"github.com/pkg/errors"
 )
 
-// Deleter provides models deleting operations.
-type Deleter interface {
+// Repository provides access to the storage
+type Repository interface {
 	DeleteProduct(*model.Product, string) error
 	DeleteReview(*model.Review, string) error
 	DeleteShop(*model.Shop, string) error
 	DeleteUser(*model.User, string) error
 }
 
+// Service provides models deleting operations.
+type Service interface {
+	DeleteProduct(*model.Product, string) error
+	DeleteReview(*model.Review, string) error
+	DeleteShop(*model.Shop, string) error
+	DeleteUser(*model.User, string) error
+}
+
+type service struct {
+	r Repository
+}
+
+// NewService creates a deleting service with the necessary dependencies
+func NewService(r Repository) Service {
+	return &service{r}
+}
+
 // DeleteProduct takes a product from the database and permanently deletes it
-func DeleteProduct(product *model.Product, id string) error {
+func (s *service) DeleteProduct(product *model.Product, id string) error {
 	db, err := gorm.Open("postgres", cfg.URL)
 	if err != nil {
 		return err
@@ -34,7 +51,7 @@ func DeleteProduct(product *model.Product, id string) error {
 }
 
 // DeleteReview takes a review from the database and permanently deletes it
-func DeleteReview(review *model.Review, id string) error {
+func (s *service) DeleteReview(review *model.Review, id string) error {
 	db, err := gorm.Open("postgres", cfg.URL)
 	if err != nil {
 		return err
@@ -48,7 +65,7 @@ func DeleteReview(review *model.Review, id string) error {
 }
 
 // DeleteShop takes a shop from the database and permanently deletes it
-func DeleteShop(shop *model.Shop, id string) error {
+func (s *service) DeleteShop(shop *model.Shop, id string) error {
 	db, err := gorm.Open("postgres", cfg.URL)
 	if err != nil {
 		return err
@@ -62,7 +79,7 @@ func DeleteShop(shop *model.Shop, id string) error {
 }
 
 // DeleteUser takes a user from the database and permanently deletes it
-func DeleteUser(user *model.User, id string) error {
+func (s *service) DeleteUser(user *model.User, id string) error {
 	db, err := gorm.Open("postgres", cfg.URL)
 	if err != nil {
 		return err

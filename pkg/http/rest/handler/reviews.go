@@ -13,11 +13,11 @@ import (
 )
 
 // GetReviews lists all the reviews
-func GetReviews() http.HandlerFunc {
+func GetReviews(l listing.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var review []model.Review
 
-		err := listing.GetReviews(&review)
+		err := l.GetReviews(&review)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
@@ -28,13 +28,13 @@ func GetReviews() http.HandlerFunc {
 }
 
 // GetReviewByID lists the review with the id requested
-func GetReviewByID() http.HandlerFunc {
+func GetReviewByID(l listing.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var review model.Review
 
 		id := mux.Vars(r)["id"]
 
-		err := listing.GetReviewByID(&review, id)
+		err := l.GetReviewByID(&review, id)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
@@ -45,7 +45,7 @@ func GetReviewByID() http.HandlerFunc {
 }
 
 // AddReview creates a new review and saves it
-func AddReview() http.HandlerFunc {
+func AddReview(a adding.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var review model.Review
 
@@ -55,7 +55,7 @@ func AddReview() http.HandlerFunc {
 		}
 		defer r.Body.Close()
 
-		err := adding.AddReview(&review)
+		err := a.AddReview(&review)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
@@ -66,13 +66,13 @@ func AddReview() http.HandlerFunc {
 }
 
 // DeleteReview deletes a review
-func DeleteReview() http.HandlerFunc {
+func DeleteReview(d deleting.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var review model.Review
 
 		id := mux.Vars(r)["id"]
 
-		err := deleting.DeleteReview(&review, id)
+		err := d.DeleteReview(&review, id)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return

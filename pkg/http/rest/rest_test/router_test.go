@@ -5,7 +5,11 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/GGP1/palo/pkg/adding"
+	"github.com/GGP1/palo/pkg/deleting"
 	"github.com/GGP1/palo/pkg/http/rest"
+	"github.com/GGP1/palo/pkg/listing"
+	"github.com/GGP1/palo/pkg/updating"
 )
 
 // Checkboxes
@@ -16,7 +20,17 @@ const (
 
 // Fix
 func TestRouting(t *testing.T) {
-	srv := httptest.NewServer(rest.NewRouter())
+	addingRepo := *new(adding.Repository)
+	deletingRepo := *new(deleting.Repository)
+	listingRepo := *new(listing.Repository)
+	updatingRepo := *new(updating.Repository)
+
+	adder := adding.NewService(addingRepo)
+	deleter := deleting.NewService(deletingRepo)
+	lister := listing.NewService(listingRepo)
+	updater := updating.NewService(updatingRepo)
+
+	srv := httptest.NewServer(rest.NewRouter(adder, deleter, lister, updater))
 	defer srv.Close()
 
 	t.Log("Given the need to test the router.")

@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/GGP1/palo/internal/email"
 	"github.com/GGP1/palo/internal/response"
@@ -18,11 +19,11 @@ import (
 )
 
 // GetUsers lists all the users
-func GetUsers() http.HandlerFunc {
+func GetUsers(l listing.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var user []model.User
 
-		err := listing.GetUsers(&user)
+		err := l.GetUsers(&user)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
@@ -33,13 +34,13 @@ func GetUsers() http.HandlerFunc {
 }
 
 // GetUserByID lists the user with the id requested
-func GetUserByID() http.HandlerFunc {
+func GetUserByID(l listing.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var user model.User
 
 		id := mux.Vars(r)["id"]
 
-		err := listing.GetUserByID(&user, id)
+		err := l.GetUserByID(&user, id)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
@@ -50,7 +51,7 @@ func GetUserByID() http.HandlerFunc {
 }
 
 // AddUser creates a new user and saves it
-func AddUser(pendingList *email.PendingList) http.HandlerFunc {
+func AddUser(a adding.Service, pendingList *email.PendingList) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var user model.User
 
@@ -60,7 +61,7 @@ func AddUser(pendingList *email.PendingList) http.HandlerFunc {
 		}
 		defer r.Body.Close()
 
-		err := adding.AddUser(&user)
+		err := a.AddUser(&user)
 		if err != nil {
 			response.Error(w, r, http.StatusBadRequest, err)
 			return
@@ -83,7 +84,7 @@ func AddUser(pendingList *email.PendingList) http.HandlerFunc {
 }
 
 // UpdateUser updates the user with the given id
-func UpdateUser() http.HandlerFunc {
+func UpdateUser(u updating.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var user model.User
 
@@ -95,7 +96,7 @@ func UpdateUser() http.HandlerFunc {
 		}
 		defer r.Body.Close()
 
-		err := updating.UpdateUser(&user, id)
+		err := u.UpdateUser(&user, id)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
@@ -106,13 +107,13 @@ func UpdateUser() http.HandlerFunc {
 }
 
 // DeleteUser deletes a user
-func DeleteUser(pendingList *email.PendingList, validatedList *email.ValidatedList) http.HandlerFunc {
+func DeleteUser(d deleting.Service, pendingList *email.PendingList, validatedList *email.ValidatedList) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var user model.User
 
 		id := mux.Vars(r)["id"]
 
-		err := deleting.DeleteUser(&user, id)
+		err := d.DeleteUser(&user, id)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
@@ -122,9 +123,22 @@ func DeleteUser(pendingList *email.PendingList, validatedList *email.ValidatedLi
 		pendingList.Remove(user.Email)
 		validatedList.Remove(user.Email)
 
+		// If the user is logged in, log him out
+		c, _ := r.Cookie("SID")
+		if c != nil {
+			cookie := &http.Cookie{
+				Name:     "SID",
+				Value:    "0",
+				Expires:  time.Unix(1414414788, 1414414788000),
+				Path:     "/",
+				Domain:   "localhost",
+				Secure:   false,
+				HttpOnly: true,
+				MaxAge:   -1,
+			}
+			http.SetCookie(w, cookie)
+		}
+
 		response.HTMLText(w, r, http.StatusOK, "User deleted successfully.")
-		/*
-			time.Sleep(2 * time.Second)
-			http.Redirect(w, r, "/logout", http.StatusTemporaryRedirect) */
 	}
 }

@@ -14,11 +14,11 @@ import (
 )
 
 // GetShops lists all the shops
-func GetShops() http.HandlerFunc {
+func GetShops(l listing.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var shop []model.Shop
 
-		err := listing.GetShops(&shop)
+		err := l.GetShops(&shop)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
@@ -29,13 +29,13 @@ func GetShops() http.HandlerFunc {
 }
 
 // GetShopByID lists the shop with the id requested
-func GetShopByID() http.HandlerFunc {
+func GetShopByID(l listing.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var shop model.Shop
 
 		id := mux.Vars(r)["id"]
 
-		err := listing.GetShopByID(&shop, id)
+		err := l.GetShopByID(&shop, id)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
@@ -46,7 +46,7 @@ func GetShopByID() http.HandlerFunc {
 }
 
 // AddShop creates a new shop and saves it
-func AddShop() http.HandlerFunc {
+func AddShop(a adding.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var shop model.Shop
 
@@ -56,7 +56,7 @@ func AddShop() http.HandlerFunc {
 		}
 		defer r.Body.Close()
 
-		err := adding.AddShop(&shop)
+		err := a.AddShop(&shop)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
@@ -67,7 +67,7 @@ func AddShop() http.HandlerFunc {
 }
 
 // UpdateShop updates the shop with the given id
-func UpdateShop() http.HandlerFunc {
+func UpdateShop(u updating.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var shop model.Shop
 
@@ -79,7 +79,7 @@ func UpdateShop() http.HandlerFunc {
 		}
 		defer r.Body.Close()
 
-		err := updating.UpdateShop(&shop, id)
+		err := u.UpdateShop(&shop, id)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
@@ -90,13 +90,13 @@ func UpdateShop() http.HandlerFunc {
 }
 
 // DeleteShop deletes a shop
-func DeleteShop() http.HandlerFunc {
+func DeleteShop(d deleting.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var shop model.Shop
 
 		id := mux.Vars(r)["id"]
 
-		err := deleting.DeleteShop(&shop, id)
+		err := d.DeleteShop(&shop, id)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 		}

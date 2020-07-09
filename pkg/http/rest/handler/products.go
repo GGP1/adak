@@ -15,11 +15,11 @@ import (
 )
 
 // GetProducts lists all the products
-func GetProducts() http.HandlerFunc {
+func GetProducts(l listing.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var product []model.Product
 
-		err := listing.GetProducts(&product)
+		err := l.GetProducts(&product)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
@@ -30,13 +30,13 @@ func GetProducts() http.HandlerFunc {
 }
 
 // GetProductByID lists the product with the id requested
-func GetProductByID() http.HandlerFunc {
+func GetProductByID(l listing.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var product model.Product
 
 		id := mux.Vars(r)["id"]
 
-		err := listing.GetProductByID(&product, id)
+		err := l.GetProductByID(&product, id)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
@@ -47,7 +47,7 @@ func GetProductByID() http.HandlerFunc {
 }
 
 // AddProduct creates a new product and saves it
-func AddProduct() http.HandlerFunc {
+func AddProduct(a adding.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var product model.Product
 
@@ -57,7 +57,7 @@ func AddProduct() http.HandlerFunc {
 		}
 		defer r.Body.Close()
 
-		err := adding.AddProduct(&product)
+		err := a.AddProduct(&product)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
@@ -68,7 +68,7 @@ func AddProduct() http.HandlerFunc {
 }
 
 // UpdateProduct updates the product with the given id
-func UpdateProduct() http.HandlerFunc {
+func UpdateProduct(u updating.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var product model.Product
 
@@ -80,7 +80,7 @@ func UpdateProduct() http.HandlerFunc {
 		}
 		defer r.Body.Close()
 
-		err := updating.UpdateProduct(&product, id)
+		err := u.UpdateProduct(&product, id)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
@@ -91,13 +91,13 @@ func UpdateProduct() http.HandlerFunc {
 }
 
 // DeleteProduct deletes a product
-func DeleteProduct() http.HandlerFunc {
+func DeleteProduct(d deleting.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var product model.Product
 
 		id := mux.Vars(r)["id"]
 
-		err := deleting.DeleteProduct(&product, id)
+		err := d.DeleteProduct(&product, id)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
