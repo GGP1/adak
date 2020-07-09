@@ -101,19 +101,6 @@ func (c *Cache) Get(name, key string) (interface{}, bool) {
 	return item.Object, true
 }
 
-// ItemCount returns the number of items stored in the cache
-func (c *Cache) ItemCount(name string) (int, error) {
-	if name != c.name {
-		return 0, fmt.Errorf("Cache %s does not exist", name)
-	}
-
-	c.RLock()
-	count := len(c.items)
-	c.RUnlock()
-
-	return count, nil
-}
-
 // Items returns a map copy of the items stored in the cache
 func (c *Cache) Items(name string) (map[string]Item, error) {
 	c.Lock()
@@ -195,4 +182,16 @@ func (c *Cache) Set(name, key string, obj interface{}, defaultExpiration time.Du
 	c.Unlock()
 
 	return nil
+}
+
+// Size returns the number of items stored in the cache
+func (c *Cache) Size(name string) (int, error) {
+	c.RLock()
+	defer c.RUnlock()
+
+	if name != c.name {
+		return 0, fmt.Errorf("%s cache does not exist", name)
+	}
+
+	return len(c.items), nil
 }

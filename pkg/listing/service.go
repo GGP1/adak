@@ -36,7 +36,7 @@ func GetProducts(product *[]model.Product) error {
 
 	err = db.Preload("Reviews").Find(product).Error
 	if err != nil {
-		return errors.Wrap(err, "error")
+		return errors.Wrap(err, "error: products not found")
 	}
 	return nil
 }
@@ -51,7 +51,7 @@ func GetProductByID(product *model.Product, id string) error {
 
 	err = db.Preload("Reviews").First(product, id).Error
 	if err != nil {
-		return errors.Wrap(err, "error")
+		return errors.Wrap(err, "error: product not found")
 	}
 	return nil
 }
@@ -66,7 +66,7 @@ func GetReviews(review *[]model.Review) error {
 
 	err = db.Find(review).Error
 	if err != nil {
-		return errors.Wrap(err, "error")
+		return errors.Wrap(err, "error: reviews not found")
 	}
 	return nil
 }
@@ -81,7 +81,7 @@ func GetReviewByID(review *model.Review, id string) error {
 
 	err = db.First(review, id).Error
 	if err != nil {
-		return errors.Wrap(err, "error")
+		return errors.Wrap(err, "error: review not found")
 	}
 	return nil
 }
@@ -96,7 +96,7 @@ func GetShops(shop *[]model.Shop) error {
 
 	err = db.Preload("Location").Preload("Reviews").Preload("Products").Find(shop).Error
 	if err != nil {
-		return errors.Wrap(err, "error")
+		return errors.Wrap(err, "error: shops not found")
 	}
 	return nil
 }
@@ -111,7 +111,7 @@ func GetShopByID(shop *model.Shop, id string) error {
 
 	err = db.Preload("Location").Preload("Reviews").Preload("Products").First(shop, id).Error
 	if err != nil {
-		return errors.Wrap(err, "error")
+		return errors.Wrap(err, "error: shop not found")
 	}
 	return nil
 }
@@ -126,7 +126,7 @@ func GetUsers(user *[]model.User) error {
 
 	err = db.Preload("Reviews").Find(user).Error
 	if err != nil {
-		return errors.Wrap(err, "error")
+		return errors.Wrap(err, "error: users not found")
 	}
 	return nil
 }
@@ -141,7 +141,7 @@ func GetUserByID(user *model.User, id string) error {
 
 	err = db.Preload("Reviews").First(user, id).Error
 	if err != nil {
-		return errors.Wrap(err, "error")
+		return errors.Wrap(err, "error: user not found")
 	}
 	return nil
 }
