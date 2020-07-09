@@ -47,10 +47,10 @@ func (c *Cart) Add(product *model.Product) {
 	discount := (product.Subtotal / 100) * product.Discount
 
 	c.Products[product.ID] = *product
-	c.Weight = c.Weight + product.Weight
-	c.Discount = c.Discount + discount
-	c.Taxes = c.Taxes + taxes
-	c.Subtotal = c.Subtotal + product.Subtotal
+	c.Weight += product.Weight
+	c.Discount += discount
+	c.Taxes += taxes
+	c.Subtotal += product.Subtotal
 	c.Total = c.Total + product.Subtotal + taxes - discount
 }
 
@@ -162,14 +162,25 @@ func (c *Cart) Remove(key uint) {
 	c.Lock()
 	defer c.Unlock()
 
+	if len(c.Products) == 1 {
+		c.Weight = 0
+		c.Discount = 0
+		c.Taxes = 0
+		c.Subtotal = 0
+		c.Total = 0
+		delete(c.Products, key)
+		return
+	}
+
 	product := c.Products[key]
 
 	tax := (product.Subtotal / 100) * product.Taxes
 	discount := (product.Subtotal / 100) * product.Discount
 
-	c.Weight = c.Weight - product.Weight
-	c.Discount = c.Discount - discount
-	c.Taxes = c.Taxes - tax
+	c.Weight -= product.Weight
+	c.Discount -= discount
+	c.Taxes -= tax
+	c.Subtotal -= product.Subtotal
 	c.Total = c.Total - product.Subtotal - tax + discount
 
 	delete(c.Products, key)
