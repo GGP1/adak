@@ -50,9 +50,10 @@ func (lrw *loggingResponseWriter) WriteHeader(code int) {
 // LogFormatter prints the server requests on the console.
 // It uses different colors depending on the request status
 // and the method called.
-// Mux NotFound and MethodNotAllowed handlers not working
 func LogFormatter(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		start := time.Now()
+
 		lrw := newLoggingResponseWriter(w)
 		next.ServeHTTP(lrw, r)
 
@@ -60,16 +61,18 @@ func LogFormatter(next http.Handler) http.Handler {
 		method := r.Method
 		status := lrw.statusCode
 		path := r.URL.Path
+		latency := time.Since(start)
 
 		statusColor := statusCodeColor(status)
 		methodColor := methodColor(method)
 		resetColor := resetColor()
 
-		log := fmt.Sprintf("[PALO] %v | %s %3d %s | %s %-7s %s | %#v",
+		log := fmt.Sprintf("[PALO] %v | %s %3d %s | %s %-7s %s | %#v | %v",
 			timestamp,
 			statusColor, status, resetColor,
 			methodColor, method, resetColor,
-			path)
+			path,
+			latency)
 
 		fmt.Println(log)
 	})
