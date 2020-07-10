@@ -73,16 +73,16 @@ func NewRouter(a adding.Service, d deleting.Service, l listing.Service, u updati
 	// ==========
 	// 	Shopping
 	// ==========
-	r.HandleFunc("/shopping", h.CartGet(cart)).Methods("GET")
+	r.HandleFunc("/shopping", m.RequireLogin(h.CartGet(cart))).Methods("GET")
 	r.HandleFunc("/shopping/{id}", m.RequireLogin(h.CartRemove(cart))).Methods("DELETE")
-	r.HandleFunc("/shopping/add", m.RequireLogin(h.CartAdd(cart))).Methods("POST")
+	r.HandleFunc("/shopping/add/{amount}", m.RequireLogin(h.CartAdd(cart))).Methods("POST")
 	r.HandleFunc("/shopping/checkout", m.RequireLogin(h.CartCheckout(cart))).Methods("GET")
-	r.HandleFunc("/shopping/filter/brand/{brand}", h.CartFilterByBrand(cart)).Methods("GET")
-	r.HandleFunc("/shopping/filter/category/{category}", h.CartFilterByCategory(cart)).Methods("GET")
-	r.HandleFunc("/shopping/filter/total/{min}/{max}", h.CartFilterByTotal(cart)).Methods("GET")
-	r.HandleFunc("/shopping/filter/type/{type}", h.CartFilterByType(cart)).Methods("GET")
-	r.HandleFunc("/shopping/filter/weight/{min}/{max}", h.CartFilterByWeight(cart)).Methods("GET")
-	r.HandleFunc("/shopping/items", h.CartItems(cart)).Methods("GET")
+	r.HandleFunc("/shopping/filter/brand/{brand}", m.RequireLogin(h.CartFilterByBrand(cart))).Methods("GET")
+	r.HandleFunc("/shopping/filter/category/{category}", m.RequireLogin(h.CartFilterByCategory(cart))).Methods("GET")
+	r.HandleFunc("/shopping/filter/total/{min}/{max}", m.RequireLogin(h.CartFilterByTotal(cart))).Methods("GET")
+	r.HandleFunc("/shopping/filter/type/{type}", m.RequireLogin(h.CartFilterByType(cart))).Methods("GET")
+	r.HandleFunc("/shopping/filter/weight/{min}/{max}", m.RequireLogin(h.CartFilterByWeight(cart))).Methods("GET")
+	r.HandleFunc("/shopping/items", m.RequireLogin(h.CartItems(cart))).Methods("GET")
 	r.HandleFunc("/shopping/reset", m.RequireLogin(h.CartReset(cart))).Methods("GET")
 	r.HandleFunc("/shopping/size", m.RequireLogin(h.CartSize(cart))).Methods("GET")
 

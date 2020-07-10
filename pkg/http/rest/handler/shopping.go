@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -22,7 +23,21 @@ func CartAdd(cart *shopping.Cart) http.HandlerFunc {
 		}
 		defer r.Body.Close()
 
-		cart.Add(&product)
+		amount := mux.Vars(r)["amount"]
+
+		q, err := strconv.Atoi(amount)
+		if err != nil {
+			response.Error(w, r, http.StatusBadRequest, errors.New("Amount inserted is not valid, integers accepted only"))
+		}
+
+		quantity := float32(q)
+
+		if quantity == 0 {
+			response.Error(w, r, http.StatusBadRequest, errors.New("Please insert a valid amount"))
+			return
+		}
+
+		cart.Add(&product, quantity)
 
 		response.JSON(w, r, http.StatusOK, cart)
 	}
@@ -147,7 +162,10 @@ func CartRemove(cart *shopping.Cart) http.HandlerFunc {
 			return
 		}
 
-		cart.Remove(uint(key))
+		err = cart.Remove(uint(key))
+		if err != nil {
+			response.Error(w, r, http.StatusBadRequest, err)
+		}
 
 		response.JSON(w, r, http.StatusOK, cart)
 	}

@@ -16,7 +16,6 @@ var (
 // Cart stores the products that the user chose to buy
 type Cart struct {
 	sync.RWMutex
-	Error error
 
 	Products map[uint]model.Product
 	Weight   float32
@@ -29,7 +28,6 @@ type Cart struct {
 // NewCart returns a cart with the default values
 func NewCart() *Cart {
 	return &Cart{
-		Error:    nil,
 		Products: make(map[uint]model.Product),
 		Weight:   0,
 		Discount: 0,
@@ -39,9 +37,22 @@ func NewCart() *Cart {
 }
 
 // Add a product to the cart
-func (c *Cart) Add(product *model.Product) {
+func (c *Cart) Add(product *model.Product, quantity float32) {
 	c.Lock()
 	defer c.Unlock()
+
+	if quantity != 1 {
+		taxes := ((product.Subtotal / 100) * product.Taxes) * quantity
+		discount := ((product.Subtotal / 100) * product.Discount) * quantity
+
+		c.Products[product.ID] = *product
+		c.Weight += product.Weight * quantity
+		c.Discount += discount
+		c.Taxes += taxes
+		c.Subtotal += product.Subtotal * quantity
+		c.Total = c.Total + product.Subtotal*quantity + taxes - discount
+		return
+	}
 
 	taxes := (product.Subtotal / 100) * product.Taxes
 	discount := (product.Subtotal / 100) * product.Discount
@@ -54,7 +65,7 @@ func (c *Cart) Add(product *model.Product) {
 	c.Total = c.Total + product.Subtotal + taxes - discount
 }
 
-// Checkout takes all the products and returns the final purchase
+// Checkout takes all the products and returns the total price
 func (c *Cart) Checkout() float32 {
 	c.Lock()
 	defer c.Unlock()
@@ -158,9 +169,13 @@ func (c *Cart) Items() map[uint]model.Product {
 }
 
 // Remove takes away a product from the cart
-func (c *Cart) Remove(key uint) {
+func (c *Cart) Remove(key uint) error {
 	c.Lock()
 	defer c.Unlock()
+
+	if len(c.Products) == 0 {
+		return errors.New("There are no products in the cart")
+	}
 
 	if len(c.Products) == 1 {
 		c.Weight = 0
@@ -169,7 +184,7 @@ func (c *Cart) Remove(key uint) {
 		c.Subtotal = 0
 		c.Total = 0
 		delete(c.Products, key)
-		return
+		return nil
 	}
 
 	product := c.Products[key]
@@ -184,6 +199,8 @@ func (c *Cart) Remove(key uint) {
 	c.Total = c.Total - product.Subtotal - tax + discount
 
 	delete(c.Products, key)
+
+	return nil
 }
 
 // Reset cart products
