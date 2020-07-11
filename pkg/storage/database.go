@@ -16,11 +16,9 @@ import (
 func NewDatabase() (*gorm.DB, func() error, error) {
 	// Connection
 	db, err := gorm.Open("postgres", cfg.URL)
-	db.LogMode(true)
 	if err != nil {
 		return nil, nil, err
 	}
-	defer db.Close()
 
 	// Check connectivity
 	err = db.DB().Ping()

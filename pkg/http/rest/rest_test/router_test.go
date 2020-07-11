@@ -9,6 +9,7 @@ import (
 	"github.com/GGP1/palo/pkg/deleting"
 	"github.com/GGP1/palo/pkg/http/rest"
 	"github.com/GGP1/palo/pkg/listing"
+	"github.com/GGP1/palo/pkg/storage"
 	"github.com/GGP1/palo/pkg/updating"
 )
 
@@ -20,6 +21,11 @@ const (
 
 // Fix
 func TestRouting(t *testing.T) {
+	db, close, err := storage.NewDatabase()
+	if err != nil {
+		t.Fatal("Database failed connecting")
+	}
+	defer close()
 	addingRepo := *new(adding.Repository)
 	deletingRepo := *new(deleting.Repository)
 	listingRepo := *new(listing.Repository)
@@ -30,7 +36,7 @@ func TestRouting(t *testing.T) {
 	lister := listing.NewService(listingRepo)
 	updater := updating.NewService(updatingRepo)
 
-	srv := httptest.NewServer(rest.NewRouter(adder, deleter, lister, updater))
+	srv := httptest.NewServer(rest.NewRouter(db, adder, deleter, lister, updater))
 	defer srv.Close()
 
 	t.Log("Given the need to test the router.")

@@ -4,7 +4,6 @@ Package adding includes database adding operations
 package adding
 
 import (
-	"github.com/GGP1/palo/internal/cfg"
 	"github.com/GGP1/palo/pkg/model"
 	"golang.org/x/crypto/bcrypt"
 
@@ -14,18 +13,18 @@ import (
 
 // Repository provides access to the storage
 type Repository interface {
-	AddProduct(*model.Product) error
-	AddReview(*model.Review) error
-	AddShop(*model.Shop) error
-	AddUser(*model.User) error
+	AddProduct(*gorm.DB, *model.Product) error
+	AddReview(*gorm.DB, *model.Review) error
+	AddShop(*gorm.DB, *model.Shop) error
+	AddUser(*gorm.DB, *model.User) error
 }
 
 // Service provides models adding operations.
 type Service interface {
-	AddProduct(*model.Product) error
-	AddReview(*model.Review) error
-	AddShop(*model.Shop) error
-	AddUser(*model.User) error
+	AddProduct(*gorm.DB, *model.Product) error
+	AddReview(*gorm.DB, *model.Review) error
+	AddShop(*gorm.DB, *model.Shop) error
+	AddUser(*gorm.DB, *model.User) error
 }
 
 type service struct {
@@ -38,13 +37,7 @@ func NewService(r Repository) Service {
 }
 
 // AddProduct takes a new product and appends it to the database
-func (s *service) AddProduct(product *model.Product) error {
-	db, err := gorm.Open("postgres", cfg.URL)
-	if err != nil {
-		return err
-	}
-	defer db.Close()
-
+func (s *service) AddProduct(db *gorm.DB, product *model.Product) error {
 	if err := db.Create(product).Error; err != nil {
 		return errors.Wrap(err, "error: couldn't create the product")
 	}
@@ -53,13 +46,7 @@ func (s *service) AddProduct(product *model.Product) error {
 }
 
 // AddReview takes a new review and appends it to the database
-func (s *service) AddReview(review *model.Review) error {
-	db, err := gorm.Open("postgres", cfg.URL)
-	if err != nil {
-		return err
-	}
-	defer db.Close()
-
+func (s *service) AddReview(db *gorm.DB, review *model.Review) error {
 	if err := db.Create(review).Error; err != nil {
 		return errors.Wrap(err, "error: couldn't create the review")
 	}
@@ -68,13 +55,7 @@ func (s *service) AddReview(review *model.Review) error {
 }
 
 // AddShop takes a new shop and appends it to the database
-func (s *service) AddShop(shop *model.Shop) error {
-	db, err := gorm.Open("postgres", cfg.URL)
-	if err != nil {
-		return err
-	}
-	defer db.Close()
-
+func (s *service) AddShop(db *gorm.DB, shop *model.Shop) error {
 	if err := db.Create(shop).Error; err != nil {
 		return errors.Wrap(err, "error: couldn't create the shop")
 	}
@@ -84,20 +65,14 @@ func (s *service) AddShop(shop *model.Shop) error {
 
 // AddUser takes a new user, hashes its password, sends
 // a verification email and appends it to the database
-func (s *service) AddUser(user *model.User) error {
-	db, err := gorm.Open("postgres", cfg.URL)
-	if err != nil {
-		return err
-	}
-	defer db.Close()
-
-	err = user.Validate("login")
+func (s *service) AddUser(db *gorm.DB, user *model.User) error {
+	err := user.Validate("login")
 	if err != nil {
 		return err
 	}
 
-	existingUser := db.Where("email = ?", user.Email).First(&user).Value
-	if existingUser == user.Email {
+	rowsAffected := db.Where("email = ?", user.Email).First(&user).RowsAffected
+	if rowsAffected != 0 {
 		return errors.New("error: the email is already used")
 	}
 
@@ -108,7 +83,7 @@ func (s *service) AddUser(user *model.User) error {
 	user.Password = string(hash)
 
 	if err := db.Create(user).Error; err != nil {
-		return errors.New("error: the email is already used")
+		return errors.New("error: couldn't create the user")
 	}
 
 	return nil

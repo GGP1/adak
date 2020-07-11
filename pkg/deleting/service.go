@@ -4,7 +4,6 @@ Package deleting includes database deleting operations
 package deleting
 
 import (
-	"github.com/GGP1/palo/internal/cfg"
 	"github.com/GGP1/palo/pkg/model"
 
 	"github.com/jinzhu/gorm"
@@ -13,18 +12,18 @@ import (
 
 // Repository provides access to the storage
 type Repository interface {
-	DeleteProduct(*model.Product, string) error
-	DeleteReview(*model.Review, string) error
-	DeleteShop(*model.Shop, string) error
-	DeleteUser(*model.User, string) error
+	DeleteProduct(*gorm.DB, *model.Product, string) error
+	DeleteReview(*gorm.DB, *model.Review, string) error
+	DeleteShop(*gorm.DB, *model.Shop, string) error
+	DeleteUser(*gorm.DB, *model.User, string) error
 }
 
 // Service provides models deleting operations.
 type Service interface {
-	DeleteProduct(*model.Product, string) error
-	DeleteReview(*model.Review, string) error
-	DeleteShop(*model.Shop, string) error
-	DeleteUser(*model.User, string) error
+	DeleteProduct(*gorm.DB, *model.Product, string) error
+	DeleteReview(*gorm.DB, *model.Review, string) error
+	DeleteShop(*gorm.DB, *model.Shop, string) error
+	DeleteUser(*gorm.DB, *model.User, string) error
 }
 
 type service struct {
@@ -37,13 +36,7 @@ func NewService(r Repository) Service {
 }
 
 // DeleteProduct takes a product from the database and permanently deletes it
-func (s *service) DeleteProduct(product *model.Product, id string) error {
-	db, err := gorm.Open("postgres", cfg.URL)
-	if err != nil {
-		return err
-	}
-	defer db.Close()
-
+func (s *service) DeleteProduct(db *gorm.DB, product *model.Product, id string) error {
 	if err := db.Delete(product, id).Error; err != nil {
 		return errors.Wrap(err, "error: couldn't delete the product")
 	}
@@ -51,13 +44,7 @@ func (s *service) DeleteProduct(product *model.Product, id string) error {
 }
 
 // DeleteReview takes a review from the database and permanently deletes it
-func (s *service) DeleteReview(review *model.Review, id string) error {
-	db, err := gorm.Open("postgres", cfg.URL)
-	if err != nil {
-		return err
-	}
-	defer db.Close()
-
+func (s *service) DeleteReview(db *gorm.DB, review *model.Review, id string) error {
 	if err := db.Delete(review, id).Error; err != nil {
 		return errors.Wrap(err, "error: couldn't delete the review")
 	}
@@ -65,13 +52,7 @@ func (s *service) DeleteReview(review *model.Review, id string) error {
 }
 
 // DeleteShop takes a shop from the database and permanently deletes it
-func (s *service) DeleteShop(shop *model.Shop, id string) error {
-	db, err := gorm.Open("postgres", cfg.URL)
-	if err != nil {
-		return err
-	}
-	defer db.Close()
-
+func (s *service) DeleteShop(db *gorm.DB, shop *model.Shop, id string) error {
 	if err := db.Delete(shop, id).Error; err != nil {
 		return errors.Wrap(err, "error: couldn't delete the shop")
 	}
@@ -79,13 +60,7 @@ func (s *service) DeleteShop(shop *model.Shop, id string) error {
 }
 
 // DeleteUser takes a user from the database and permanently deletes it
-func (s *service) DeleteUser(user *model.User, id string) error {
-	db, err := gorm.Open("postgres", cfg.URL)
-	if err != nil {
-		return err
-	}
-	defer db.Close()
-
+func (s *service) DeleteUser(db *gorm.DB, user *model.User, id string) error {
 	if err := db.Delete(user, id).Error; err != nil {
 		return errors.Wrap(err, "error: couldn't delete the user")
 	}

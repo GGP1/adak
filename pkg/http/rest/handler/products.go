@@ -10,16 +10,21 @@ import (
 	"github.com/GGP1/palo/pkg/listing"
 	"github.com/GGP1/palo/pkg/model"
 	"github.com/GGP1/palo/pkg/updating"
+	"github.com/jinzhu/gorm"
 
 	"github.com/gorilla/mux"
 )
 
-// GetProducts lists all the products
-func GetProducts(l listing.Service) http.HandlerFunc {
+type Products struct {
+	DB *gorm.DB
+}
+
+// GetAll lists all the products
+func (p *Products) GetAll(l listing.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var product []model.Product
 
-		err := l.GetProducts(&product)
+		err := l.GetProducts(p.DB, &product)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
@@ -29,14 +34,14 @@ func GetProducts(l listing.Service) http.HandlerFunc {
 	}
 }
 
-// GetProductByID lists the product with the id requested
-func GetProductByID(l listing.Service) http.HandlerFunc {
+// GetByID lists the product with the id requested
+func (p *Products) GetByID(l listing.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var product model.Product
 
 		id := mux.Vars(r)["id"]
 
-		err := l.GetProductByID(&product, id)
+		err := l.GetProductByID(p.DB, &product, id)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
@@ -46,8 +51,8 @@ func GetProductByID(l listing.Service) http.HandlerFunc {
 	}
 }
 
-// AddProduct creates a new product and saves it
-func AddProduct(a adding.Service) http.HandlerFunc {
+// Add creates a new product and saves it
+func (p *Products) Add(a adding.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var product model.Product
 
@@ -57,7 +62,7 @@ func AddProduct(a adding.Service) http.HandlerFunc {
 		}
 		defer r.Body.Close()
 
-		err := a.AddProduct(&product)
+		err := a.AddProduct(p.DB, &product)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
@@ -67,8 +72,8 @@ func AddProduct(a adding.Service) http.HandlerFunc {
 	}
 }
 
-// UpdateProduct updates the product with the given id
-func UpdateProduct(u updating.Service) http.HandlerFunc {
+// Update updates the product with the given id
+func (p *Products) Update(u updating.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var product model.Product
 
@@ -80,7 +85,7 @@ func UpdateProduct(u updating.Service) http.HandlerFunc {
 		}
 		defer r.Body.Close()
 
-		err := u.UpdateProduct(&product, id)
+		err := u.UpdateProduct(p.DB, &product, id)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
@@ -90,14 +95,14 @@ func UpdateProduct(u updating.Service) http.HandlerFunc {
 	}
 }
 
-// DeleteProduct deletes a product
-func DeleteProduct(d deleting.Service) http.HandlerFunc {
+// Delete deletes a product
+func (p *Products) Delete(d deleting.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var product model.Product
 
 		id := mux.Vars(r)["id"]
 
-		err := d.DeleteProduct(&product, id)
+		err := d.DeleteProduct(p.DB, &product, id)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return

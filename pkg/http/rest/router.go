@@ -9,6 +9,7 @@ import (
 	"github.com/GGP1/palo/internal/email"
 	"github.com/GGP1/palo/pkg/adding"
 	"github.com/GGP1/palo/pkg/deleting"
+	"github.com/jinzhu/gorm"
 
 	// h -> handler
 	h "github.com/GGP1/palo/pkg/http/rest/handler"
@@ -23,7 +24,7 @@ import (
 )
 
 // NewRouter creates and returns a mux router
-func NewRouter(a adding.Service, d deleting.Service, l listing.Service, u updating.Service) http.Handler {
+func NewRouter(db *gorm.DB, a adding.Service, d deleting.Service, l listing.Service, u updating.Service) http.Handler {
 	r := mux.NewRouter().StrictSlash(true)
 
 	// Create users mail lists
@@ -56,19 +57,21 @@ func NewRouter(a adding.Service, d deleting.Service, l listing.Service, u updati
 	// ==========
 	// 	Products
 	// ==========
-	r.HandleFunc("/products", h.GetProducts(l)).Methods("GET")
-	r.HandleFunc("/products/{id}", h.GetProductByID(l)).Methods("GET")
-	r.HandleFunc("/products/add", h.AddProduct(a)).Methods("POST")
-	r.HandleFunc("/products/{id}", m.RequireLogin(h.UpdateProduct(u))).Methods("PUT")
-	r.HandleFunc("/products/{id}", m.RequireLogin(h.DeleteProduct(d))).Methods("DELETE")
+	products := h.Products{DB: db}
+	r.HandleFunc("/products", products.GetAll(l)).Methods("GET")
+	r.HandleFunc("/products/{id}", products.GetByID(l)).Methods("GET")
+	r.HandleFunc("/products/add", products.Add(a)).Methods("POST")
+	r.HandleFunc("/products/{id}", m.RequireLogin(products.Update(u))).Methods("PUT")
+	r.HandleFunc("/products/{id}", m.RequireLogin(products.Delete(d))).Methods("DELETE")
 
 	// ==========
 	// 	Reviews
 	// ==========
-	r.HandleFunc("/reviews", h.GetReviews(l)).Methods("GET")
-	r.HandleFunc("/reviews/{id}", h.GetReviewByID(l)).Methods("GET")
-	r.HandleFunc("/reviews/add", m.RequireLogin(h.AddReview(a))).Methods("POST")
-	r.HandleFunc("/reviews/{id}", m.RequireLogin(h.DeleteReview(d))).Methods("DELETE")
+	reviews := h.Reviews{DB: db}
+	r.HandleFunc("/reviews", reviews.GetAll(l)).Methods("GET")
+	r.HandleFunc("/reviews/{id}", reviews.GetByID(l)).Methods("GET")
+	r.HandleFunc("/reviews/add", m.RequireLogin(reviews.Add(a))).Methods("POST")
+	r.HandleFunc("/reviews/{id}", m.RequireLogin(reviews.Delete(d))).Methods("DELETE")
 
 	// ==========
 	// 	Shopping
@@ -89,20 +92,22 @@ func NewRouter(a adding.Service, d deleting.Service, l listing.Service, u updati
 	// ==========
 	// 	Shops
 	// ==========
-	r.HandleFunc("/shops", h.GetShops(l)).Methods("GET")
-	r.HandleFunc("/shops/{id}", h.GetShopByID(l)).Methods("GET")
-	r.HandleFunc("/shops/add", h.AddShop(a)).Methods("POST")
-	r.HandleFunc("/shops/{id}", m.RequireLogin(h.UpdateShop(u))).Methods("PUT")
-	r.HandleFunc("/shops/{id}", m.RequireLogin(h.DeleteShop(d))).Methods("DELETE")
+	shops := h.Shops{DB: db}
+	r.HandleFunc("/shops", shops.GetAll(l)).Methods("GET")
+	r.HandleFunc("/shops/{id}", shops.GetByID(l)).Methods("GET")
+	r.HandleFunc("/shops/add", shops.Add(a)).Methods("POST")
+	r.HandleFunc("/shops/{id}", m.RequireLogin(shops.Update(u))).Methods("PUT")
+	r.HandleFunc("/shops/{id}", m.RequireLogin(shops.Delete(d))).Methods("DELETE")
 
 	// ==========
 	// 	Users
 	// ==========
-	r.HandleFunc("/users", h.GetUsers(l)).Methods("GET")
-	r.HandleFunc("/users/{id}", h.GetUserByID(l)).Methods("GET")
-	r.HandleFunc("/users/add", h.AddUser(a, pendingList)).Methods("POST")
-	r.HandleFunc("/users/{id}", m.RequireLogin(h.UpdateUser(u))).Methods("PUT")
-	r.HandleFunc("/users/{id}", m.RequireLogin(h.DeleteUser(d, pendingList, validatedList))).Methods("DELETE")
+	users := h.Users{DB: db}
+	r.HandleFunc("/users", users.GetAll(l)).Methods("GET")
+	r.HandleFunc("/users/{id}", users.GetByID(l)).Methods("GET")
+	r.HandleFunc("/users/add", users.Add(a, pendingList)).Methods("POST")
+	r.HandleFunc("/users/{id}", m.RequireLogin(users.Update(u))).Methods("PUT")
+	r.HandleFunc("/users/{id}", m.RequireLogin(users.Delete(d, pendingList, validatedList))).Methods("DELETE")
 
 	// Middlewares
 	r.Use(m.AllowCrossOrigin)

@@ -14,16 +14,21 @@ import (
 	"github.com/GGP1/palo/pkg/listing"
 	"github.com/GGP1/palo/pkg/model"
 	"github.com/GGP1/palo/pkg/updating"
+	"github.com/jinzhu/gorm"
 
 	"github.com/gorilla/mux"
 )
 
-// GetUsers lists all the users
-func GetUsers(l listing.Service) http.HandlerFunc {
+type Users struct {
+	DB *gorm.DB
+}
+
+// GetAll lists all the users
+func (us *Users) GetAll(l listing.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var user []model.User
 
-		err := l.GetUsers(&user)
+		err := l.GetUsers(us.DB, &user)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
@@ -33,14 +38,14 @@ func GetUsers(l listing.Service) http.HandlerFunc {
 	}
 }
 
-// GetUserByID lists the user with the id requested
-func GetUserByID(l listing.Service) http.HandlerFunc {
+// GetByID lists the user with the id requested
+func (us *Users) GetByID(l listing.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var user model.User
 
 		id := mux.Vars(r)["id"]
 
-		err := l.GetUserByID(&user, id)
+		err := l.GetUserByID(us.DB, &user, id)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
@@ -50,8 +55,8 @@ func GetUserByID(l listing.Service) http.HandlerFunc {
 	}
 }
 
-// AddUser creates a new user and saves it
-func AddUser(a adding.Service, pendingList *email.PendingList) http.HandlerFunc {
+// Add creates a new user and saves it
+func (us *Users) Add(a adding.Service, pendingList *email.PendingList) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var user model.User
 
@@ -61,7 +66,7 @@ func AddUser(a adding.Service, pendingList *email.PendingList) http.HandlerFunc 
 		}
 		defer r.Body.Close()
 
-		err := a.AddUser(&user)
+		err := a.AddUser(us.DB, &user)
 		if err != nil {
 			response.Error(w, r, http.StatusBadRequest, err)
 			return
@@ -83,8 +88,8 @@ func AddUser(a adding.Service, pendingList *email.PendingList) http.HandlerFunc 
 	}
 }
 
-// UpdateUser updates the user with the given id
-func UpdateUser(u updating.Service) http.HandlerFunc {
+// Update updates the user with the given id
+func (us *Users) Update(u updating.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var user model.User
 
@@ -96,7 +101,7 @@ func UpdateUser(u updating.Service) http.HandlerFunc {
 		}
 		defer r.Body.Close()
 
-		err := u.UpdateUser(&user, id)
+		err := u.UpdateUser(us.DB, &user, id)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
@@ -106,14 +111,14 @@ func UpdateUser(u updating.Service) http.HandlerFunc {
 	}
 }
 
-// DeleteUser deletes a user
-func DeleteUser(d deleting.Service, pendingList *email.PendingList, validatedList *email.ValidatedList) http.HandlerFunc {
+// Delete deletes a user
+func (us *Users) Delete(d deleting.Service, pendingList *email.PendingList, validatedList *email.ValidatedList) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var user model.User
 
 		id := mux.Vars(r)["id"]
 
-		err := d.DeleteUser(&user, id)
+		err := d.DeleteUser(us.DB, &user, id)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return

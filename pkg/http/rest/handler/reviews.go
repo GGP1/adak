@@ -10,14 +10,19 @@ import (
 	"github.com/GGP1/palo/pkg/listing"
 	"github.com/GGP1/palo/pkg/model"
 	"github.com/gorilla/mux"
+	"github.com/jinzhu/gorm"
 )
 
-// GetReviews lists all the reviews
-func GetReviews(l listing.Service) http.HandlerFunc {
+type Reviews struct {
+	DB *gorm.DB
+}
+
+// GetAll lists all the reviews
+func (rev *Reviews) GetAll(l listing.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var review []model.Review
 
-		err := l.GetReviews(&review)
+		err := l.GetReviews(rev.DB, &review)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
@@ -27,14 +32,14 @@ func GetReviews(l listing.Service) http.HandlerFunc {
 	}
 }
 
-// GetReviewByID lists the review with the id requested
-func GetReviewByID(l listing.Service) http.HandlerFunc {
+// GetByID lists the review with the id requested
+func (rev *Reviews) GetByID(l listing.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var review model.Review
 
 		id := mux.Vars(r)["id"]
 
-		err := l.GetReviewByID(&review, id)
+		err := l.GetReviewByID(rev.DB, &review, id)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
@@ -44,8 +49,8 @@ func GetReviewByID(l listing.Service) http.HandlerFunc {
 	}
 }
 
-// AddReview creates a new review and saves it
-func AddReview(a adding.Service) http.HandlerFunc {
+// Add creates a new review and saves it
+func (rev *Reviews) Add(a adding.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var review model.Review
 
@@ -55,7 +60,7 @@ func AddReview(a adding.Service) http.HandlerFunc {
 		}
 		defer r.Body.Close()
 
-		err := a.AddReview(&review)
+		err := a.AddReview(rev.DB, &review)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
@@ -65,14 +70,14 @@ func AddReview(a adding.Service) http.HandlerFunc {
 	}
 }
 
-// DeleteReview deletes a review
-func DeleteReview(d deleting.Service) http.HandlerFunc {
+// Delete deletes a review
+func (rev *Reviews) Delete(d deleting.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var review model.Review
 
 		id := mux.Vars(r)["id"]
 
-		err := d.DeleteReview(&review, id)
+		err := d.DeleteReview(rev.DB, &review, id)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return

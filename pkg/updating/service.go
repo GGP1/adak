@@ -6,23 +6,22 @@ package updating
 import (
 	"errors"
 
-	"github.com/GGP1/palo/internal/cfg"
 	"github.com/GGP1/palo/pkg/model"
 	"github.com/jinzhu/gorm"
 )
 
 // Repository provides access to the storage
 type Repository interface {
-	UpdateUser(*model.User, string) error
-	UpdateProduct(*model.Product, string) error
-	UpdateShop(*model.Shop, string) error
+	UpdateProduct(*gorm.DB, *model.Product, string) error
+	UpdateShop(*gorm.DB, *model.Shop, string) error
+	UpdateUser(*gorm.DB, *model.User, string) error
 }
 
 // Service provides models updating operations.
 type Service interface {
-	UpdateUser(*model.User, string) error
-	UpdateProduct(*model.Product, string) error
-	UpdateShop(*model.Shop, string) error
+	UpdateProduct(*gorm.DB, *model.Product, string) error
+	UpdateShop(*gorm.DB, *model.Shop, string) error
+	UpdateUser(*gorm.DB, *model.User, string) error
 }
 
 type service struct {
@@ -34,35 +33,9 @@ func NewService(r Repository) Service {
 	return &service{r}
 }
 
-// UpdateUser returns updates a user, returns an error
-func (s *service) UpdateUser(user *model.User, id string) error {
-	db, err := gorm.Open("postgres", cfg.URL)
-	if err != nil {
-		return err
-	}
-	defer db.Close()
-
-	err = db.Model(&user).Where("id=?", id).Update(
-		"firstname", user.Firstname,
-		"lastname", user.Lastname,
-		"email", user.Email).
-		Error
-	if err != nil {
-		return errors.New("error: couldn't update the user")
-	}
-
-	return nil
-}
-
 // UpdateProduct updates a product, returns an error
-func (s *service) UpdateProduct(product *model.Product, id string) error {
-	db, err := gorm.Open("postgres", cfg.URL)
-	if err != nil {
-		return err
-	}
-	defer db.Close()
-
-	err = db.Model(&product).Where("id=?", id).Update(
+func (s *service) UpdateProduct(db *gorm.DB, product *model.Product, id string) error {
+	err := db.Model(&product).Where("id=?", id).Update(
 		"brand", product.Brand,
 		"category", product.Category,
 		"type", product.Type,
@@ -81,14 +54,8 @@ func (s *service) UpdateProduct(product *model.Product, id string) error {
 }
 
 // UpdateShop updates a shop, returns an error
-func (s *service) UpdateShop(shop *model.Shop, id string) error {
-	db, err := gorm.Open("postgres", cfg.URL)
-	if err != nil {
-		return err
-	}
-	defer db.Close()
-
-	err = db.Model(&shop).Where("id=?", id).Update(
+func (s *service) UpdateShop(db *gorm.DB, shop *model.Shop, id string) error {
+	err := db.Model(&shop).Where("id=?", id).Update(
 		"name", shop.Name,
 		"country", shop.Location.Country,
 		"city", shop.Location.City,
@@ -96,6 +63,20 @@ func (s *service) UpdateShop(shop *model.Shop, id string) error {
 		Error
 	if err != nil {
 		return errors.New("error: couldn't update the shop")
+	}
+
+	return nil
+}
+
+// UpdateUser returns updates a user, returns an error
+func (s *service) UpdateUser(db *gorm.DB, user *model.User, id string) error {
+	err := db.Model(&user).Where("id=?", id).Update(
+		"firstname", user.Firstname,
+		"lastname", user.Lastname,
+		"email", user.Email).
+		Error
+	if err != nil {
+		return errors.New("error: couldn't update the user")
 	}
 
 	return nil
