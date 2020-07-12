@@ -5,6 +5,7 @@ package storage
 
 import (
 	"github.com/GGP1/palo/internal/cfg"
+	"github.com/GGP1/palo/pkg/email"
 	"github.com/GGP1/palo/pkg/model"
 
 	"github.com/jinzhu/gorm"
@@ -27,9 +28,9 @@ func NewDatabase() (*gorm.DB, func() error, error) {
 	}
 
 	// Auto-migrate models
-	db.AutoMigrate(&model.Product{}, &model.User{}, &model.Review{}, &model.Shop{}, &model.Location{})
+	db.AutoMigrate(&model.Product{}, &model.User{}, &model.Review{}, &model.Shop{}, &model.Location{}, &email.PendingList{}, &email.ValidatedList{})
 
-	tableExists(db, model.Product{}, model.User{}, model.Review{}, model.Shop{}, model.Location{})
+	tableExists(db, model.Product{}, model.User{}, model.Review{}, model.Shop{}, model.Location{}, email.PendingList{}, email.ValidatedList{})
 
 	return db, db.Close, nil
 }

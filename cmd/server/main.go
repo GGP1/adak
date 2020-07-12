@@ -12,7 +12,9 @@ import (
 
 	"github.com/GGP1/palo/pkg/adding"
 	"github.com/GGP1/palo/pkg/deleting"
+	"github.com/GGP1/palo/pkg/email"
 	"github.com/GGP1/palo/pkg/http/rest"
+	"github.com/GGP1/palo/pkg/http/rest/handler"
 	"github.com/GGP1/palo/pkg/listing"
 	"github.com/GGP1/palo/pkg/storage"
 	"github.com/GGP1/palo/pkg/updating"
@@ -34,15 +36,22 @@ func main() {
 	deletingRepo := *new(deleting.Repository)
 	listingRepo := *new(listing.Repository)
 	updatingRepo := *new(updating.Repository)
+	sessionRepo := *new(handler.AuthRepository)
+	emailRepo := *new(email.Repository)
 
 	// Services
 	adder := adding.NewService(addingRepo)
 	deleter := deleting.NewService(deletingRepo)
 	lister := listing.NewService(listingRepo)
 	updater := updating.NewService(updatingRepo)
+	// -- Session--
+	session := handler.NewSession(sessionRepo)
+	// -- Email lists --
+	pendingList := email.NewPendingList(db, emailRepo)
+	validatedList := email.NewValidatedList(db, emailRepo)
 
 	// New router
-	r := rest.NewRouter(db, adder, deleter, lister, updater)
+	r := rest.NewRouter(db, adder, deleter, lister, updater, session, pendingList, validatedList)
 
 	// Server setup
 	server := &http.Server{

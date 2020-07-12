@@ -2,25 +2,34 @@ package handler
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 
-	"github.com/GGP1/palo/internal/email"
 	"github.com/GGP1/palo/internal/response"
+	"github.com/GGP1/palo/pkg/email"
 	"github.com/gorilla/mux"
 )
 
 // ValidateEmail is the email verification page
-func ValidateEmail(pendigList *email.PendingList, validatedList *email.ValidatedList) http.HandlerFunc {
+func ValidateEmail(pendingList, validatedList email.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var validated bool = false
-
+		var validated bool
 		token := mux.Vars(r)["token"]
 
-		for k, v := range pendigList.UserList {
-			if v == token {
-				// k = pendigList[user.Email]
-				validatedList.Add(k, token)
+		pList, err := pendingList.Read()
+		if err != nil {
+			response.Error(w, r, http.StatusInternalServerError, err)
+			return
+		}
 
+		fmt.Println(pList)
+
+		for k, v := range pList {
+			if v == token {
+				err := validatedList.Add(k, v)
+				if err != nil {
+					response.Error(w, r, http.StatusInternalServerError, err)
+				}
 				validated = true
 			}
 		}

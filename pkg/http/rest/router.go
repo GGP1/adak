@@ -6,9 +6,9 @@ package rest
 import (
 	"net/http"
 
-	"github.com/GGP1/palo/internal/email"
 	"github.com/GGP1/palo/pkg/adding"
 	"github.com/GGP1/palo/pkg/deleting"
+	"github.com/GGP1/palo/pkg/email"
 	"github.com/jinzhu/gorm"
 
 	// h -> handler
@@ -24,16 +24,8 @@ import (
 )
 
 // NewRouter creates and returns a mux router
-func NewRouter(db *gorm.DB, a adding.Service, d deleting.Service, l listing.Service, u updating.Service) http.Handler {
+func NewRouter(db *gorm.DB, a adding.Service, d deleting.Service, l listing.Service, u updating.Service, session h.Session, pendingList, validatedList email.Service) http.Handler {
 	r := mux.NewRouter().StrictSlash(true)
-
-	// Create users mail lists
-	pendingList := email.NewPendingList()
-	validatedList := email.NewValidatedList()
-
-	// Create auth session
-	repo := *new(h.AuthRepository)
-	session := h.NewSession(repo)
 
 	// Create shopping cart
 	cart := shopping.NewCart()

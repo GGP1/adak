@@ -6,11 +6,11 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/GGP1/palo/internal/email"
 	"github.com/GGP1/palo/internal/response"
 	"github.com/GGP1/palo/pkg/adding"
 	"github.com/GGP1/palo/pkg/auth"
 	"github.com/GGP1/palo/pkg/deleting"
+	"github.com/GGP1/palo/pkg/email"
 	"github.com/GGP1/palo/pkg/listing"
 	"github.com/GGP1/palo/pkg/model"
 	"github.com/GGP1/palo/pkg/updating"
@@ -19,6 +19,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
+// Users handles users routes
 type Users struct {
 	DB *gorm.DB
 }
@@ -56,7 +57,7 @@ func (us *Users) GetByID(l listing.Service) http.HandlerFunc {
 }
 
 // Add creates a new user and saves it
-func (us *Users) Add(a adding.Service, pendingList *email.PendingList) http.HandlerFunc {
+func (us *Users) Add(a adding.Service, pendingList email.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var user model.User
 
@@ -78,7 +79,7 @@ func (us *Users) Add(a adding.Service, pendingList *email.PendingList) http.Hand
 		}
 
 		// Add user mail and token to the email pending confirmation list
-		pendingList.Add(user, token)
+		pendingList.Add(user.Email, token)
 
 		// Send validation email
 		email.SendValidation(user, token)
@@ -112,7 +113,7 @@ func (us *Users) Update(u updating.Service) http.HandlerFunc {
 }
 
 // Delete deletes a user
-func (us *Users) Delete(d deleting.Service, pendingList *email.PendingList, validatedList *email.ValidatedList) http.HandlerFunc {
+func (us *Users) Delete(d deleting.Service, pendingList, validatedList email.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var user model.User
 

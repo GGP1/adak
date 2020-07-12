@@ -9,9 +9,9 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/GGP1/palo/internal/email"
 	"github.com/GGP1/palo/internal/response"
 	"github.com/GGP1/palo/pkg/auth"
+	"github.com/GGP1/palo/pkg/email"
 	"github.com/GGP1/palo/pkg/model"
 
 	"github.com/google/uuid"
@@ -19,15 +19,14 @@ import (
 
 // AuthRepository provides access to the auth storage
 type AuthRepository interface {
-	Login(*email.ValidatedList) http.HandlerFunc
+	Login(validatedList email.Service) http.HandlerFunc
 	Logout() http.HandlerFunc
 }
 
 // Session provides auth operations
 type Session interface {
-	Login(*email.ValidatedList) http.HandlerFunc
+	Login(validatedList email.Service) http.HandlerFunc
 	Logout() http.HandlerFunc
-	alreadyLoggedIn(http.ResponseWriter, *http.Request) bool
 }
 
 type userInfo struct {
@@ -53,7 +52,7 @@ func NewSession(r AuthRepository) Session {
 }
 
 // Login takes a user and authenticates it
-func (s *session) Login(validatedList *email.ValidatedList) http.HandlerFunc {
+func (s *session) Login(validatedList email.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if s.alreadyLoggedIn(w, r) {
 			http.Redirect(w, r, "/", http.StatusSeeOther)
@@ -77,7 +76,10 @@ func (s *session) Login(validatedList *email.ValidatedList) http.HandlerFunc {
 		}
 
 		// Check if the email is validated
-		list := validatedList.Read()
+		list, err := validatedList.Read()
+		if err != nil {
+			response.Error(w, r, http.StatusInternalServerError, err)
+		}
 		for k := range list {
 			if k == user.Email {
 				// Authenticate user
