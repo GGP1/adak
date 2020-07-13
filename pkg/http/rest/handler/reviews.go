@@ -13,6 +13,7 @@ import (
 	"github.com/jinzhu/gorm"
 )
 
+// Reviews handles reviews routes
 type Reviews struct {
 	DB *gorm.DB
 }

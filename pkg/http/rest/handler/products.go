@@ -15,6 +15,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
+// Products handles products routes
 type Products struct {
 	DB *gorm.DB
 }

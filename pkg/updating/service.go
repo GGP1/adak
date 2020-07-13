@@ -12,16 +12,16 @@ import (
 
 // Repository provides access to the storage
 type Repository interface {
-	UpdateProduct(*gorm.DB, *model.Product, string) error
-	UpdateShop(*gorm.DB, *model.Shop, string) error
-	UpdateUser(*gorm.DB, *model.User, string) error
+	UpdateProduct(db *gorm.DB, product *model.Product, string) error
+	UpdateShop(db *gorm.DB, shop *model.Shop, string) error
+	UpdateUser(db *gorm.DB, user *model.User, string) error
 }
 
 // Service provides models updating operations.
 type Service interface {
-	UpdateProduct(*gorm.DB, *model.Product, string) error
-	UpdateShop(*gorm.DB, *model.Shop, string) error
-	UpdateUser(*gorm.DB, *model.User, string) error
+	UpdateProduct(db *gorm.DB, product *model.Product, string) error
+	UpdateShop(db *gorm.DB, shop *model.Shop, string) error
+	UpdateUser(db *gorm.DB, user *model.User, string) error
 }
 
 type service struct {

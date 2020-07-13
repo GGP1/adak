@@ -12,32 +12,32 @@ import (
 
 // Repository provides access to the storage
 type Repository interface {
-	GetProducts(*gorm.DB, *[]model.Product) error
-	GetProductByID(*gorm.DB, *model.Product, string) error
+	GetProducts(db *gorm.DB, product *[]model.Product) error
+	GetProductByID(db *gorm.DB, product *model.Product, string) error
 
-	GetReviews(*gorm.DB, *[]model.Review) error
-	GetReviewByID(*gorm.DB, *model.Review, string) error
+	GetReviews(db *gorm.DB, review *[]model.Review) error
+	GetReviewByID(db *gorm.DB, review *model.Review, string) error
 
-	GetShops(*gorm.DB, *[]model.Shop) error
-	GetShopByID(*gorm.DB, *model.Shop, string) error
+	GetShops(db *gorm.DB, shop *[]model.Shop) error
+	GetShopByID(db *gorm.DB, shop *model.Shop, string) error
 
-	GetUsers(*gorm.DB, *[]model.User) error
-	GetUserByID(*gorm.DB, *model.User, string) error
+	GetUsers(db *gorm.DB, user *[]model.User) error
+	GetUserByID(db *gorm.DB, user *model.User, string) error
 }
 
 // Service provides models listing operations.
 type Service interface {
-	GetProducts(*gorm.DB, *[]model.Product) error
-	GetProductByID(*gorm.DB, *model.Product, string) error
+	GetProducts(db *gorm.DB, product *[]model.Product) error
+	GetProductByID(db *gorm.DB, product *model.Product, string) error
 
-	GetReviews(*gorm.DB, *[]model.Review) error
-	GetReviewByID(*gorm.DB, *model.Review, string) error
+	GetReviews(db *gorm.DB, review *[]model.Review) error
+	GetReviewByID(db *gorm.DB, review *model.Review, string) error
 
-	GetShops(*gorm.DB, *[]model.Shop) error
-	GetShopByID(*gorm.DB, *model.Shop, string) error
+	GetShops(db *gorm.DB, shop *[]model.Shop) error
+	GetShopByID(db *gorm.DB, shop *model.Shop, string) error
 
-	GetUsers(*gorm.DB, *[]model.User) error
-	GetUserByID(*gorm.DB, *model.User, string) error
+	GetUsers(db *gorm.DB, user *[]model.User) error
+	GetUserByID(db *gorm.DB, user *model.User, string) error
 }
 
 type service struct {

@@ -13,18 +13,18 @@ import (
 
 // Repository provides access to the storage
 type Repository interface {
-	AddProduct(*gorm.DB, *model.Product) error
-	AddReview(*gorm.DB, *model.Review) error
-	AddShop(*gorm.DB, *model.Shop) error
-	AddUser(*gorm.DB, *model.User) error
+	AddProduct(db *gorm.DB, product *model.Product) error
+	AddReview(db *gorm.DB, review *model.Review) error
+	AddShop(db *gorm.DB, shop *model.Shop) error
+	AddUser(db *gorm.DB, user *model.User) error
 }
 
 // Service provides models adding operations.
 type Service interface {
-	AddProduct(*gorm.DB, *model.Product) error
-	AddReview(*gorm.DB, *model.Review) error
-	AddShop(*gorm.DB, *model.Shop) error
-	AddUser(*gorm.DB, *model.User) error
+	AddProduct(db *gorm.DB, product *model.Product) error
+	AddReview(db *gorm.DB, review *model.Review) error
+	AddShop(db *gorm.DB, shop *model.Shop) error
+	AddUser(db *gorm.DB, user *model.User) error
 }
 
 type service struct {

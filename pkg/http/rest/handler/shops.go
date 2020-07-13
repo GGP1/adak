@@ -14,6 +14,7 @@ import (
 	"github.com/jinzhu/gorm"
 )
 
+// Shops handles shops routes
 type Shops struct {
 	DB *gorm.DB
 }

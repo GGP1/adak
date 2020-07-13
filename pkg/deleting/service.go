@@ -12,18 +12,18 @@ import (
 
 // Repository provides access to the storage
 type Repository interface {
-	DeleteProduct(*gorm.DB, *model.Product, string) error
-	DeleteReview(*gorm.DB, *model.Review, string) error
-	DeleteShop(*gorm.DB, *model.Shop, string) error
-	DeleteUser(*gorm.DB, *model.User, string) error
+	DeleteProduct(db *gorm.DB, product *model.Product, string) error
+	DeleteReview(db *gorm.DB, review *model.Review, string) error
+	DeleteShop(db *gorm.DB, shop *model.Shop, string) error
+	DeleteUser(db *gorm.DB, user *model.User, string) error
 }
 
-// Service provides models deleting operations.
+// Service provides models deleting operations
 type Service interface {
-	DeleteProduct(*gorm.DB, *model.Product, string) error
-	DeleteReview(*gorm.DB, *model.Review, string) error
-	DeleteShop(*gorm.DB, *model.Shop, string) error
-	DeleteUser(*gorm.DB, *model.User, string) error
+	DeleteProduct(db *gorm.DB, product *model.Product, string) error
+	DeleteReview(db *gorm.DB, review *model.Review, string) error
+	DeleteShop(db *gorm.DB, shop *model.Shop, string) error
+	DeleteUser(db *gorm.DB, user *model.User, string) error
 }
 
 type service struct {

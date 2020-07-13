@@ -1,18 +1,15 @@
 package auth
 
 import (
-	"errors"
-	"net/http"
 	"os"
 	"time"
 
 	"github.com/GGP1/palo/internal/env"
 	"github.com/GGP1/palo/pkg/model"
 	"github.com/dgrijalva/jwt-go"
-	"github.com/dgrijalva/jwt-go/request"
 )
 
-// GenerateJWT creates a new jwt token
+// GenerateJWT creates a new jwt token - changes over time -
 func GenerateJWT(user model.User) (string, error) {
 	env.Load()
 
@@ -26,41 +23,4 @@ func GenerateJWT(user model.User) (string, error) {
 	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claim)
 
 	return token.SignedString(key)
-}
-
-// ExtractToken retrieves the token from headers as a query
-func ExtractToken(w http.ResponseWriter, r *http.Request) (*jwt.Token, error) {
-	env.Load()
-
-	key := []byte(os.Getenv("SECRET_KEY"))
-
-	token, err := request.ParseFromRequestWithClaims(
-		r,
-		request.OAuth2Extractor,
-		jwt.MapClaims{},
-		func(t *jwt.Token) (interface{}, error) {
-			return key, nil
-		},
-	)
-
-	if err != nil {
-		switch err.(type) {
-		case *jwt.ValidationError:
-			vError := err.(*jwt.ValidationError)
-			switch vError.Errors {
-			case jwt.ValidationErrorExpired:
-				err = errors.New("your token has expired")
-				w.WriteHeader(http.StatusUnauthorized)
-				return nil, err
-			case jwt.ValidationErrorSignatureInvalid:
-				err = errors.New("the signature is invalid")
-				w.WriteHeader(http.StatusUnauthorized)
-				return nil, err
-			default:
-				return nil, err
-			}
-		}
-	}
-
-	return token, nil
 }
