@@ -12,6 +12,7 @@ import (
 	"github.com/jinzhu/gorm"
 
 	// h -> handler
+	"github.com/GGP1/palo/pkg/http/rest/handler"
 	h "github.com/GGP1/palo/pkg/http/rest/handler"
 	"github.com/GGP1/palo/pkg/listing"
 	"github.com/GGP1/palo/pkg/updating"
@@ -24,8 +25,27 @@ import (
 )
 
 // NewRouter creates and returns a mux router
-func NewRouter(db *gorm.DB, a adding.Service, d deleting.Service, l listing.Service, u updating.Service, session h.Session, pendingList, validatedList email.Service) http.Handler {
+func NewRouter(db *gorm.DB) http.Handler {
 	r := mux.NewRouter().StrictSlash(true)
+
+	// Repos
+	addingRepo := *new(adding.Repository)
+	deletingRepo := *new(deleting.Repository)
+	listingRepo := *new(listing.Repository)
+	updatingRepo := *new(updating.Repository)
+	sessionRepo := *new(handler.AuthRepository)
+	emailRepo := *new(email.Repository)
+
+	// Services
+	a := adding.NewService(addingRepo)
+	d := deleting.NewService(deletingRepo)
+	l := listing.NewService(listingRepo)
+	u := updating.NewService(updatingRepo)
+	// -- Session --
+	session := h.NewSession(sessionRepo)
+	// -- Email lists --
+	pendingList := email.NewList(db, "pending_list", emailRepo)
+	validatedList := email.NewList(db, "validated_list", emailRepo)
 
 	// Create shopping cart
 	cart := shopping.NewCart()
