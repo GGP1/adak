@@ -76,39 +76,34 @@ func (s *session) Login(validatedList email.Service) http.HandlerFunc {
 		}
 
 		// Check if the email is validated
-		list, err := validatedList.Read()
+		err = validatedList.Seek(user.Email)
 		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
-		}
-		for k := range list {
-			if k == user.Email {
-				// Authenticate user
-				err = auth.SignIn(user.Email, user.Password)
-				if err != nil {
-					response.HTMLText(w, r, http.StatusUnauthorized, "error: Invalid email or password")
-					return
-				}
-
-				sID := uuid.New()
-				cookie := &http.Cookie{
-					Name:     "SID",
-					Value:    sID.String(),
-					Path:     "/",
-					Domain:   "localhost",
-					Secure:   false,
-					HttpOnly: true,
-					MaxAge:   s.length,
-				}
-				http.SetCookie(w, cookie)
-				// store[cookieValue] = userInfo
-				s.store[cookie.Value] = userInfo{user.Email, time.Now()}
-
-				response.HTMLText(w, r, http.StatusOK, "You logged in!")
-				return
-			}
+			response.Error(w, r, http.StatusUnauthorized, errors.New("Please verify your email before logging in"))
+			return
 		}
 
-		response.Error(w, r, http.StatusUnauthorized, errors.New("Please verify your email before logging in"))
+		// Authenticate user
+		err = auth.SignIn(user.Email, user.Password)
+		if err != nil {
+			response.HTMLText(w, r, http.StatusUnauthorized, "error: Invalid email or password")
+			return
+		}
+
+		sID := uuid.New()
+		cookie := &http.Cookie{
+			Name:     "SID",
+			Value:    sID.String(),
+			Path:     "/",
+			Domain:   "localhost",
+			Secure:   false,
+			HttpOnly: true,
+			MaxAge:   s.length,
+		}
+		http.SetCookie(w, cookie)
+
+		s.store[cookie.Value] = userInfo{user.Email, time.Now()}
+
+		response.HTMLText(w, r, http.StatusOK, "You logged in!")
 	}
 }
 

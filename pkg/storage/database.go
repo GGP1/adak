@@ -28,9 +28,12 @@ func NewDatabase() (*gorm.DB, func() error, error) {
 	}
 
 	// Auto-migrate models
-	db.AutoMigrate(&model.Product{}, &model.User{}, &model.Review{}, &model.Shop{}, &model.Location{}, &email.PendingList{}, &email.ValidatedList{})
+	db.AutoMigrate(&model.Product{}, &model.User{}, &model.Review{}, &model.Shop{}, &model.Location{}, &email.List{}, &email.List{})
 
-	tableExists(db, model.Product{}, model.User{}, model.Review{}, model.Shop{}, model.Location{}, email.PendingList{}, email.ValidatedList{})
+	// Create tables
+	db.Table("pending_list").CreateTable(&email.List{})
+	db.Table("validated_list").CreateTable(&email.List{})
+	tableExists(db, model.Product{}, model.User{}, model.Review{}, model.Shop{}, model.Location{}, email.List{}, email.List{})
 
 	return db, db.Close, nil
 }

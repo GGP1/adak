@@ -2,7 +2,6 @@ package handler
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 
 	"github.com/GGP1/palo/internal/response"
@@ -21,8 +20,6 @@ func ValidateEmail(pendingList, validatedList email.Service) http.HandlerFunc {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
-
-		fmt.Println(pList)
 
 		for k, v := range pList {
 			if v == token {
