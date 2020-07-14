@@ -97,6 +97,20 @@ func (us *Users) Update(u updating.Service) http.HandlerFunc {
 		var user model.User
 
 		id := mux.Vars(r)["id"]
+		c, _ := r.Cookie("UID")
+		// Generate a jwt token and compare it with the cookie to check
+		//  if it's the same user
+		userID, err := auth.GenerateFixedJWT(id)
+		if err != nil {
+			response.Error(w, r, http.StatusInternalServerError, err)
+			return
+		}
+		// Check if it is the same user
+		areEqual := strings.Compare(userID, c.Value)
+		if areEqual != 0 {
+			response.Error(w, r, http.StatusUnauthorized, errors.New("You are not allowed to update others user"))
+			return
+		}
 
 		if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
 			response.Error(w, r, http.StatusBadRequest, err)
@@ -104,7 +118,7 @@ func (us *Users) Update(u updating.Service) http.HandlerFunc {
 		}
 		defer r.Body.Close()
 
-		err := u.UpdateUser(us.DB, &user, id)
+		err = u.UpdateUser(us.DB, &user, id)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
@@ -120,6 +134,7 @@ func (us *Users) Delete(d deleting.Service, pendingList, validatedList email.Ser
 		var user model.User
 
 		id := mux.Vars(r)["id"]
+		c, _ := r.Cookie("UID")
 		// Generate a jwt token and compare it with the cookie to check
 		//  if it's the same user
 		userID, err := auth.GenerateFixedJWT(id)
@@ -127,10 +142,7 @@ func (us *Users) Delete(d deleting.Service, pendingList, validatedList email.Ser
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
-
 		// Check if it is the same user
-		c, _ := r.Cookie("UID")
-
 		areEqual := strings.Compare(userID, c.Value)
 		if areEqual != 0 {
 			response.Error(w, r, http.StatusUnauthorized, errors.New("You are not allowed to delete others user"))
