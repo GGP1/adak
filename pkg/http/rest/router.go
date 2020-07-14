@@ -53,7 +53,7 @@ func NewRouter(db *gorm.DB) http.Handler {
 	// ==========
 	// 	Auth
 	// ==========
-	r.HandleFunc("/login", h.Session.Login(session, validatedList)).Methods("POST")
+	r.HandleFunc("/login", h.Session.Login(session, db, validatedList)).Methods("POST")
 	r.HandleFunc("/logout", h.Session.Logout(session)).Methods("GET")
 
 	// ==========

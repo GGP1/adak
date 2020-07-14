@@ -13,19 +13,20 @@ import (
 	"github.com/GGP1/palo/pkg/auth"
 	"github.com/GGP1/palo/pkg/email"
 	"github.com/GGP1/palo/pkg/model"
+	"github.com/jinzhu/gorm"
 
 	"github.com/google/uuid"
 )
 
 // AuthRepository provides access to the auth storage
 type AuthRepository interface {
-	Login(validatedList email.Service) http.HandlerFunc
+	Login(db *gorm.DB, validatedList email.Service) http.HandlerFunc
 	Logout() http.HandlerFunc
 }
 
 // Session provides auth operations
 type Session interface {
-	Login(validatedList email.Service) http.HandlerFunc
+	Login(db *gorm.DB, validatedList email.Service) http.HandlerFunc
 	Logout() http.HandlerFunc
 }
 
@@ -52,7 +53,7 @@ func NewSession(r AuthRepository) Session {
 }
 
 // Login takes a user and authenticates it
-func (s *session) Login(validatedList email.Service) http.HandlerFunc {
+func (s *session) Login(db *gorm.DB, validatedList email.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if s.alreadyLoggedIn(w, r) {
 			http.Redirect(w, r, "/", http.StatusSeeOther)
@@ -82,12 +83,23 @@ func (s *session) Login(validatedList email.Service) http.HandlerFunc {
 			return
 		}
 
-		// Authenticate user
-		err = auth.SignIn(user.Email, user.Password)
+		// Authenticate user and get the jwt token of its id
+		userID, err := auth.SignIn(db, user.Email, user.Password)
 		if err != nil {
 			response.HTMLText(w, r, http.StatusUnauthorized, "error: Invalid email or password")
 			return
 		}
+
+		// Set a token of the user id in a cookie
+		http.SetCookie(w, &http.Cookie{
+			Name:     "UID",
+			Value:    userID,
+			Path:     "/",
+			Domain:   "localhost",
+			Secure:   false,
+			HttpOnly: true,
+			MaxAge:   s.length,
+		})
 
 		sID := uuid.New()
 		cookie := &http.Cookie{
@@ -112,6 +124,11 @@ func (s *session) Logout() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		c, _ := r.Cookie("SID")
 
+		if c == nil {
+			response.Error(w, r, http.StatusBadRequest, errors.New("You cannot log out without a session"))
+			return
+		}
+
 		// Delete map key equal to the cookieValue
 		delete(s.store, c.Value)
 
@@ -127,6 +144,17 @@ func (s *session) Logout() http.HandlerFunc {
 		}
 
 		http.SetCookie(w, cookie)
+
+		http.SetCookie(w, &http.Cookie{
+			Name:     "UID",
+			Value:    "0",
+			Expires:  time.Unix(1414414788, 1414414788000),
+			Path:     "/",
+			Domain:   "localhost",
+			Secure:   false,
+			HttpOnly: true,
+			MaxAge:   -1,
+		})
 
 		// Clean up session
 		if time.Now().Sub(s.clean) > (time.Second * 30) {

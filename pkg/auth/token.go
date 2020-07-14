@@ -24,3 +24,18 @@ func GenerateJWT(user model.User) (string, error) {
 
 	return token.SignedString(key)
 }
+
+// GenerateFixedJWT creates a jwt token that does not vary
+func GenerateFixedJWT(id string) (string, error) {
+	env.Load()
+
+	key := []byte(os.Getenv("SECRET_KEY"))
+
+	claim := jwt.MapClaims{
+		"id": id,
+	}
+
+	token := jwt.NewWithClaims(jwt.SigningMethodHS256, claim)
+
+	return token.SignedString(key)
+}

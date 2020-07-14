@@ -2,8 +2,10 @@ package handler
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/GGP1/palo/internal/response"
@@ -85,7 +87,7 @@ func (us *Users) Add(a adding.Service, pendingList email.Service) http.HandlerFu
 		email.SendValidation(user, token)
 
 		response.JSON(w, r, http.StatusOK, user)
-		fmt.Fprintln(w, "Please validate your email")
+		fmt.Fprintln(w, "Please validate your email.")
 	}
 }
 
@@ -118,8 +120,24 @@ func (us *Users) Delete(d deleting.Service, pendingList, validatedList email.Ser
 		var user model.User
 
 		id := mux.Vars(r)["id"]
+		// Generate a jwt token and compare it with the cookie to check
+		//  if it's the same user
+		userID, err := auth.GenerateFixedJWT(id)
+		if err != nil {
+			response.Error(w, r, http.StatusInternalServerError, err)
+			return
+		}
 
-		err := d.DeleteUser(us.DB, &user, id)
+		// Check if it is the same user
+		c, _ := r.Cookie("UID")
+
+		areEqual := strings.Compare(userID, c.Value)
+		if areEqual != 0 {
+			response.Error(w, r, http.StatusUnauthorized, errors.New("You are not allowed to delete others user"))
+			return
+		}
+
+		err = d.DeleteUser(us.DB, &user, id)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
@@ -130,8 +148,8 @@ func (us *Users) Delete(d deleting.Service, pendingList, validatedList email.Ser
 		validatedList.Remove(user.Email)
 
 		// If the user is logged in, log him out
-		c, _ := r.Cookie("SID")
-		if c != nil {
+		c2, _ := r.Cookie("SID")
+		if c2 != nil {
 			cookie := &http.Cookie{
 				Name:     "SID",
 				Value:    "0",
@@ -143,6 +161,17 @@ func (us *Users) Delete(d deleting.Service, pendingList, validatedList email.Ser
 				MaxAge:   -1,
 			}
 			http.SetCookie(w, cookie)
+
+			http.SetCookie(w, &http.Cookie{
+				Name:     "UID",
+				Value:    "0",
+				Expires:  time.Unix(1414414788, 1414414788000),
+				Path:     "/",
+				Domain:   "localhost",
+				Secure:   false,
+				HttpOnly: true,
+				MaxAge:   -1,
+			})
 		}
 
 		response.HTMLText(w, r, http.StatusOK, "User deleted successfully.")

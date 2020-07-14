@@ -28,18 +28,19 @@ func NewDatabase() (*gorm.DB, func() error, error) {
 	}
 
 	// Auto-migrate models
-	db.AutoMigrate(&model.Product{}, &model.User{}, &model.Review{}, &model.Shop{}, &model.Location{}, &email.List{}, &email.List{})
-
+	db.AutoMigrate(&model.Product{}, &model.User{}, &model.Review{}, &model.Shop{}, &model.Location{})
 	// Create tables
-	db.Table("pending_list").CreateTable(&email.List{})
-	db.Table("validated_list").CreateTable(&email.List{})
-	tableExists(db, model.Product{}, model.User{}, model.Review{}, model.Shop{}, model.Location{}, email.List{}, email.List{})
+	tableExists(db, model.Product{}, model.User{}, model.Review{}, model.Shop{}, model.Location{})
+
+	if db.HasTable("pending_list") && db.HasTable("validated_list") != true {
+		db.Table("pending_list").CreateTable(&email.List{}).AutoMigrate(&email.List{})
+		db.Table("validated_list").CreateTable(&email.List{}).AutoMigrate(&email.List{})
+	}
 
 	return db, db.Close, nil
 }
 
-// Check if database tables are already
-// created if not, create them
+// Check if a table is already created, if not, create it
 func tableExists(db *gorm.DB, models ...interface{}) {
 	for _, model := range models {
 		if db.HasTable(model) != true {
