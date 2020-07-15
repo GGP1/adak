@@ -23,7 +23,7 @@ func SendValidation(user model.User, token string) {
 	subject := "Validation email"
 	to := mail.NewEmail(user.Firstname+" "+user.Lastname, user.Email)
 	plainTextContent := "Palo dev team"
-	htmlContent := "<h4>Palo email validation</h4><br><p>Please validate your account by clicking the following link:</p><br><a>http://localhost:4000/email/" + token + "</a>"
+	htmlContent := "<h2>Palo email validation</h2><br><h4>Thank for joining us, " + user.Firstname + " " + user.Lastname + "!</h4><br><p>Please validate your account by clicking the following link:</p><br><a>http://localhost:4000/email/" + token + "</a>"
 	message := mail.NewSingleEmail(from, subject, to, plainTextContent, htmlContent)
 
 	client := sendgrid.NewSendClient(os.Getenv("SENDGRID_KEY"))

@@ -3,7 +3,6 @@ package repository
 import (
 	"net/http"
 
-	"github.com/GGP1/palo/pkg/auth/email"
 	"github.com/GGP1/palo/pkg/model"
 	"github.com/jinzhu/gorm"
 )
@@ -38,8 +37,10 @@ type MonoRepo interface {
 	UpdateUser(db *gorm.DB, user *model.User, id string) error
 
 	// Auth session
-	Login(db *gorm.DB, validatedList email.Service) http.HandlerFunc
-	Logout() http.HandlerFunc
+	AlreadyLoggedIn(w http.ResponseWriter, r *http.Request) bool
+	Login(w http.ResponseWriter, email, password string) error
+	Logout(w http.ResponseWriter, c *http.Cookie)
+	SessionClean()
 
 	// Email
 	Add(email, token string) error

@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/GGP1/palo/pkg/adding"
+	"github.com/GGP1/palo/pkg/auth"
 	"github.com/GGP1/palo/pkg/auth/email"
 	"github.com/GGP1/palo/pkg/deleting"
 	"github.com/GGP1/palo/pkg/repository"
@@ -39,7 +40,7 @@ func NewRouter(db *gorm.DB) http.Handler {
 	l := listing.NewService(repo)
 	u := updating.NewService(repo)
 	// -- Auth session --
-	session := h.NewSession(repo)
+	session := auth.NewSession(db, repo)
 	// -- Email lists --
 	pendingList := email.NewList(db, "pending_list", repo)
 	validatedList := email.NewList(db, "validated_list", repo)
@@ -50,8 +51,9 @@ func NewRouter(db *gorm.DB) http.Handler {
 	// ==========
 	// 	Auth
 	// ==========
-	r.HandleFunc("/login", h.Session.Login(session, db, validatedList)).Methods("POST")
-	r.HandleFunc("/logout", h.Session.Logout(session)).Methods("GET")
+	r.HandleFunc("/login", h.Login(session, validatedList)).Methods("POST")
+	r.HandleFunc("/logout", h.Logout(session)).Methods("GET")
+	r.HandleFunc("/email/{token}", h.ValidateEmail(pendingList, validatedList)).Methods("GET")
 
 	// ==========
 	// 	 Cart
@@ -68,11 +70,6 @@ func NewRouter(db *gorm.DB) http.Handler {
 	r.HandleFunc("/cart/items", h.CartItems(cart)).Methods("GET")
 	r.HandleFunc("/cart/reset", h.CartReset(cart)).Methods("GET")
 	r.HandleFunc("/cart/size", h.CartSize(cart)).Methods("GET")
-
-	// ==========
-	// 	Email
-	// ==========
-	r.HandleFunc("/email/{token}", h.ValidateEmail(pendingList, validatedList)).Methods("GET")
 
 	// ==========
 	// 	Home
