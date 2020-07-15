@@ -9,13 +9,14 @@ import (
 
 // List contains a list of users emails and their tokens
 type List struct {
-	DB        *gorm.DB
+	DB *gorm.DB
+	// Used to distinguish between tables of the same struct
 	tableName string
+	r         Repository
 	sync.RWMutex
 
 	Email string `json:"email"`
 	Token string `json:"token"`
-	r     Repository
 }
 
 // NewList creates the email list service
@@ -23,9 +24,9 @@ func NewList(db *gorm.DB, tableName string, r Repository) Service {
 	return &List{
 		DB:        db,
 		tableName: tableName,
+		r:         r,
 		Email:     "",
 		Token:     "",
-		r:         r,
 	}
 }
 
@@ -51,10 +52,10 @@ func (l *List) Read() (map[string]string, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "error: pending list not found")
 	}
-	maps := make(map[string]string)
-	maps[l.Email] = l.Token
+	emailList := make(map[string]string)
+	emailList[l.Email] = l.Token
 
-	return maps, nil
+	return emailList, nil
 }
 
 // Remove deletes a key from the map

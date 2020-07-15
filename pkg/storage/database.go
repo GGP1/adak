@@ -5,7 +5,7 @@ package storage
 
 import (
 	"github.com/GGP1/palo/internal/cfg"
-	"github.com/GGP1/palo/pkg/email"
+	"github.com/GGP1/palo/pkg/auth/email"
 	"github.com/GGP1/palo/pkg/model"
 
 	"github.com/jinzhu/gorm"

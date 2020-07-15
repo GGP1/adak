@@ -7,19 +7,21 @@ import (
 	"net/http"
 
 	"github.com/GGP1/palo/pkg/adding"
+	"github.com/GGP1/palo/pkg/auth/email"
 	"github.com/GGP1/palo/pkg/deleting"
-	"github.com/GGP1/palo/pkg/email"
+	"github.com/GGP1/palo/pkg/repository"
+	"github.com/GGP1/palo/pkg/shopping"
 	"github.com/jinzhu/gorm"
 
 	// h -> handler
-	"github.com/GGP1/palo/pkg/http/rest/handler"
+
 	h "github.com/GGP1/palo/pkg/http/rest/handler"
 	"github.com/GGP1/palo/pkg/listing"
 	"github.com/GGP1/palo/pkg/updating"
 
 	// m -> middleware
+
 	m "github.com/GGP1/palo/pkg/http/rest/middleware"
-	"github.com/GGP1/palo/pkg/shopping"
 
 	"github.com/gorilla/mux"
 )
@@ -28,26 +30,21 @@ import (
 func NewRouter(db *gorm.DB) http.Handler {
 	r := mux.NewRouter().StrictSlash(true)
 
-	// Repos
-	addingRepo := *new(adding.Repository)
-	deletingRepo := *new(deleting.Repository)
-	listingRepo := *new(listing.Repository)
-	updatingRepo := *new(updating.Repository)
-	sessionRepo := *new(handler.AuthRepository)
-	emailRepo := *new(email.Repository)
+	// Create MonoRepo
+	repo := *new(repository.MonoRepo)
 
 	// Services
-	a := adding.NewService(addingRepo)
-	d := deleting.NewService(deletingRepo)
-	l := listing.NewService(listingRepo)
-	u := updating.NewService(updatingRepo)
-	// -- Session --
-	session := h.NewSession(sessionRepo)
+	a := adding.NewService(repo)
+	d := deleting.NewService(repo)
+	l := listing.NewService(repo)
+	u := updating.NewService(repo)
+	// -- Auth session --
+	session := h.NewSession(repo)
 	// -- Email lists --
-	pendingList := email.NewList(db, "pending_list", emailRepo)
-	validatedList := email.NewList(db, "validated_list", emailRepo)
+	pendingList := email.NewList(db, "pending_list", repo)
+	validatedList := email.NewList(db, "validated_list", repo)
 
-	// Create shopping cart
+	// Create cart cart
 	cart := shopping.NewCart()
 
 	// ==========
@@ -55,6 +52,22 @@ func NewRouter(db *gorm.DB) http.Handler {
 	// ==========
 	r.HandleFunc("/login", h.Session.Login(session, db, validatedList)).Methods("POST")
 	r.HandleFunc("/logout", h.Session.Logout(session)).Methods("GET")
+
+	// ==========
+	// 	 Cart
+	// ==========
+	r.HandleFunc("/cart", h.CartGet(cart)).Methods("GET")
+	r.HandleFunc("/cart/{id}", h.CartRemove(cart)).Methods("DELETE")
+	r.HandleFunc("/cart/add/{amount}", h.CartAdd(cart)).Methods("POST")
+	r.HandleFunc("/cart/checkout", h.CartCheckout(cart)).Methods("GET")
+	r.HandleFunc("/cart/filter/brand/{brand}", h.CartFilterByBrand(cart)).Methods("GET")
+	r.HandleFunc("/cart/filter/category/{category}", h.CartFilterByCategory(cart)).Methods("GET")
+	r.HandleFunc("/cart/filter/total/{min}/{max}", h.CartFilterByTotal(cart)).Methods("GET")
+	r.HandleFunc("/cart/filter/type/{type}", h.CartFilterByType(cart)).Methods("GET")
+	r.HandleFunc("/cart/filter/weight/{min}/{max}", h.CartFilterByWeight(cart)).Methods("GET")
+	r.HandleFunc("/cart/items", h.CartItems(cart)).Methods("GET")
+	r.HandleFunc("/cart/reset", h.CartReset(cart)).Methods("GET")
+	r.HandleFunc("/cart/size", h.CartSize(cart)).Methods("GET")
 
 	// ==========
 	// 	Email
@@ -84,22 +97,6 @@ func NewRouter(db *gorm.DB) http.Handler {
 	r.HandleFunc("/reviews/{id}", reviews.GetByID(l)).Methods("GET")
 	r.HandleFunc("/reviews/add", m.RequireLogin(reviews.Add(a))).Methods("POST")
 	r.HandleFunc("/reviews/{id}", m.RequireLogin(reviews.Delete(d))).Methods("DELETE")
-
-	// ==========
-	// 	Shopping
-	// ==========
-	r.HandleFunc("/shopping", m.RequireLogin(h.CartGet(cart))).Methods("GET")
-	r.HandleFunc("/shopping/{id}", m.RequireLogin(h.CartRemove(cart))).Methods("DELETE")
-	r.HandleFunc("/shopping/add/{amount}", m.RequireLogin(h.CartAdd(cart))).Methods("POST")
-	r.HandleFunc("/shopping/checkout", m.RequireLogin(h.CartCheckout(cart))).Methods("GET")
-	r.HandleFunc("/shopping/filter/brand/{brand}", m.RequireLogin(h.CartFilterByBrand(cart))).Methods("GET")
-	r.HandleFunc("/shopping/filter/category/{category}", m.RequireLogin(h.CartFilterByCategory(cart))).Methods("GET")
-	r.HandleFunc("/shopping/filter/total/{min}/{max}", m.RequireLogin(h.CartFilterByTotal(cart))).Methods("GET")
-	r.HandleFunc("/shopping/filter/type/{type}", m.RequireLogin(h.CartFilterByType(cart))).Methods("GET")
-	r.HandleFunc("/shopping/filter/weight/{min}/{max}", m.RequireLogin(h.CartFilterByWeight(cart))).Methods("GET")
-	r.HandleFunc("/shopping/items", m.RequireLogin(h.CartItems(cart))).Methods("GET")
-	r.HandleFunc("/shopping/reset", m.RequireLogin(h.CartReset(cart))).Methods("GET")
-	r.HandleFunc("/shopping/size", m.RequireLogin(h.CartSize(cart))).Methods("GET")
 
 	// ==========
 	// 	Shops

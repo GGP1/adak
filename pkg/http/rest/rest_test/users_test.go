@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/GGP1/palo/pkg/http/rest/handler"
-	"github.com/GGP1/palo/pkg/listing"
+	"github.com/GGP1/palo/pkg/repository"
 	"github.com/GGP1/palo/pkg/storage"
 	"github.com/badoux/checkmail"
 )
@@ -18,15 +18,14 @@ func TestUsersHandler(t *testing.T) {
 
 func list(t *testing.T) {
 	db, _, _ := storage.NewDatabase()
-	listingRepo := *new(listing.Repository)
-	lister := listing.NewService(listingRepo)
+	repo := *new(repository.MonoRepo)
 
 	users := handler.Users{DB: db}
 
 	req := httptest.NewRequest("GET", "localhost:4000/users", nil)
 	rec := httptest.NewRecorder()
 
-	handler := users.GetAll(lister)
+	handler := users.GetAll(repo)
 	handler(rec, req)
 
 	res := rec.Result()

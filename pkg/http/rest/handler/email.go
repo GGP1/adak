@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/GGP1/palo/internal/response"
-	"github.com/GGP1/palo/pkg/email"
+	"github.com/GGP1/palo/pkg/auth/email"
 	"github.com/gorilla/mux"
 )
 
