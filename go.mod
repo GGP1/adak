@@ -8,7 +8,6 @@ require (
 	github.com/google/uuid v1.1.1
 	github.com/gorilla/mux v1.7.4
 	github.com/jinzhu/gorm v1.9.14
-	github.com/joho/godotenv v1.3.0 // direct
 	github.com/lib/pq v1.7.0 // direct
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible // indirect
 	github.com/pkg/errors v0.9.1
