@@ -1,7 +1,7 @@
 .env
 TODO.txt
 
-cmd/server/server.exe
+cmd/cmd.exe
 internal/cfg
 internal/email/pendingList.json
 internal/email/validatedList.json

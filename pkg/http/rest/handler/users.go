@@ -86,7 +86,7 @@ func (us *Users) Add(a adding.Service, pendingList email.Service) http.HandlerFu
 		// Send validation email
 		email.SendValidation(user, token)
 
-		response.JSON(w, r, http.StatusOK, user)
+		// response.JSON(w, r, http.StatusOK, user)
 		fmt.Fprintln(w, "Please validate your email.")
 	}
 }
