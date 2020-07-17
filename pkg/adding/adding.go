@@ -22,6 +22,11 @@ func NewService(r Repository) Service {
 
 // AddProduct takes a new product and appends it to the database
 func (s *service) AddProduct(db *gorm.DB, product *model.Product) error {
+	err := product.Validate()
+	if err != nil {
+		return err
+	}
+
 	if err := db.Create(product).Error; err != nil {
 		return errors.Wrap(err, "error: couldn't create the product")
 	}
@@ -40,6 +45,11 @@ func (s *service) AddReview(db *gorm.DB, review *model.Review) error {
 
 // AddShop takes a new shop and appends it to the database
 func (s *service) AddShop(db *gorm.DB, shop *model.Shop) error {
+	err := shop.Validate()
+	if err != nil {
+		return err
+	}
+
 	if err := db.Create(shop).Error; err != nil {
 		return errors.Wrap(err, "error: couldn't create the shop")
 	}
@@ -50,7 +60,7 @@ func (s *service) AddShop(db *gorm.DB, shop *model.Shop) error {
 // AddUser takes a new user, hashes its password, sends
 // a verification email and appends it to the database
 func (s *service) AddUser(db *gorm.DB, user *model.User) error {
-	err := user.Validate("login")
+	err := user.Validate("")
 	if err != nil {
 		return err
 	}
