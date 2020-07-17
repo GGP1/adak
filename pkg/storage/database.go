@@ -32,7 +32,7 @@ func NewDatabase() (*gorm.DB, func() error, error) {
 	// Create tables
 	tableExists(db, model.Product{}, model.User{}, model.Review{}, model.Shop{}, model.Location{})
 
-	if db.HasTable("pending_list") && db.HasTable("validated_list") != true {
+	if db.Table("pending_list").HasTable(&email.List{}) != true && db.Table("validated_list").HasTable(&email.List{}) != true {
 		db.Table("pending_list").CreateTable(&email.List{}).AutoMigrate(&email.List{})
 		db.Table("validated_list").CreateTable(&email.List{}).AutoMigrate(&email.List{})
 	}
