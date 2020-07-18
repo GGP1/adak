@@ -174,7 +174,7 @@ func (c *Cart) Remove(key uint) error {
 	defer c.Unlock()
 
 	if len(c.Products) == 0 {
-		return errors.New("There are no products in the cart")
+		return errors.New("the cart is empty")
 	}
 
 	if len(c.Products) == 1 {

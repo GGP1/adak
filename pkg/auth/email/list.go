@@ -1,10 +1,10 @@
 package email
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/jinzhu/gorm"
-	"github.com/pkg/errors"
 )
 
 // List contains a list of users emails and their tokens
@@ -40,7 +40,7 @@ func (l *List) Add(email, token string) error {
 
 	err := l.DB.Table(l.tableName).Create(l).Error
 	if err != nil {
-		return errors.Wrap(err, "error: couldn't create the pending list")
+		return fmt.Errorf("couldn't create the pending list")
 	}
 
 	return nil
@@ -50,7 +50,7 @@ func (l *List) Add(email, token string) error {
 func (l *List) Read() (map[string]string, error) {
 	err := l.DB.Table(l.tableName).Find(l).Error
 	if err != nil {
-		return nil, errors.Wrap(err, "error: pending list not found")
+		return nil, fmt.Errorf("list not found")
 	}
 	emailList := make(map[string]string)
 	emailList[l.Email] = l.Token
@@ -62,7 +62,7 @@ func (l *List) Read() (map[string]string, error) {
 func (l *List) Remove(key string) error {
 	err := l.DB.Table(l.tableName).Delete(l, key).Error
 	if err != nil {
-		return errors.Wrap(err, "error: couldn't delete the email from the list")
+		return fmt.Errorf("couldn't delete the email from the list")
 	}
 
 	return nil
@@ -72,7 +72,7 @@ func (l *List) Remove(key string) error {
 func (l *List) Seek(email string) error {
 	err := l.DB.Table(l.tableName).First(l, "email = ?", email).Error
 	if err != nil {
-		return errors.Wrap(err, "error: email not found")
+		return fmt.Errorf("email not found")
 	}
 
 	return nil

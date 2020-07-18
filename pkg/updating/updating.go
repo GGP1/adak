@@ -4,7 +4,7 @@ Package updating includes database udpating operations
 package updating
 
 import (
-	"errors"
+	"fmt"
 
 	"github.com/GGP1/palo/pkg/model"
 	"github.com/jinzhu/gorm"
@@ -33,7 +33,7 @@ func (s *service) UpdateProduct(db *gorm.DB, product *model.Product, id string) 
 		"total", product.Total).
 		Error
 	if err != nil {
-		return errors.New("error: couldn't update the product")
+		return fmt.Errorf("couldn't update the product")
 	}
 
 	return nil
@@ -48,7 +48,7 @@ func (s *service) UpdateShop(db *gorm.DB, shop *model.Shop, id string) error {
 		"address", shop.Location.Address).
 		Error
 	if err != nil {
-		return errors.New("error: couldn't update the shop")
+		return fmt.Errorf("couldn't update the shop")
 	}
 
 	return nil
@@ -62,7 +62,7 @@ func (s *service) UpdateUser(db *gorm.DB, user *model.User, id string) error {
 		"email", user.Email).
 		Error
 	if err != nil {
-		return errors.New("error: couldn't update the user")
+		return fmt.Errorf("couldn't update the user")
 	}
 
 	return nil

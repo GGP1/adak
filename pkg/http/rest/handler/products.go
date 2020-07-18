@@ -69,7 +69,7 @@ func (p *Products) Add(a adding.Service) http.HandlerFunc {
 			return
 		}
 
-		response.JSON(w, r, http.StatusCreated, product)
+		response.JSON(w, r, http.StatusOK, product)
 	}
 }
 

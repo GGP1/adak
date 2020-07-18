@@ -2,7 +2,6 @@ package handler
 
 import (
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -77,17 +76,22 @@ func (us *Users) Add(a adding.Service, pendingList email.Service) http.HandlerFu
 
 		token, err := auth.GenerateJWT(user)
 		if err != nil {
-			fmt.Printf("%v", err)
+			response.Error(w, r, http.StatusInternalServerError, fmt.Errorf("could not generate a jwt token: %w", err))
 		}
 
 		// Add user mail and token to the email pending confirmation list
 		pendingList.Add(user.Email, token)
+		if err != nil {
+			response.Error(w, r, http.StatusInternalServerError, err)
+		}
 
 		// Send validation email
-		email.SendValidation(user, token)
+		err = email.SendValidation(user, token)
+		if err != nil {
+			response.Error(w, r, http.StatusInternalServerError, fmt.Errorf("failed sending validation email: %w", err))
+		}
 
-		// response.JSON(w, r, http.StatusOK, user)
-		fmt.Fprintln(w, "Please validate your email.")
+		fmt.Fprintln(w, "You account was successfully created. Please validate your email to start using Palo.")
 	}
 }
 
@@ -108,7 +112,7 @@ func (us *Users) Update(u updating.Service) http.HandlerFunc {
 		// Check if it is the same user
 		areEqual := strings.Compare(userID, c.Value)
 		if areEqual != 0 {
-			response.Error(w, r, http.StatusUnauthorized, errors.New("You are not allowed to update others user"))
+			response.Error(w, r, http.StatusUnauthorized, fmt.Errorf("not allowed to update others user"))
 			return
 		}
 
@@ -145,7 +149,7 @@ func (us *Users) Delete(d deleting.Service, pendingList, validatedList email.Ser
 		// Check if it is the same user
 		areEqual := strings.Compare(userID, c.Value)
 		if areEqual != 0 {
-			response.Error(w, r, http.StatusUnauthorized, errors.New("You are not allowed to delete others user"))
+			response.Error(w, r, http.StatusUnauthorized, fmt.Errorf("not allowed to delete others user"))
 			return
 		}
 

@@ -4,6 +4,7 @@ Package auth provides authentication and authorization support.
 package auth
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 	"sync"
@@ -78,7 +79,7 @@ func (s *session) Login(w http.ResponseWriter, email, password string) error {
 	id := strconv.Itoa(int(user.ID))
 	userID, err := GenerateFixedJWT(id)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed generating a jwt token")
 	}
 
 	// UserID -UID- used to deny users from making requests to other accounts

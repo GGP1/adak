@@ -4,7 +4,6 @@ Package middleware includes all the middlewares used in the api
 package middleware
 
 import (
-	"log"
 	"net"
 	"net/http"
 	"sync"
@@ -36,8 +35,7 @@ func LimitRate(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ip, _, err := net.SplitHostPort(r.RemoteAddr)
 		if err != nil {
-			log.Println(err.Error())
-			http.Error(w, "Internal Server Error", http.StatusInternalServerError)
+			http.Error(w, err.Error(), http.StatusInternalServerError)
 			return
 		}
 

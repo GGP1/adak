@@ -4,10 +4,11 @@ Package deleting includes database deleting operations
 package deleting
 
 import (
+	"fmt"
+
 	"github.com/GGP1/palo/pkg/model"
 
 	"github.com/jinzhu/gorm"
-	"github.com/pkg/errors"
 )
 
 type service struct {
@@ -22,7 +23,7 @@ func NewService(r Repository) Service {
 // DeleteProduct takes a product from the database and permanently deletes it
 func (s *service) DeleteProduct(db *gorm.DB, product *model.Product, id string) error {
 	if err := db.Delete(product, id).Error; err != nil {
-		return errors.Wrap(err, "error: couldn't delete the product")
+		return fmt.Errorf("couldn't delete the product")
 	}
 	return nil
 }
@@ -30,7 +31,7 @@ func (s *service) DeleteProduct(db *gorm.DB, product *model.Product, id string) 
 // DeleteReview takes a review from the database and permanently deletes it
 func (s *service) DeleteReview(db *gorm.DB, review *model.Review, id string) error {
 	if err := db.Delete(review, id).Error; err != nil {
-		return errors.Wrap(err, "error: couldn't delete the review")
+		return fmt.Errorf("couldn't delete the review")
 	}
 	return nil
 }
@@ -38,7 +39,7 @@ func (s *service) DeleteReview(db *gorm.DB, review *model.Review, id string) err
 // DeleteShop takes a shop from the database and permanently deletes it
 func (s *service) DeleteShop(db *gorm.DB, shop *model.Shop, id string) error {
 	if err := db.Delete(shop, id).Error; err != nil {
-		return errors.Wrap(err, "error: couldn't delete the shop")
+		return fmt.Errorf("couldn't delete the shop")
 	}
 	return nil
 }
@@ -46,7 +47,7 @@ func (s *service) DeleteShop(db *gorm.DB, shop *model.Shop, id string) error {
 // DeleteUser takes a user from the database and permanently deletes it
 func (s *service) DeleteUser(db *gorm.DB, user *model.User, id string) error {
 	if err := db.Delete(user, id).Error; err != nil {
-		return errors.Wrap(err, "error: couldn't delete the user")
+		return fmt.Errorf("couldn't delete the user")
 	}
 	return nil
 }

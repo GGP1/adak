@@ -5,14 +5,16 @@ package handler
 
 import (
 	"encoding/json"
-	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/GGP1/palo/internal/response"
 	"github.com/GGP1/palo/pkg/auth"
 	"github.com/GGP1/palo/pkg/auth/email"
 	"github.com/GGP1/palo/pkg/model"
+
 	"github.com/gorilla/mux"
+	"github.com/pkg/errors"
 )
 
 // Login takes a user and authenticates it
@@ -42,14 +44,14 @@ func Login(s auth.Session, validatedList email.Service) http.HandlerFunc {
 		// Authenticate user
 		err = s.Login(w, user.Email, user.Password)
 		if err != nil {
-			response.HTMLText(w, r, http.StatusUnauthorized, "error: Invalid email or password")
+			response.Error(w, r, http.StatusUnauthorized, fmt.Errorf("invalid email or password"))
 			return
 		}
 
 		// Check if the email is validated
 		err = validatedList.Seek(user.Email)
 		if err != nil {
-			response.Error(w, r, http.StatusUnauthorized, errors.New("Please verify your email before logging in"))
+			response.Error(w, r, http.StatusUnauthorized, fmt.Errorf("please verify your email before logging in: %w", err))
 			return
 		}
 
@@ -63,7 +65,7 @@ func Logout(s auth.Session) http.HandlerFunc {
 		c, _ := r.Cookie("SID")
 
 		if c == nil {
-			response.Error(w, r, http.StatusBadRequest, errors.New("You cannot log out without a session"))
+			response.Error(w, r, http.StatusBadRequest, fmt.Errorf("error: you cannot log out without a session"))
 			return
 		}
 
@@ -97,7 +99,7 @@ func ValidateEmail(pendingList, validatedList email.Service) http.HandlerFunc {
 		}
 
 		if !validated {
-			response.Error(w, r, http.StatusInternalServerError, errors.New("An error ocurred when validating your email"))
+			response.Error(w, r, http.StatusInternalServerError, errors.New("error: email validation failed"))
 			return
 		}
 

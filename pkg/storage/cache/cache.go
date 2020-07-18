@@ -58,10 +58,10 @@ func (c *Cache) Add(name, key string, obj interface{}, defaultExpiration time.Du
 	_, found := c.Get(name, key)
 	if found {
 		c.Unlock()
-		return fmt.Errorf("Item %s already exists", key)
+		return fmt.Errorf("item %s already exists", key)
 	}
 	if name != c.name {
-		return fmt.Errorf("Cache %s does not exist", name)
+		return fmt.Errorf("cache %s does not exist", name)
 	}
 
 	c.Set(name, key, obj, defaultExpiration)
@@ -107,7 +107,7 @@ func (c *Cache) Items(name string) (map[string]Item, error) {
 	defer c.Unlock()
 
 	if name != c.name {
-		return nil, fmt.Errorf("Cache %s does not exist", name)
+		return nil, fmt.Errorf("cache %s does not exist", name)
 	}
 
 	newMap := make(map[string]Item, len(c.items))
@@ -130,13 +130,13 @@ func (c *Cache) Replace(name, key string, obj interface{}, defaultExpiration tim
 	defer c.Unlock()
 
 	if name != c.name {
-		return fmt.Errorf("Cache %s does not exist", name)
+		return fmt.Errorf("cache %s does not exist", name)
 	}
 
 	_, found := c.Get(name, key)
 	if !found {
 		c.Unlock()
-		return fmt.Errorf("Item %s doesn't exist", key)
+		return fmt.Errorf("item %s doesn't exist", key)
 	}
 	c.Set(name, key, obj, defaultExpiration)
 
@@ -146,7 +146,7 @@ func (c *Cache) Replace(name, key string, obj interface{}, defaultExpiration tim
 // Reset deletes all the items from the cache
 func (c *Cache) Reset(name string) error {
 	if name != c.name {
-		return fmt.Errorf("Cache %s does not exist", name)
+		return fmt.Errorf("cache %s does not exist", name)
 	}
 
 	c.Lock()
@@ -161,7 +161,7 @@ func (c *Cache) Set(name, key string, obj interface{}, defaultExpiration time.Du
 	var expiration int64
 
 	if name != c.name {
-		return fmt.Errorf("Cache %s does not exist", name)
+		return fmt.Errorf("cache %s does not exist", name)
 	}
 
 	if defaultExpiration == DefaultExpiration {

@@ -2,7 +2,7 @@ package handler
 
 import (
 	"encoding/json"
-	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -27,13 +27,13 @@ func CartAdd(cart *shopping.Cart) http.HandlerFunc {
 
 		q, err := strconv.Atoi(amount)
 		if err != nil {
-			response.Error(w, r, http.StatusBadRequest, errors.New("Amount inserted is not valid, integers accepted only"))
+			response.Error(w, r, http.StatusBadRequest, fmt.Errorf("%w: amount inserted is not valid, integers accepted only", err))
 		}
 
 		quantity := float32(q)
 
 		if quantity == 0 {
-			response.Error(w, r, http.StatusBadRequest, errors.New("Please insert a valid amount"))
+			response.Error(w, r, http.StatusBadRequest, fmt.Errorf("error: please insert a valid amount"))
 			return
 		}
 
