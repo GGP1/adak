@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/GGP1/palo/internal/response"
@@ -102,16 +101,15 @@ func (us *Users) Update(u updating.Service) http.HandlerFunc {
 
 		id := mux.Vars(r)["id"]
 		c, _ := r.Cookie("UID")
-		// Generate a jwt token and compare it with the cookie to check
-		//  if it's the same user
+		// Generate a fixed token of the id and compare it with the cookie
+		// to check if it's the same user
 		userID, err := auth.GenerateFixedJWT(id)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
-		// Check if it is the same user
-		areEqual := strings.Compare(userID, c.Value)
-		if areEqual != 0 {
+
+		if userID != c.Value {
 			response.Error(w, r, http.StatusUnauthorized, fmt.Errorf("not allowed to update others user"))
 			return
 		}
@@ -139,16 +137,15 @@ func (us *Users) Delete(d deleting.Service, pendingList, validatedList email.Ser
 
 		id := mux.Vars(r)["id"]
 		c, _ := r.Cookie("UID")
-		// Generate a jwt token and compare it with the cookie to check
-		//  if it's the same user
+		// Generate a fixed token of the id and compare it with the cookie
+		// to check if it's the same user
 		userID, err := auth.GenerateFixedJWT(id)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
-		// Check if it is the same user
-		areEqual := strings.Compare(userID, c.Value)
-		if areEqual != 0 {
+
+		if userID != c.Value {
 			response.Error(w, r, http.StatusUnauthorized, fmt.Errorf("not allowed to delete others user"))
 			return
 		}
@@ -161,7 +158,14 @@ func (us *Users) Delete(d deleting.Service, pendingList, validatedList email.Ser
 
 		// Remove user from email lists
 		pendingList.Remove(user.Email)
+		if err != nil {
+			response.Error(w, r, http.StatusInternalServerError, err)
+		}
+
 		validatedList.Remove(user.Email)
+		if err != nil {
+			response.Error(w, r, http.StatusInternalServerError, err)
+		}
 
 		// If the user is logged in, log him out
 		c2, _ := r.Cookie("SID")

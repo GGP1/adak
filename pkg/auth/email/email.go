@@ -69,7 +69,7 @@ func SendValidation(user model.User, token string) error {
 	auth := smtp.PlainAuth("", cfg.EmailSender, cfg.EmailPassword, host)
 
 	tlsConfig := &tls.Config{
-		InsecureSkipVerify: true,
+		InsecureSkipVerify: false,
 		ServerName:         host,
 	}
 
