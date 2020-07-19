@@ -41,17 +41,17 @@ func Login(s auth.Session, validatedList email.Service) http.HandlerFunc {
 			return
 		}
 
-		// Authenticate user
-		err = s.Login(w, user.Email, user.Password)
-		if err != nil {
-			response.Error(w, r, http.StatusUnauthorized, fmt.Errorf("invalid email or password"))
-			return
-		}
-
 		// Check if the email is validated
 		err = validatedList.Seek(user.Email)
 		if err != nil {
 			response.Error(w, r, http.StatusUnauthorized, fmt.Errorf("please verify your email before logging in: %w", err))
+			return
+		}
+
+		// Authenticate user
+		err = s.Login(w, user.Email, user.Password)
+		if err != nil {
+			response.Error(w, r, http.StatusUnauthorized, fmt.Errorf("invalid email or password"))
 			return
 		}
 
@@ -93,6 +93,7 @@ func ValidateEmail(pendingList, validatedList email.Service) http.HandlerFunc {
 				err := validatedList.Add(k, v)
 				if err != nil {
 					response.Error(w, r, http.StatusInternalServerError, err)
+					return
 				}
 				validated = true
 			}

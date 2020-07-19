@@ -18,38 +18,6 @@ type Reviews struct {
 	DB *gorm.DB
 }
 
-// GetAll lists all the reviews
-func (rev *Reviews) GetAll(l listing.Service) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		var review []model.Review
-
-		err := l.GetReviews(rev.DB, &review)
-		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
-			return
-		}
-
-		response.JSON(w, r, http.StatusOK, review)
-	}
-}
-
-// GetByID lists the review with the id requested
-func (rev *Reviews) GetByID(l listing.Service) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		var review model.Review
-
-		id := mux.Vars(r)["id"]
-
-		err := l.GetReviewByID(rev.DB, &review, id)
-		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
-			return
-		}
-
-		response.JSON(w, r, http.StatusOK, review)
-	}
-}
-
 // Add creates a new review and saves it
 func (rev *Reviews) Add(a adding.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -85,5 +53,37 @@ func (rev *Reviews) Delete(d deleting.Service) http.HandlerFunc {
 		}
 
 		response.HTMLText(w, r, http.StatusOK, "Review deleted successfully.")
+	}
+}
+
+// GetAll lists all the reviews
+func (rev *Reviews) GetAll(l listing.Service) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var review []model.Review
+
+		err := l.GetReviews(rev.DB, &review)
+		if err != nil {
+			response.Error(w, r, http.StatusInternalServerError, err)
+			return
+		}
+
+		response.JSON(w, r, http.StatusOK, review)
+	}
+}
+
+// GetByID lists the review with the id requested
+func (rev *Reviews) GetByID(l listing.Service) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var review model.Review
+
+		id := mux.Vars(r)["id"]
+
+		err := l.GetReviewByID(rev.DB, &review, id)
+		if err != nil {
+			response.Error(w, r, http.StatusInternalServerError, err)
+			return
+		}
+
+		response.JSON(w, r, http.StatusOK, review)
 	}
 }

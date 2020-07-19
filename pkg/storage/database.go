@@ -17,21 +17,18 @@ import (
 //
 // Return the close function so it's not avoided in the future
 func NewDatabase() (*gorm.DB, func() error, error) {
-	// Connection
 	db, err := gorm.Open("postgres", cfg.URL)
 	if err != nil {
 		return nil, nil, fmt.Errorf("could not open the database: %w", err)
 	}
 
-	// Check connectivity
 	err = db.DB().Ping()
 	if err != nil {
 		return nil, nil, fmt.Errorf("connection to the database died: %w", err)
 	}
 
-	// Auto-migrate models
 	db.AutoMigrate(&model.Product{}, &model.User{}, &model.Review{}, &model.Shop{}, &model.Location{})
-	// Create tables
+
 	err = tableExists(db, model.Product{}, model.User{}, model.Review{}, model.Shop{}, model.Location{})
 	if err != nil {
 		return nil, nil, fmt.Errorf("could not create the table: %w", err)

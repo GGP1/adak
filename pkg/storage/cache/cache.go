@@ -18,7 +18,6 @@ const (
 // Cache holds a default expiration, a map of items,
 // the mutexes and its name
 type Cache struct {
-	name              string
 	defaultExpiration time.Duration
 	items             map[string]Item
 	sync.RWMutex
@@ -34,7 +33,7 @@ type Item struct {
 // New creates a cache
 // TODO: Create a file that contains the cache map
 // and set 2 functions: load and save
-func New(name string, defaultExpiration time.Duration) *Cache {
+func New(defaultExpiration time.Duration) *Cache {
 	items := make(map[string]Item)
 
 	if defaultExpiration == 0 {
@@ -42,7 +41,6 @@ func New(name string, defaultExpiration time.Duration) *Cache {
 	}
 
 	newCache := &Cache{
-		name:              name,
 		defaultExpiration: defaultExpiration,
 		items:             items,
 	}
@@ -51,20 +49,17 @@ func New(name string, defaultExpiration time.Duration) *Cache {
 }
 
 // Add checks if an item doesn't exist yet, if not, stores it
-func (c *Cache) Add(name, key string, obj interface{}, defaultExpiration time.Duration) error {
+func (c *Cache) Add(key string, obj interface{}, defaultExpiration time.Duration) error {
 	c.Lock()
 	defer c.Unlock()
 
-	_, found := c.Get(name, key)
+	_, found := c.Get(key)
 	if found {
 		c.Unlock()
 		return fmt.Errorf("item %s already exists", key)
 	}
-	if name != c.name {
-		return fmt.Errorf("cache %s does not exist", name)
-	}
 
-	c.Set(name, key, obj, defaultExpiration)
+	c.Set(key, obj, defaultExpiration)
 
 	return nil
 }
@@ -77,13 +72,9 @@ func (c *Cache) Delete(key string) {
 }
 
 // Get an item
-func (c *Cache) Get(name, key string) (interface{}, bool) {
+func (c *Cache) Get(key string) (interface{}, bool) {
 	c.RLock()
 	defer c.RUnlock()
-
-	if name != c.name {
-		return nil, false
-	}
 
 	item, found := c.items[key]
 	if !found {
@@ -102,13 +93,9 @@ func (c *Cache) Get(name, key string) (interface{}, bool) {
 }
 
 // Items returns a map copy of the items stored in the cache
-func (c *Cache) Items(name string) (map[string]Item, error) {
+func (c *Cache) Items() (map[string]Item, error) {
 	c.Lock()
 	defer c.Unlock()
-
-	if name != c.name {
-		return nil, fmt.Errorf("cache %s does not exist", name)
-	}
 
 	newMap := make(map[string]Item, len(c.items))
 	now := time.Now().UnixNano()
@@ -125,30 +112,22 @@ func (c *Cache) Items(name string) (map[string]Item, error) {
 }
 
 // Replace an item with a new one and store it
-func (c *Cache) Replace(name, key string, obj interface{}, defaultExpiration time.Duration) error {
+func (c *Cache) Replace(key string, obj interface{}, defaultExpiration time.Duration) error {
 	c.Lock()
 	defer c.Unlock()
 
-	if name != c.name {
-		return fmt.Errorf("cache %s does not exist", name)
-	}
-
-	_, found := c.Get(name, key)
+	_, found := c.Get(key)
 	if !found {
 		c.Unlock()
 		return fmt.Errorf("item %s doesn't exist", key)
 	}
-	c.Set(name, key, obj, defaultExpiration)
+	c.Set(key, obj, defaultExpiration)
 
 	return nil
 }
 
 // Reset deletes all the items from the cache
-func (c *Cache) Reset(name string) error {
-	if name != c.name {
-		return fmt.Errorf("cache %s does not exist", name)
-	}
-
+func (c *Cache) Reset() error {
 	c.Lock()
 	c.items = map[string]Item{}
 	c.Unlock()
@@ -157,12 +136,8 @@ func (c *Cache) Reset(name string) error {
 }
 
 // Set a new item to the cache
-func (c *Cache) Set(name, key string, obj interface{}, defaultExpiration time.Duration) error {
+func (c *Cache) Set(key string, obj interface{}, defaultExpiration time.Duration) error {
 	var expiration int64
-
-	if name != c.name {
-		return fmt.Errorf("cache %s does not exist", name)
-	}
 
 	if defaultExpiration == DefaultExpiration {
 		defaultExpiration = c.defaultExpiration
@@ -185,13 +160,9 @@ func (c *Cache) Set(name, key string, obj interface{}, defaultExpiration time.Du
 }
 
 // Size returns the number of items stored in the cache
-func (c *Cache) Size(name string) (int, error) {
+func (c *Cache) Size() (int, error) {
 	c.RLock()
 	defer c.RUnlock()
-
-	if name != c.name {
-		return 0, fmt.Errorf("%s cache does not exist", name)
-	}
 
 	return len(c.items), nil
 }

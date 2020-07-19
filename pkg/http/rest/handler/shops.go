@@ -19,6 +19,43 @@ type Shops struct {
 	DB *gorm.DB
 }
 
+// Add creates a new shop and saves it
+func (s *Shops) Add(a adding.Service) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var shop model.Shop
+
+		if err := json.NewDecoder(r.Body).Decode(&shop); err != nil {
+			response.Error(w, r, http.StatusBadRequest, err)
+			return
+		}
+		defer r.Body.Close()
+
+		err := a.AddShop(s.DB, &shop)
+		if err != nil {
+			response.Error(w, r, http.StatusInternalServerError, err)
+			return
+		}
+
+		response.JSON(w, r, http.StatusOK, shop)
+	}
+}
+
+// Delete deletes a shop
+func (s *Shops) Delete(d deleting.Service) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var shop model.Shop
+
+		id := mux.Vars(r)["id"]
+
+		err := d.DeleteShop(s.DB, &shop, id)
+		if err != nil {
+			response.Error(w, r, http.StatusInternalServerError, err)
+		}
+
+		response.HTMLText(w, r, http.StatusOK, "Shop deleted successfully.")
+	}
+}
+
 // GetAll lists all the shops
 func (s *Shops) GetAll(l listing.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -51,27 +88,6 @@ func (s *Shops) GetByID(l listing.Service) http.HandlerFunc {
 	}
 }
 
-// Add creates a new shop and saves it
-func (s *Shops) Add(a adding.Service) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		var shop model.Shop
-
-		if err := json.NewDecoder(r.Body).Decode(&shop); err != nil {
-			response.Error(w, r, http.StatusBadRequest, err)
-			return
-		}
-		defer r.Body.Close()
-
-		err := a.AddShop(s.DB, &shop)
-		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
-			return
-		}
-
-		response.JSON(w, r, http.StatusOK, shop)
-	}
-}
-
 // Update updates the shop with the given id
 func (s *Shops) Update(u updating.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -92,21 +108,5 @@ func (s *Shops) Update(u updating.Service) http.HandlerFunc {
 		}
 
 		response.HTMLText(w, r, http.StatusOK, "Shop updated successfully.")
-	}
-}
-
-// Delete deletes a shop
-func (s *Shops) Delete(d deleting.Service) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		var shop model.Shop
-
-		id := mux.Vars(r)["id"]
-
-		err := d.DeleteShop(s.DB, &shop, id)
-		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
-		}
-
-		response.HTMLText(w, r, http.StatusOK, "Shop deleted successfully.")
 	}
 }

@@ -1,121 +1,78 @@
-/*
-Package email helps us to use the email as the tool to identify each user
-*/
 package email
 
 import (
-	"bytes"
-	"crypto/tls"
 	"fmt"
-	"html/template"
-	"net/mail"
-	"net/smtp"
+	"sync"
 
-	"github.com/GGP1/palo/internal/cfg"
-	"github.com/GGP1/palo/pkg/model"
+	"github.com/jinzhu/gorm"
 )
 
-// Items represents a struct with the values passed to the template
-type Items struct {
-	Name  string
-	Token string
+// List contains a list of users emails and their tokens
+type List struct {
+	DB *gorm.DB
+	// Used to distinguish between tables of the same struct
+	tableName string
+	r         Repository
+	sync.RWMutex
+
+	Email string `json:"email"`
+	Token string `json:"token"`
 }
 
-// SendValidation sends a validation email to the user
-func SendValidation(user model.User, token string) error {
-	// =================
-	// 	Email content
-	// =================
-	username := user.Firstname + " " + user.Lastname
-
-	from := mail.Address{Name: "Palo", Address: cfg.EmailSender}
-	to := mail.Address{Name: username, Address: user.Email}
-	subject := "Validation email"
-	items := Items{
-		Name:  user.Firstname + " " + user.Lastname,
-		Token: token,
+// NewList creates the email list service
+func NewList(db *gorm.DB, tableName string, r Repository) Service {
+	return &List{
+		DB:        db,
+		tableName: tableName,
+		r:         r,
+		Email:     "",
+		Token:     "",
 	}
+}
 
-	headers := make(map[string]string)
-	headers["From"] = from.String()
-	headers["To"] = to.String()
-	headers["Subject"] = subject
-	headers["Content-Type"] = `text/html; charset="UTF-8"`
+// Add a user to the list
+func (l *List) Add(email, token string) error {
 
-	message := ""
-	for k, v := range headers {
-		message += fmt.Sprintf("%s: %s\r\n", k, v)
-	}
+	l.Lock()
+	l.Email = email
+	l.Token = token
+	l.Unlock()
 
-	t, err := template.ParseFiles("../pkg/auth/email/template.html")
+	err := l.DB.Table(l.tableName).Create(l).Error
 	if err != nil {
-		return err
+		return fmt.Errorf("couldn't create the pending list")
 	}
 
-	buf := new(bytes.Buffer)
-	err = t.Execute(buf, items)
+	return nil
+}
+
+// Read returns a map with the email list or an error
+func (l *List) Read() (map[string]string, error) {
+	err := l.DB.Table(l.tableName).Find(l).Error
 	if err != nil {
-		return err
+		return nil, fmt.Errorf("list not found")
 	}
+	emailList := make(map[string]string)
+	emailList[l.Email] = l.Token
 
-	message += buf.String()
+	return emailList, nil
+}
 
-	// =================
-	// Connect to smtp
-	// =================
-	serverName := "smtp.gmail.com:465"
-	host := "stmp.gmail.com"
-
-	auth := smtp.PlainAuth("", cfg.EmailSender, cfg.EmailPassword, host)
-
-	tlsConfig := &tls.Config{
-		InsecureSkipVerify: false,
-		ServerName:         host,
-	}
-
-	conn, err := tls.Dial("tcp", serverName, tlsConfig)
+// Remove deletes a key from the map
+func (l *List) Remove(key string) error {
+	err := l.DB.Table(l.tableName).Delete(l, key).Error
 	if err != nil {
-		return err
+		return fmt.Errorf("couldn't delete the email from the list")
 	}
 
-	client, err := smtp.NewClient(conn, host)
-	if err != nil {
-		return err
-	}
+	return nil
+}
 
-	err = client.Auth(auth)
+// Seek looks for the specified email in the database
+func (l *List) Seek(email string) error {
+	err := l.DB.Table(l.tableName).First(l, "email = ?", email).Error
 	if err != nil {
-		return err
-	}
-
-	err = client.Mail(from.Address)
-	if err != nil {
-		return err
-	}
-
-	err = client.Rcpt(to.Address)
-	if err != nil {
-		return err
-	}
-
-	w, err := client.Data()
-	if err != nil {
-		return err
-	}
-
-	_, err = w.Write([]byte(message))
-	if err != nil {
-		return err
-	}
-
-	err = w.Close()
-	if err != nil {
-		return err
-	}
-
-	err = client.Quit()
-	if err != nil {
-		return err
+		return fmt.Errorf("email not found")
 	}
 
 	return nil
