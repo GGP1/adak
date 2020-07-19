@@ -14,18 +14,20 @@ import (
 // Server holds a http server
 type Server struct {
 	*http.Server
+	TimeoutShutdown time.Duration
 }
 
-// New returns a new Server
-func New(port string, router http.Handler) *Server {
+// New returns a new server
+func New(c *Config, router http.Handler) *Server {
 	return &Server{
 		&http.Server{
-			Addr:           ":" + port,
+			Addr:           c.Server.Host + ":" + c.Server.Port,
 			Handler:        router,
-			ReadTimeout:    5 * time.Second,
-			WriteTimeout:   5 * time.Second,
+			ReadTimeout:    c.Server.Timeout.Read * time.Second,
+			WriteTimeout:   c.Server.Timeout.Write * time.Second,
 			MaxHeaderBytes: 1 << 20,
 		},
+		c.Server.Timeout.Shutdown * time.Second,
 	}
 }
 
@@ -34,7 +36,7 @@ func (srv *Server) Start() error {
 	serverErr := make(chan error, 1)
 
 	go func() {
-		fmt.Println("Listening on port", srv.Addr)
+		fmt.Println("Listening on", srv.Addr)
 		serverErr <- srv.ListenAndServe()
 	}()
 
@@ -50,14 +52,13 @@ func (srv *Server) Start() error {
 		log.Println("main: Start shutdown")
 
 		// Give outstanding requests a deadline for completion.
-		const timeout = 5 * time.Second
-		ctx, cancel := context.WithTimeout(context.Background(), timeout)
+		ctx, cancel := context.WithTimeout(context.Background(), srv.TimeoutShutdown)
 		defer cancel()
 
 		// Asking listener to shutdown and load shed.
 		err := srv.Shutdown(ctx)
 		if err != nil {
-			return fmt.Errorf("main: Graceful shutdown did not complete in %v : %v", timeout, err)
+			return fmt.Errorf("main: Graceful shutdown did not complete in %v : %v", srv.TimeoutShutdown, err)
 		}
 
 		err = srv.Close()

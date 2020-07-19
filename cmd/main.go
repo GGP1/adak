@@ -4,7 +4,6 @@ import (
 	"log"
 
 	"github.com/GGP1/palo/cmd/server"
-	"github.com/GGP1/palo/internal/cfg"
 	"github.com/GGP1/palo/pkg/http/rest"
 	"github.com/GGP1/palo/pkg/storage"
 
@@ -20,7 +19,17 @@ func main() {
 
 	router := rest.NewRouter(db)
 
-	srv := server.New(cfg.SrvPort, router)
+	configPath, err := server.ParseFlags()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	srvConfig, err := server.NewConfig(configPath)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	srv := server.New(srvConfig, router)
 
 	err = srv.Start()
 	if err != nil {
