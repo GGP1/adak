@@ -18,6 +18,7 @@ type Cart struct {
 	sync.RWMutex
 
 	Products map[uint]model.Product
+	Counter  int
 	Weight   float32
 	Discount float32
 	Taxes    float32
@@ -37,20 +38,23 @@ func NewCart() *Cart {
 }
 
 // Add a product to the cart
-func (c *Cart) Add(product *model.Product, quantity float32) {
+func (c *Cart) Add(product *model.Product, amount int) {
 	c.Lock()
 	defer c.Unlock()
 
-	if quantity != 1 {
-		taxes := ((product.Subtotal / 100) * product.Taxes) * quantity
-		discount := ((product.Subtotal / 100) * product.Discount) * quantity
+	if amount != 1 {
+		taxes := ((product.Subtotal / 100) * product.Taxes)
+		discount := ((product.Subtotal / 100) * product.Discount)
 
-		c.Products[product.ID] = *product
-		c.Weight += product.Weight * quantity
-		c.Discount += discount
-		c.Taxes += taxes
-		c.Subtotal += product.Subtotal * quantity
-		c.Total = c.Total + product.Subtotal*quantity + taxes - discount
+		for i := 0; i < amount; i++ {
+			c.Products[product.ID+uint(i)] = *product
+			c.Counter++
+			c.Weight += product.Weight
+			c.Discount += discount
+			c.Taxes += taxes
+			c.Subtotal += product.Subtotal
+			c.Total = c.Total + product.Subtotal + taxes - discount
+		}
 		return
 	}
 
@@ -58,6 +62,7 @@ func (c *Cart) Add(product *model.Product, quantity float32) {
 	discount := (product.Subtotal / 100) * product.Discount
 
 	c.Products[product.ID] = *product
+	c.Counter++
 	c.Weight += product.Weight
 	c.Discount += discount
 	c.Taxes += taxes
@@ -77,87 +82,121 @@ func (c *Cart) Checkout() float32 {
 
 // FilterByBrand looks for products with the specified brand
 func (c *Cart) FilterByBrand(productBrand string) ([]model.Product, error) {
-	c.RLock()
-	defer c.RUnlock()
+	c.Lock()
+	defer c.Unlock()
+
+	var products []model.Product
 
 	for k, v := range c.Products {
 		if strings.ToLower(productBrand) == strings.ToLower(v.Brand) {
-			var products []model.Product
 			products = append(products, c.Products[k])
-
-			return products, nil
 		}
 	}
 
-	return nil, errNotFound
+	if len(products) == 0 {
+		return nil, errNotFound
+	}
+
+	return products, nil
 }
 
 // FilterByCategory looks for products with the specified category
 func (c *Cart) FilterByCategory(productCategory string) ([]model.Product, error) {
-	c.RLock()
-	defer c.RUnlock()
+	c.Lock()
+	defer c.Unlock()
+
+	var products []model.Product
 
 	for k, v := range c.Products {
 		if strings.ToLower(productCategory) == strings.ToLower(v.Category) {
-			var products []model.Product
 			products = append(products, c.Products[k])
-
-			return products, nil
 		}
 	}
 
-	return nil, errNotFound
+	if len(products) == 0 {
+		return nil, errNotFound
+	}
+
+	return products, nil
+}
+
+// FilterByTaxes looks for products within the total price range specified
+func (c *Cart) FilterByTaxes(minTaxes, maxTaxes float32) ([]model.Product, error) {
+	c.Lock()
+	defer c.Unlock()
+
+	var products []model.Product
+
+	for k, v := range c.Products {
+		if v.Taxes >= minTaxes && v.Taxes <= maxTaxes {
+			products = append(products, c.Products[k])
+		}
+	}
+
+	if len(products) == 0 {
+		return nil, errNotFound
+	}
+
+	return products, nil
 }
 
 // FilterByTotal looks for products within the total price range specified
 func (c *Cart) FilterByTotal(minTotal, maxTotal float32) ([]model.Product, error) {
-	c.RLock()
-	defer c.RUnlock()
+	c.Lock()
+	defer c.Unlock()
+
+	var products []model.Product
 
 	for k, v := range c.Products {
 		if v.Total >= minTotal && v.Total <= maxTotal {
-			var products []model.Product
 			products = append(products, c.Products[k])
-
-			return products, nil
 		}
 	}
 
-	return nil, errNotFound
+	if len(products) == 0 {
+		return nil, errNotFound
+	}
+
+	return products, nil
 }
 
 // FilterByType looks for products with the specified type
 func (c *Cart) FilterByType(productType string) ([]model.Product, error) {
-	c.RLock()
-	defer c.RUnlock()
+	c.Lock()
+	defer c.Unlock()
+
+	var products []model.Product
 
 	for k, v := range c.Products {
 		if strings.ToLower(productType) == strings.ToLower(v.Type) {
-			var products []model.Product
 			products = append(products, c.Products[k])
-
-			return products, nil
 		}
 	}
 
-	return nil, errNotFound
+	if len(products) == 0 {
+		return nil, errNotFound
+	}
+
+	return products, nil
 }
 
 // FilterByWeight looks for products within the weight range specified
 func (c *Cart) FilterByWeight(minWeight, maxWeight float32) ([]model.Product, error) {
-	c.RLock()
-	defer c.RUnlock()
+	c.Lock()
+	defer c.Unlock()
+	var products []model.Product
 
 	for k, v := range c.Products {
 		if v.Weight >= minWeight && v.Weight <= maxWeight {
-			var products []model.Product
 			products = append(products, c.Products[k])
-
-			return products, nil
 		}
 	}
 
-	return nil, errNotFound
+	if len(products) == 0 {
+		return nil, errNotFound
+	}
+
+	return products, nil
 }
 
 // Items prints cart items
@@ -168,8 +207,8 @@ func (c *Cart) Items() map[uint]model.Product {
 	return c.Products
 }
 
-// Remove takes away a product from the cart
-func (c *Cart) Remove(key uint) error {
+// Remove takes away the specified amount of products from the cart
+func (c *Cart) Remove(key uint, amount int) error {
 	c.Lock()
 	defer c.Unlock()
 
@@ -178,12 +217,24 @@ func (c *Cart) Remove(key uint) error {
 	}
 
 	if len(c.Products) == 1 {
-		c.Weight = 0
-		c.Discount = 0
-		c.Taxes = 0
-		c.Subtotal = 0
-		c.Total = 0
-		delete(c.Products, key)
+		c.Reset()
+		return nil
+	}
+
+	for i := 0; i < amount; i++ {
+		product := c.Products[key+uint(i)]
+
+		taxes := (product.Subtotal / 100) * product.Taxes
+		discount := (product.Subtotal / 100) * product.Discount
+
+		c.Counter--
+		c.Weight -= product.Weight
+		c.Discount -= discount
+		c.Taxes -= taxes
+		c.Subtotal -= product.Subtotal
+		c.Total = c.Total - product.Subtotal - taxes + discount
+		delete(c.Products, key+uint(i))
+
 		return nil
 	}
 
@@ -192,12 +243,12 @@ func (c *Cart) Remove(key uint) error {
 	tax := (product.Subtotal / 100) * product.Taxes
 	discount := (product.Subtotal / 100) * product.Discount
 
+	c.Counter--
 	c.Weight -= product.Weight
 	c.Discount -= discount
 	c.Taxes -= tax
 	c.Subtotal -= product.Subtotal
 	c.Total = c.Total - product.Subtotal - tax + discount
-
 	delete(c.Products, key)
 
 	return nil
@@ -209,6 +260,7 @@ func (c *Cart) Reset() {
 	defer c.Unlock()
 
 	c.Products = map[uint]model.Product{}
+	c.Counter = 0
 	c.Weight = 0
 	c.Discount = 0
 	c.Taxes = 0
@@ -221,10 +273,10 @@ func (c *Cart) Size() int {
 	c.RLock()
 	defer c.RUnlock()
 
-	return len(c.Products)
+	return c.Counter
 }
 
 // String returns a string with the cart details
 func (c *Cart) String() string {
-	return fmt.Sprintf("The cart has a weight of %2.f kg, $%2.f of discounts, $%2.f of taxes and a total of $%2.f", c.Weight, c.Discount, c.Taxes, c.Total)
+	return fmt.Sprintf("The cart has %d products, a weight of %2.fkg, $%2.f of discounts, $%2.f of taxes and a total of $%2.f", c.Counter, c.Weight, c.Discount, c.Taxes, c.Total)
 }

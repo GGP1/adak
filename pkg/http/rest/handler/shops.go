@@ -50,6 +50,7 @@ func (s *Shops) Delete(d deleting.Service) http.HandlerFunc {
 		err := d.DeleteShop(s.DB, &shop, id)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
+			return
 		}
 
 		response.HTMLText(w, r, http.StatusOK, "Shop deleted successfully.")

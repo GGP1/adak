@@ -16,6 +16,13 @@ import (
 func CartAdd(cart *shopping.Cart) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var product model.Product
+		amnt := mux.Vars(r)["amount"]
+
+		amount, err := strconv.Atoi(amnt)
+		if err != nil {
+			response.Error(w, r, http.StatusInternalServerError, err)
+			return
+		}
 
 		if err := json.NewDecoder(r.Body).Decode(&product); err != nil {
 			response.Error(w, r, http.StatusBadRequest, err)
@@ -23,21 +30,12 @@ func CartAdd(cart *shopping.Cart) http.HandlerFunc {
 		}
 		defer r.Body.Close()
 
-		amount := mux.Vars(r)["amount"]
-
-		q, err := strconv.Atoi(amount)
-		if err != nil {
-			response.Error(w, r, http.StatusBadRequest, fmt.Errorf("%w: amount inserted is not valid, integers accepted only", err))
-		}
-
-		quantity := float32(q)
-
-		if quantity == 0 {
+		if amount == 0 {
 			response.Error(w, r, http.StatusBadRequest, fmt.Errorf("error: please insert a valid amount"))
 			return
 		}
 
-		cart.Add(&product, quantity)
+		cart.Add(&product, amount)
 
 		response.JSON(w, r, http.StatusOK, cart)
 	}
@@ -88,8 +86,8 @@ func CartFilterByTotal(cart *shopping.Cart) http.HandlerFunc {
 		min := mux.Vars(r)["min"]
 		max := mux.Vars(r)["max"]
 
-		minTotal, _ := strconv.Atoi(min)
-		maxTotal, _ := strconv.Atoi(max)
+		minTotal, _ := strconv.ParseFloat(min, 32)
+		maxTotal, _ := strconv.ParseFloat(max, 32)
 
 		products, err := cart.FilterByTotal(float32(minTotal), float32(maxTotal))
 		if err != nil {
@@ -122,8 +120,8 @@ func CartFilterByWeight(cart *shopping.Cart) http.HandlerFunc {
 		min := mux.Vars(r)["min"]
 		max := mux.Vars(r)["max"]
 
-		minWeight, _ := strconv.Atoi(min)
-		maxWeight, _ := strconv.Atoi(max)
+		minWeight, _ := strconv.ParseFloat(min, 32)
+		maxWeight, _ := strconv.ParseFloat(max, 32)
 
 		products, err := cart.FilterByWeight(float32(minWeight), float32(maxWeight))
 		if err != nil {
@@ -155,6 +153,7 @@ func CartItems(cart *shopping.Cart) http.HandlerFunc {
 func CartRemove(cart *shopping.Cart) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := mux.Vars(r)["id"]
+		amount := mux.Vars(r)["amount"]
 
 		key, err := strconv.Atoi(id)
 		if err != nil {
@@ -162,7 +161,13 @@ func CartRemove(cart *shopping.Cart) http.HandlerFunc {
 			return
 		}
 
-		err = cart.Remove(uint(key))
+		quantity, err := strconv.Atoi(amount)
+		if err != nil {
+			response.Error(w, r, http.StatusInternalServerError, err)
+			return
+		}
+
+		err = cart.Remove(uint(key), quantity)
 		if err != nil {
 			response.Error(w, r, http.StatusBadRequest, err)
 		}

@@ -59,7 +59,6 @@ func NewRouter(db *gorm.DB) http.Handler {
 	// 	 Cart
 	// ==========
 	r.HandleFunc("/cart", h.CartGet(cart)).Methods("GET")
-	r.HandleFunc("/cart/{id}", h.CartRemove(cart)).Methods("DELETE")
 	r.HandleFunc("/cart/add/{amount}", h.CartAdd(cart)).Methods("POST")
 	r.HandleFunc("/cart/checkout", h.CartCheckout(cart)).Methods("GET")
 	r.HandleFunc("/cart/filter/brand/{brand}", h.CartFilterByBrand(cart)).Methods("GET")
@@ -68,6 +67,7 @@ func NewRouter(db *gorm.DB) http.Handler {
 	r.HandleFunc("/cart/filter/type/{type}", h.CartFilterByType(cart)).Methods("GET")
 	r.HandleFunc("/cart/filter/weight/{min}/{max}", h.CartFilterByWeight(cart)).Methods("GET")
 	r.HandleFunc("/cart/items", h.CartItems(cart)).Methods("GET")
+	r.HandleFunc("/cart/remove/{id}/{amount}", h.CartRemove(cart)).Methods("DELETE")
 	r.HandleFunc("/cart/reset", h.CartReset(cart)).Methods("GET")
 	r.HandleFunc("/cart/size", h.CartSize(cart)).Methods("GET")
 
