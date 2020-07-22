@@ -42,9 +42,9 @@ func getLanguage(lang string) string {
 	case english:
 		sentence = "Welcome to the Palo home page"
 	case spanish:
-		sentence = "Bienvenido a la página pincipal de Palo"
+		sentence = "Bienvenido a la página principal de Palo"
 	case portuguese:
-		sentence = "Bem-vindo a página principal do Palo"
+		sentence = "Bem-vindo ao página principal do Palo"
 	case chinese:
 		sentence = "歡迎來到帕洛首頁"
 	case german:

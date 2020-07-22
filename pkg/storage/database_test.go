@@ -25,7 +25,7 @@ func database(t *testing.T) {
 	{
 		t.Logf("\tTest 0:\tWhen checking the database connection.")
 		{
-			db, err := gorm.Open("postgres", cfg.URL)
+			db, err := gorm.Open("postgres", cfg.DBURL)
 			if err != nil {
 				t.Fatalf("\t%s\tShould be able to connect to the database: %v", failed, err)
 			}
