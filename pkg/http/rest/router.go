@@ -59,17 +59,19 @@ func NewRouter(db *gorm.DB) http.Handler {
 	// 	 Cart
 	// ==========
 	r.HandleFunc("/cart", h.CartGet(cart)).Methods("GET")
-	r.HandleFunc("/cart/add/{amount}", h.CartAdd(cart)).Methods("POST")
+	r.HandleFunc("/cart/add/{quantity}", h.CartAdd(cart)).Methods("POST")
+	r.HandleFunc("/cart/brand/{brand}", h.CartFilterByBrand(cart)).Methods("GET")
+	r.HandleFunc("/cart/category/{category}", h.CartFilterByCategory(cart)).Methods("GET")
+	r.HandleFunc("/cart/discount/{min}/{max}", h.CartFilterByDiscount(cart)).Methods("GET")
 	r.HandleFunc("/cart/checkout", h.CartCheckout(cart)).Methods("GET")
-	r.HandleFunc("/cart/filter/brand/{brand}", h.CartFilterByBrand(cart)).Methods("GET")
-	r.HandleFunc("/cart/filter/category/{category}", h.CartFilterByCategory(cart)).Methods("GET")
-	r.HandleFunc("/cart/filter/total/{min}/{max}", h.CartFilterByTotal(cart)).Methods("GET")
-	r.HandleFunc("/cart/filter/type/{type}", h.CartFilterByType(cart)).Methods("GET")
-	r.HandleFunc("/cart/filter/weight/{min}/{max}", h.CartFilterByWeight(cart)).Methods("GET")
 	r.HandleFunc("/cart/items", h.CartItems(cart)).Methods("GET")
-	r.HandleFunc("/cart/remove/{id}/{amount}", h.CartRemove(cart)).Methods("DELETE")
+	r.HandleFunc("/cart/remove/{id}/{quantity}", h.CartRemove(cart)).Methods("DELETE")
 	r.HandleFunc("/cart/reset", h.CartReset(cart)).Methods("GET")
 	r.HandleFunc("/cart/size", h.CartSize(cart)).Methods("GET")
+	r.HandleFunc("/cart/taxes/{min}/{max}", h.CartFilterByTaxes(cart)).Methods("GET")
+	r.HandleFunc("/cart/total/{min}/{max}", h.CartFilterByTotal(cart)).Methods("GET")
+	r.HandleFunc("/cart/type/{type}", h.CartFilterByType(cart)).Methods("GET")
+	r.HandleFunc("/cart/weight/{min}/{max}", h.CartFilterByWeight(cart)).Methods("GET")
 
 	// ==========
 	// 	Home

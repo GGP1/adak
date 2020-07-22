@@ -16,26 +16,30 @@ import (
 func CartAdd(cart *shopping.Cart) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var product model.Product
-		amnt := mux.Vars(r)["amount"]
 
-		amount, err := strconv.Atoi(amnt)
+		q := mux.Vars(r)["quantity"]
+		quantity, err := strconv.Atoi(q)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
+		}
+
+		if quantity == 0 {
+			response.Error(w, r, http.StatusBadRequest, fmt.Errorf("error: please insert a valid quantity"))
 			return
 		}
 
-		if err := json.NewDecoder(r.Body).Decode(&product); err != nil {
+		err = json.NewDecoder(r.Body).Decode(&product)
+		if err != nil {
 			response.Error(w, r, http.StatusBadRequest, err)
 			return
 		}
 		defer r.Body.Close()
 
-		if amount == 0 {
-			response.Error(w, r, http.StatusBadRequest, fmt.Errorf("error: please insert a valid amount"))
+		err = cart.Add(&product, quantity)
+		if err != nil {
+			response.Error(w, r, http.StatusBadRequest, err)
 			return
 		}
-
-		cart.Add(&product, amount)
 
 		response.JSON(w, r, http.StatusOK, cart)
 	}
@@ -80,6 +84,63 @@ func CartFilterByCategory(cart *shopping.Cart) http.HandlerFunc {
 	}
 }
 
+// CartFilterByDiscount returns the products filtered by discount
+func CartFilterByDiscount(cart *shopping.Cart) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		min := mux.Vars(r)["min"]
+		max := mux.Vars(r)["max"]
+
+		minDiscount, _ := strconv.ParseFloat(min, 32)
+		maxDiscount, _ := strconv.ParseFloat(max, 32)
+
+		products, err := cart.FilterByDiscount(float32(minDiscount), float32(maxDiscount))
+		if err != nil {
+			response.Error(w, r, http.StatusNotFound, err)
+			return
+		}
+
+		response.JSON(w, r, http.StatusOK, products)
+	}
+}
+
+// CartFilterBySubtotal returns the products filtered by subtotal
+func CartFilterBySubtotal(cart *shopping.Cart) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		min := mux.Vars(r)["min"]
+		max := mux.Vars(r)["max"]
+
+		minSubtotal, _ := strconv.ParseFloat(min, 32)
+		maxSubtotal, _ := strconv.ParseFloat(max, 32)
+
+		products, err := cart.FilterBySubtotal(float32(minSubtotal), float32(maxSubtotal))
+		if err != nil {
+			response.Error(w, r, http.StatusNotFound, err)
+			return
+		}
+
+		response.JSON(w, r, http.StatusOK, products)
+	}
+}
+
+// CartFilterByTaxes returns the products filtered by taxes
+func CartFilterByTaxes(cart *shopping.Cart) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		min := mux.Vars(r)["min"]
+		max := mux.Vars(r)["max"]
+
+		minTaxes, _ := strconv.ParseFloat(min, 32)
+		maxTaxes, _ := strconv.ParseFloat(max, 32)
+
+		products, err := cart.FilterByTaxes(float32(minTaxes), float32(maxTaxes))
+		if err != nil {
+			response.Error(w, r, http.StatusNotFound, err)
+			return
+		}
+
+		response.JSON(w, r, http.StatusOK, products)
+	}
+}
+
 // CartFilterByTotal returns the products filtered by total
 func CartFilterByTotal(cart *shopping.Cart) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -114,7 +175,7 @@ func CartFilterByType(cart *shopping.Cart) http.HandlerFunc {
 	}
 }
 
-// CartFilterByWeight returns the products filtered by total
+// CartFilterByWeight returns the products filtered by weight
 func CartFilterByWeight(cart *shopping.Cart) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		min := mux.Vars(r)["min"]
@@ -153,7 +214,7 @@ func CartItems(cart *shopping.Cart) http.HandlerFunc {
 func CartRemove(cart *shopping.Cart) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := mux.Vars(r)["id"]
-		amount := mux.Vars(r)["amount"]
+		q := mux.Vars(r)["quantity"]
 
 		key, err := strconv.Atoi(id)
 		if err != nil {
@@ -161,7 +222,7 @@ func CartRemove(cart *shopping.Cart) http.HandlerFunc {
 			return
 		}
 
-		quantity, err := strconv.Atoi(amount)
+		quantity, err := strconv.Atoi(q)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
@@ -170,6 +231,7 @@ func CartRemove(cart *shopping.Cart) http.HandlerFunc {
 		err = cart.Remove(uint(key), quantity)
 		if err != nil {
 			response.Error(w, r, http.StatusBadRequest, err)
+			return
 		}
 
 		response.JSON(w, r, http.StatusOK, cart)
