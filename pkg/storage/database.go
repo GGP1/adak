@@ -13,9 +13,10 @@ import (
 	"github.com/jinzhu/gorm"
 )
 
-// NewDatabase creates a database and the tables required by the api
+// PostgresConnect creates a connection with the database and checks the existence
+// of all the tables
 // It returns a pointer to the gorm.DB struct, the close function and an error
-func NewDatabase() (*gorm.DB, func() error, error) {
+func PostgresConnect() (*gorm.DB, func() error, error) {
 	db, err := gorm.Open("postgres", cfg.DBURL)
 	if err != nil {
 		return nil, nil, fmt.Errorf("could not open the database: %w", err)

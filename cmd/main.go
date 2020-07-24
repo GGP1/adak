@@ -11,7 +11,7 @@ import (
 )
 
 func main() {
-	db, close, err := storage.NewDatabase()
+	db, close, err := storage.PostgresConnect()
 	if err != nil {
 		log.Fatal(err)
 	}

@@ -17,7 +17,7 @@ const (
 
 // Fix
 func TestRouting(t *testing.T) {
-	db, close, err := storage.NewDatabase()
+	db, close, err := storage.PostgresConnect()
 	if err != nil {
 		t.Fatal("Database failed connecting")
 	}

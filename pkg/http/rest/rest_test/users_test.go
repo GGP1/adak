@@ -17,7 +17,7 @@ func TestUsersHandler(t *testing.T) {
 }
 
 func list(t *testing.T) {
-	db, _, _ := storage.NewDatabase()
+	db, _, _ := storage.PostgresConnect()
 	repo := *new(repository.MonoRepo)
 
 	users := handler.Users{DB: db}
