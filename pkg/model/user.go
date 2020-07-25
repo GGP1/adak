@@ -15,7 +15,7 @@ type User struct {
 	Lastname  string   `json:"lastname;omitempty"`
 	Email     string   `json:"email;unique;omitempty"`
 	Password  string   `json:"password;omitempty"`
-	Role      string   `json:"role;omitempty"`
+	CartID    string   `json:"cart_id;omitempty"`
 	Reviews   []Review `json:"reviews" gorm:"foreignkey:UserID"`
 }
 

@@ -110,6 +110,19 @@ func (s *session) Login(w http.ResponseWriter, email, password string) error {
 	s.store[cookie.Value] = userInfo{user.Email, time.Now()}
 	s.Unlock()
 
+	cartID := user.CartID
+
+	// CartID -CID- used to identify wich cart belongs to each user
+	http.SetCookie(w, &http.Cookie{
+		Name:     "CID",
+		Value:    cartID,
+		Path:     "/",
+		Domain:   "127.0.0.1",
+		Secure:   false,
+		HttpOnly: true,
+		MaxAge:   s.length,
+	})
+
 	return nil
 }
 
@@ -131,6 +144,18 @@ func (s *session) Logout(w http.ResponseWriter, c *http.Cookie) {
 	// Delete UID cookie
 	http.SetCookie(w, &http.Cookie{
 		Name:     "UID",
+		Value:    "0",
+		Expires:  time.Unix(1414414788, 1414414788000),
+		Path:     "/",
+		Domain:   "127.0.0.1",
+		Secure:   false,
+		HttpOnly: true,
+		MaxAge:   -1,
+	})
+
+	// Delete CID cookie
+	http.SetCookie(w, &http.Cookie{
+		Name:     "CID",
 		Value:    "0",
 		Expires:  time.Unix(1414414788, 1414414788000),
 		Path:     "/",

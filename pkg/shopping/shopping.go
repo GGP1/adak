@@ -1,34 +1,44 @@
 package shopping
 
 import (
-	"errors"
 	"fmt"
-	"sync"
 
-	"github.com/GGP1/palo/pkg/model"
-)
-
-var (
-	errNotFound = errors.New("no products found")
+	"github.com/jinzhu/gorm"
+	"github.com/pkg/errors"
 )
 
 // Cart stores the products that the user chose to buy
 type Cart struct {
-	sync.RWMutex
+	ID       string         `json:"id"`
+	Counter  int            `json:"counter"`
+	Weight   float32        `json:"weight"`
+	Discount float32        `json:"discount"`
+	Taxes    float32        `json:"taxes"`
+	Subtotal float32        `json:"subtotal"`
+	Total    float32        `json:"total"`
+	Products []*CartProduct `json:"products" gorm:"foreignkey:CartID"`
+}
 
-	Products map[uint]*model.Product
-	Counter  int
-	Weight   float32
-	Discount float32
-	Taxes    float32
-	Subtotal float32
-	Total    float32
+// CartProduct represents a product that has been appended to the cart
+type CartProduct struct {
+	CartID      string  `json:"cart_id"`
+	ID          int     `json:"id"`
+	Quantity    int     `json:"quantity"`
+	Brand       string  `json:"brand"`
+	Category    string  `json:"category"`
+	Type        string  `json:"type"`
+	Description string  `json:"description"`
+	Weight      float32 `json:"weight"`
+	Taxes       float32 `json:"taxes"`
+	Discount    float32 `json:"discount"`
+	Subtotal    float32 `json:"subtotal"`
+	Total       float32 `json:"total"`
 }
 
 // NewCart returns a cart with the default values
-func NewCart() *Cart {
+func NewCart(userID string) *Cart {
 	return &Cart{
-		Products: make(map[uint]*model.Product),
+		ID:       userID,
 		Counter:  0,
 		Weight:   0,
 		Discount: 0,
@@ -38,116 +48,199 @@ func NewCart() *Cart {
 }
 
 // Add a product to the cart
-func (c *Cart) Add(product *model.Product, quantity int) error {
-	c.Lock()
-	defer c.Unlock()
+func Add(db *gorm.DB, cartID string, product *CartProduct, quantity int) (*CartProduct, error) {
+	var cart Cart
+	var alreadyExists bool
 
-	if c.Products[product.ID] != nil {
-		existingProduct := c.Products[product.ID]
-		if product.Brand != existingProduct.Brand || product.Type != existingProduct.Type {
-			return errors.New("the product id is already in use")
-		}
-		existingProduct.Quantity += quantity
-	} else {
-		c.Products[product.ID] = product
+	if err := db.Where("id=?", cartID).Find(&cart).Error; err != nil {
+		return nil, errors.Wrap(err, "couldn't find the cart")
 	}
 
+	product.CartID = cartID
 	taxes := ((product.Subtotal / 100) * product.Taxes)
 	discount := ((product.Subtotal / 100) * product.Discount)
 
 	for i := 0; i < quantity; i++ {
-		c.Counter++
+		cart.Counter++
 		product.Quantity++
-		c.Weight += product.Weight
-		c.Discount += discount
-		c.Taxes += taxes
-		c.Subtotal += product.Subtotal
-		c.Total = c.Total + product.Subtotal + taxes - discount
+		cart.Weight += product.Weight
+		cart.Discount += discount
+		cart.Taxes += taxes
+		cart.Subtotal += product.Subtotal
+		cart.Total = cart.Total + product.Subtotal + taxes - discount
 	}
 
-	return nil
+	for _, v := range cart.Products {
+		if v.ID == product.ID {
+			alreadyExists = true
+		}
+	}
+
+	if alreadyExists == true {
+		err := db.Save(&product).Error
+		if err != nil {
+			return nil, errors.Wrap(err, "couldn't create the product")
+		}
+	} else {
+		err := db.Create(&product).Error
+		if err != nil {
+			return nil, errors.Wrap(err, "couldn't create the product")
+		}
+	}
+
+	err := db.Save(&cart).Error
+	if err != nil {
+		return nil, errors.Wrap(err, "couldn't update the cart")
+	}
+
+	return product, nil
 }
 
 // Checkout takes all the products and returns the total price
-func (c *Cart) Checkout() float32 {
-	c.RLock()
-	defer c.RUnlock()
+func Checkout(db *gorm.DB, cartID string) (float32, error) {
+	var cart Cart
 
-	total := c.Total + c.Taxes - c.Discount
+	if err := db.Where("id=?", cartID).Find(&cart).Error; err != nil {
+		return 0, errors.Wrap(err, "couldn't find the cart")
+	}
 
-	return total
+	total := cart.Total + cart.Taxes - cart.Discount
+
+	return total, nil
 }
 
-// Items prints cart items
-func (c *Cart) Items() map[uint]*model.Product {
-	c.RLock()
-	defer c.RUnlock()
+// Get returns the user cart
+func Get(db *gorm.DB, cartID string) (Cart, error) {
+	var cart Cart
 
-	return c.Products
+	if err := db.Preload("Products").First(&cart, "id=?", cartID).Error; err != nil {
+		return Cart{}, errors.Wrap(err, "couldn't find the cart")
+	}
+
+	return cart, nil
+}
+
+// Items prints cart Products
+func Items(db *gorm.DB, cartID string) ([]CartProduct, error) {
+	var cart Cart
+	var list []CartProduct
+
+	if err := db.Where("id=?", cartID).Find(&cart).Error; err != nil {
+		return nil, errors.Wrap(err, "couldn't find the cart")
+	}
+
+	for _, v := range cart.Products {
+		if v != nil {
+			list = append(list, *v)
+		}
+	}
+
+	if len(list) == 0 {
+		return nil, errors.New("cart is empty")
+	}
+
+	return list, nil
 }
 
 // Remove takes away the specified quantity of products from the cart
-func (c *Cart) Remove(key uint, quantity int) error {
-	c.Lock()
-	defer c.Unlock()
+func Remove(db *gorm.DB, cartID string, key int, quantity int) error {
+	var cart Cart
+	var product CartProduct
 
-	if c.Products[key] == nil {
+	if err := db.Where("id=?", cartID).Find(&cart).Error; err != nil {
+		return errors.Wrap(err, "couldn't find the cart")
+	}
+
+	if err := db.Where("cart_id = ? AND id = ?", cartID, key).Find(&product).Error; err != nil {
 		return errors.New("product not found")
 	}
 
-	if c.Counter == 1 {
-		c.Reset()
-		return nil
-	}
-
-	product := c.Products[key]
-	taxes := (product.Subtotal / 100) * product.Taxes
-	discount := (product.Subtotal / 100) * product.Discount
-
 	if quantity > product.Quantity {
-		return errors.New("quantity ")
+		return fmt.Errorf("quantity inserted: %d\nis higher than the stock of products %d", quantity, product.Quantity)
 	}
 
 	if quantity == product.Quantity {
-		delete(c.Products, key)
+		err := db.Where("cart_id=?", cartID).Delete(&product, "id=?", key).Error
+		if err != nil {
+			return errors.Wrap(err, "couldn't delete the product")
+		}
 	}
 
+	if cart.Counter == 1 {
+		if err := Reset(db, cartID); err != nil {
+			return err
+		}
+		return nil
+	}
+
+	taxes := (product.Subtotal / 100) * product.Taxes
+	discount := (product.Subtotal / 100) * product.Discount
+
 	for i := 0; i < quantity; i++ {
-		c.Counter--
+		cart.Counter--
 		product.Quantity--
-		c.Weight -= product.Weight
-		c.Discount -= discount
-		c.Taxes -= taxes
-		c.Subtotal -= product.Subtotal
-		c.Total = c.Total - product.Subtotal - taxes + discount
+		cart.Weight -= product.Weight
+		cart.Discount -= discount
+		cart.Taxes -= taxes
+		cart.Subtotal -= product.Subtotal
+		cart.Total = cart.Total - product.Subtotal - taxes + discount
+	}
+
+	if err := db.Save(&cart).Error; err != nil {
+		return errors.Wrap(err, "couldn't update the cart")
 	}
 
 	return nil
 }
 
 // Reset cart products
-func (c *Cart) Reset() {
-	c.Lock()
-	defer c.Unlock()
+func Reset(db *gorm.DB, cartID string) error {
+	var cart Cart
+	var product CartProduct
 
-	c.Products = map[uint]*model.Product{}
-	c.Counter = 0
-	c.Weight = 0
-	c.Discount = 0
-	c.Taxes = 0
-	c.Subtotal = 0
-	c.Total = 0
+	if err := db.Where("id=?", cartID).Find(&cart).Error; err != nil {
+		return errors.Wrap(err, "couldn't find the cart")
+	}
+
+	if err := db.Where("cart_id=?", cartID).Delete(&product).Error; err != nil {
+		return errors.Wrap(err, "couldn't delete the product")
+	}
+
+	cart.Counter = 0
+	cart.Weight = 0
+	cart.Discount = 0
+	cart.Taxes = 0
+	cart.Subtotal = 0
+	cart.Total = 0
+
+	err := db.Save(&cart).Error
+	if err != nil {
+		return errors.Wrap(err, "couldn't update the cart")
+	}
+
+	return nil
 }
 
 // Size returns the quantity of products in the cart
-func (c *Cart) Size() int {
-	c.RLock()
-	defer c.RUnlock()
+func Size(db *gorm.DB, cartID string) (int, error) {
+	var cart Cart
 
-	return c.Counter
+	if err := db.Where("id=?", cartID).Find(&cart).Error; err != nil {
+		return 0, errors.Wrap(err, "couldn't find the cart")
+	}
+
+	return cart.Counter, nil
 }
 
 // String returns a string with the cart details
-func (c *Cart) String() string {
-	return fmt.Sprintf("The cart has %d products, a weight of %2.fkg, $%2.f of discounts, $%2.f of taxes and a total of $%2.f", c.Counter, c.Weight, c.Discount, c.Taxes, c.Total)
+func String(db *gorm.DB, cartID string) (string, error) {
+	var cart Cart
+
+	if err := db.Where("id=?", cartID).Find(&cart).Error; err != nil {
+		return "", errors.Wrap(err, "couldn't find the cart")
+	}
+
+	return fmt.Sprintf(
+		"The cart has %d products, a weight of %2.fkg, $%2.f of discounts, $%2.f of taxes and a total of $%2.f",
+		cart.Counter, cart.Weight, cart.Discount, cart.Taxes, cart.Total), nil
 }

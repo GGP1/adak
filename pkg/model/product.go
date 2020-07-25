@@ -13,7 +13,7 @@ import (
 type Product struct {
 	gorm.Model
 	ShopID      uint     `json:"shop_id;omitempty"`
-	Quantity    int      `json:"amount;omitempty"`
+	Quantity    int      `json:"quantity;omitempty"`
 	Brand       string   `json:"brand;omitempty"`
 	Category    string   `json:"category;omitempty"`
 	Type        string   `json:"type;omitempty"`

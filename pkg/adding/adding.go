@@ -7,6 +7,8 @@ import (
 	"fmt"
 
 	"github.com/GGP1/palo/pkg/model"
+	"github.com/GGP1/palo/pkg/shopping"
+	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 
 	"github.com/jinzhu/gorm"
@@ -76,6 +78,16 @@ func (s *service) AddUser(db *gorm.DB, user *model.User) error {
 		return err
 	}
 	user.Password = string(hash)
+
+	// Create a cart for each user
+	id := uuid.New()
+	user.CartID = id.String()
+
+	cart := shopping.NewCart(user.CartID)
+
+	if err := db.Create(cart).Error; err != nil {
+		return fmt.Errorf("couldn't create the cart")
+	}
 
 	if err := db.Create(user).Error; err != nil {
 		return fmt.Errorf("couldn't create the user")

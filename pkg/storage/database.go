@@ -9,6 +9,7 @@ import (
 	"github.com/GGP1/palo/internal/cfg"
 	"github.com/GGP1/palo/pkg/auth/email"
 	"github.com/GGP1/palo/pkg/model"
+	"github.com/GGP1/palo/pkg/shopping"
 
 	"github.com/jinzhu/gorm"
 )
@@ -27,7 +28,7 @@ func PostgresConnect() (*gorm.DB, func() error, error) {
 		return nil, nil, fmt.Errorf("connection to the database died: %w", err)
 	}
 
-	err = tableExists(db, &model.Product{}, &model.User{}, &model.Review{}, &model.Shop{}, &model.Location{})
+	err = tableExists(db, &model.Product{}, &model.User{}, &model.Review{}, &model.Shop{}, &model.Location{}, &shopping.Cart{}, &shopping.CartProduct{})
 	if err != nil {
 		return nil, nil, fmt.Errorf("could not create the table: %w", err)
 	}

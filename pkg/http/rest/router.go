@@ -11,7 +11,6 @@ import (
 	"github.com/GGP1/palo/pkg/auth/email"
 	"github.com/GGP1/palo/pkg/deleting"
 	"github.com/GGP1/palo/pkg/repository"
-	"github.com/GGP1/palo/pkg/shopping"
 	"github.com/jinzhu/gorm"
 
 	// h -> handler
@@ -45,9 +44,6 @@ func NewRouter(db *gorm.DB) http.Handler {
 	pendingList := email.NewList(db, "pending_list", repo)
 	validatedList := email.NewList(db, "validated_list", repo)
 
-	// Create cart cart
-	cart := shopping.NewCart()
-
 	// ==========
 	// 	Auth
 	// ==========
@@ -56,22 +52,22 @@ func NewRouter(db *gorm.DB) http.Handler {
 	r.HandleFunc("/email/{token}", h.ValidateEmail(pendingList, validatedList)).Methods("GET")
 
 	// ==========
-	// 	 Cart
+	//  SHOPPING
 	// ==========
-	r.HandleFunc("/cart", h.CartGet(cart)).Methods("GET")
-	r.HandleFunc("/cart/add/{quantity}", h.CartAdd(cart)).Methods("POST")
-	r.HandleFunc("/cart/brand/{brand}", h.CartFilterByBrand(cart)).Methods("GET")
-	r.HandleFunc("/cart/category/{category}", h.CartFilterByCategory(cart)).Methods("GET")
-	r.HandleFunc("/cart/discount/{min}/{max}", h.CartFilterByDiscount(cart)).Methods("GET")
-	r.HandleFunc("/cart/checkout", h.CartCheckout(cart)).Methods("GET")
-	r.HandleFunc("/cart/items", h.CartItems(cart)).Methods("GET")
-	r.HandleFunc("/cart/remove/{id}/{quantity}", h.CartRemove(cart)).Methods("DELETE")
-	r.HandleFunc("/cart/reset", h.CartReset(cart)).Methods("GET")
-	r.HandleFunc("/cart/size", h.CartSize(cart)).Methods("GET")
-	r.HandleFunc("/cart/taxes/{min}/{max}", h.CartFilterByTaxes(cart)).Methods("GET")
-	r.HandleFunc("/cart/total/{min}/{max}", h.CartFilterByTotal(cart)).Methods("GET")
-	r.HandleFunc("/cart/type/{type}", h.CartFilterByType(cart)).Methods("GET")
-	r.HandleFunc("/cart/weight/{min}/{max}", h.CartFilterByWeight(cart)).Methods("GET")
+	r.HandleFunc("/cart", m.RequireLogin(h.CartGet(db))).Methods("GET")
+	r.HandleFunc("/cart/add/{quantity}", m.RequireLogin(h.CartAdd(db))).Methods("POST")
+	r.HandleFunc("/cart/brand/{brand}", h.CartFilterByBrand(db)).Methods("GET")
+	r.HandleFunc("/cart/category/{category}", h.CartFilterByCategory(db)).Methods("GET")
+	r.HandleFunc("/cart/discount/{min}/{max}", h.CartFilterByDiscount(db)).Methods("GET")
+	r.HandleFunc("/cart/checkout", m.RequireLogin(h.CartCheckout(db))).Methods("GET")
+	r.HandleFunc("/cart/items", m.RequireLogin(h.CartItems(db))).Methods("GET")
+	r.HandleFunc("/cart/remove/{id}/{quantity}", m.RequireLogin(h.CartRemove(db))).Methods("DELETE")
+	r.HandleFunc("/cart/reset", m.RequireLogin(h.CartReset(db))).Methods("GET")
+	r.HandleFunc("/cart/size", m.RequireLogin(h.CartSize(db))).Methods("GET")
+	r.HandleFunc("/cart/taxes/{min}/{max}", h.CartFilterByTaxes(db)).Methods("GET")
+	r.HandleFunc("/cart/total/{min}/{max}", h.CartFilterByTotal(db)).Methods("GET")
+	r.HandleFunc("/cart/type/{type}", h.CartFilterByType(db)).Methods("GET")
+	r.HandleFunc("/cart/weight/{min}/{max}", h.CartFilterByWeight(db)).Methods("GET")
 
 	// ==========
 	// 	Home

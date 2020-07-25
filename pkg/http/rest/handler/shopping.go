@@ -7,15 +7,15 @@ import (
 	"strconv"
 
 	"github.com/GGP1/palo/internal/response"
-	"github.com/GGP1/palo/pkg/model"
 	"github.com/GGP1/palo/pkg/shopping"
 	"github.com/gorilla/mux"
+	"github.com/jinzhu/gorm"
 )
 
 // CartAdd appends a product to the cart
-func CartAdd(cart *shopping.Cart) http.HandlerFunc {
+func CartAdd(db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var product model.Product
+		var product shopping.CartProduct
 
 		q := mux.Vars(r)["quantity"]
 		quantity, err := strconv.Atoi(q)
@@ -35,9 +35,11 @@ func CartAdd(cart *shopping.Cart) http.HandlerFunc {
 		}
 		defer r.Body.Close()
 
-		err = cart.Add(&product, quantity)
+		c, _ := r.Cookie("CID")
+
+		cart, err := shopping.Add(db, c.Value, &product, quantity)
 		if err != nil {
-			response.Error(w, r, http.StatusBadRequest, err)
+			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
 
@@ -46,20 +48,26 @@ func CartAdd(cart *shopping.Cart) http.HandlerFunc {
 }
 
 // CartCheckout returns the final purchase
-func CartCheckout(cart *shopping.Cart) http.HandlerFunc {
+func CartCheckout(db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		checkout := cart.Checkout()
+		c, _ := r.Cookie("CID")
+		checkout, err := shopping.Checkout(db, c.Value)
+		if err != nil {
+			response.Error(w, r, http.StatusInternalServerError, err)
+			return
+		}
 
 		response.JSON(w, r, http.StatusOK, checkout)
 	}
 }
 
 // CartFilterByBrand returns the products filtered by brand
-func CartFilterByBrand(cart *shopping.Cart) http.HandlerFunc {
+func CartFilterByBrand(db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		brand := mux.Vars(r)["brand"]
+		c, _ := r.Cookie("CID")
 
-		products, err := cart.FilterByBrand(brand)
+		products, err := shopping.FilterByBrand(db, c.Value, brand)
 		if err != nil {
 			response.Error(w, r, http.StatusNotFound, err)
 			return
@@ -70,11 +78,12 @@ func CartFilterByBrand(cart *shopping.Cart) http.HandlerFunc {
 }
 
 // CartFilterByCategory returns the products filtered by category
-func CartFilterByCategory(cart *shopping.Cart) http.HandlerFunc {
+func CartFilterByCategory(db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		category := mux.Vars(r)["category"]
+		c, _ := r.Cookie("CID")
 
-		products, err := cart.FilterByCategory(category)
+		products, err := shopping.FilterByCategory(db, c.Value, category)
 		if err != nil {
 			response.Error(w, r, http.StatusNotFound, err)
 			return
@@ -85,15 +94,16 @@ func CartFilterByCategory(cart *shopping.Cart) http.HandlerFunc {
 }
 
 // CartFilterByDiscount returns the products filtered by discount
-func CartFilterByDiscount(cart *shopping.Cart) http.HandlerFunc {
+func CartFilterByDiscount(db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		min := mux.Vars(r)["min"]
 		max := mux.Vars(r)["max"]
+		c, _ := r.Cookie("CID")
 
 		minDiscount, _ := strconv.ParseFloat(min, 32)
 		maxDiscount, _ := strconv.ParseFloat(max, 32)
 
-		products, err := cart.FilterByDiscount(float32(minDiscount), float32(maxDiscount))
+		products, err := shopping.FilterByDiscount(db, c.Value, float32(minDiscount), float32(maxDiscount))
 		if err != nil {
 			response.Error(w, r, http.StatusNotFound, err)
 			return
@@ -104,15 +114,16 @@ func CartFilterByDiscount(cart *shopping.Cart) http.HandlerFunc {
 }
 
 // CartFilterBySubtotal returns the products filtered by subtotal
-func CartFilterBySubtotal(cart *shopping.Cart) http.HandlerFunc {
+func CartFilterBySubtotal(db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		min := mux.Vars(r)["min"]
 		max := mux.Vars(r)["max"]
+		c, _ := r.Cookie("CID")
 
 		minSubtotal, _ := strconv.ParseFloat(min, 32)
 		maxSubtotal, _ := strconv.ParseFloat(max, 32)
 
-		products, err := cart.FilterBySubtotal(float32(minSubtotal), float32(maxSubtotal))
+		products, err := shopping.FilterBySubtotal(db, c.Value, float32(minSubtotal), float32(maxSubtotal))
 		if err != nil {
 			response.Error(w, r, http.StatusNotFound, err)
 			return
@@ -123,15 +134,16 @@ func CartFilterBySubtotal(cart *shopping.Cart) http.HandlerFunc {
 }
 
 // CartFilterByTaxes returns the products filtered by taxes
-func CartFilterByTaxes(cart *shopping.Cart) http.HandlerFunc {
+func CartFilterByTaxes(db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		min := mux.Vars(r)["min"]
 		max := mux.Vars(r)["max"]
+		c, _ := r.Cookie("CID")
 
 		minTaxes, _ := strconv.ParseFloat(min, 32)
 		maxTaxes, _ := strconv.ParseFloat(max, 32)
 
-		products, err := cart.FilterByTaxes(float32(minTaxes), float32(maxTaxes))
+		products, err := shopping.FilterByTaxes(db, c.Value, float32(minTaxes), float32(maxTaxes))
 		if err != nil {
 			response.Error(w, r, http.StatusNotFound, err)
 			return
@@ -142,15 +154,16 @@ func CartFilterByTaxes(cart *shopping.Cart) http.HandlerFunc {
 }
 
 // CartFilterByTotal returns the products filtered by total
-func CartFilterByTotal(cart *shopping.Cart) http.HandlerFunc {
+func CartFilterByTotal(db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		min := mux.Vars(r)["min"]
 		max := mux.Vars(r)["max"]
+		c, _ := r.Cookie("CID")
 
 		minTotal, _ := strconv.ParseFloat(min, 32)
 		maxTotal, _ := strconv.ParseFloat(max, 32)
 
-		products, err := cart.FilterByTotal(float32(minTotal), float32(maxTotal))
+		products, err := shopping.FilterByTotal(db, c.Value, float32(minTotal), float32(maxTotal))
 		if err != nil {
 			response.Error(w, r, http.StatusNotFound, err)
 			return
@@ -161,11 +174,12 @@ func CartFilterByTotal(cart *shopping.Cart) http.HandlerFunc {
 }
 
 // CartFilterByType returns the products filtered by type
-func CartFilterByType(cart *shopping.Cart) http.HandlerFunc {
+func CartFilterByType(db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		productType := mux.Vars(r)["type"]
+		c, _ := r.Cookie("CID")
 
-		products, err := cart.FilterByType(productType)
+		products, err := shopping.FilterByType(db, c.Value, productType)
 		if err != nil {
 			response.Error(w, r, http.StatusNotFound, err)
 			return
@@ -176,15 +190,16 @@ func CartFilterByType(cart *shopping.Cart) http.HandlerFunc {
 }
 
 // CartFilterByWeight returns the products filtered by weight
-func CartFilterByWeight(cart *shopping.Cart) http.HandlerFunc {
+func CartFilterByWeight(db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		min := mux.Vars(r)["min"]
 		max := mux.Vars(r)["max"]
+		c, _ := r.Cookie("CID")
 
 		minWeight, _ := strconv.ParseFloat(min, 32)
 		maxWeight, _ := strconv.ParseFloat(max, 32)
 
-		products, err := cart.FilterByWeight(float32(minWeight), float32(maxWeight))
+		products, err := shopping.FilterByWeight(db, c.Value, float32(minWeight), float32(maxWeight))
 		if err != nil {
 			response.Error(w, r, http.StatusNotFound, err)
 			return
@@ -195,26 +210,40 @@ func CartFilterByWeight(cart *shopping.Cart) http.HandlerFunc {
 }
 
 // CartGet returns the cart in a JSON format
-func CartGet(cart *shopping.Cart) http.HandlerFunc {
+func CartGet(db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		c, _ := r.Cookie("CID")
+
+		cart, err := shopping.Get(db, c.Value)
+		if err != nil {
+			response.Error(w, r, http.StatusInternalServerError, err)
+			return
+		}
+
 		response.JSON(w, r, http.StatusOK, cart)
 	}
 }
 
 // CartItems prints cart items
-func CartItems(cart *shopping.Cart) http.HandlerFunc {
+func CartItems(db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		items := cart.Items()
+		c, _ := r.Cookie("CID")
+		items, err := shopping.Items(db, c.Value)
+		if err != nil {
+			response.Error(w, r, http.StatusInternalServerError, err)
+			return
+		}
 
 		response.JSON(w, r, http.StatusOK, items)
 	}
 }
 
 // CartRemove takes out a product from the shopping cart
-func CartRemove(cart *shopping.Cart) http.HandlerFunc {
+func CartRemove(db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := mux.Vars(r)["id"]
 		q := mux.Vars(r)["quantity"]
+		c, _ := r.Cookie("CID")
 
 		key, err := strconv.Atoi(id)
 		if err != nil {
@@ -228,29 +257,41 @@ func CartRemove(cart *shopping.Cart) http.HandlerFunc {
 			return
 		}
 
-		err = cart.Remove(uint(key), quantity)
+		err = shopping.Remove(db, c.Value, key, quantity)
 		if err != nil {
-			response.Error(w, r, http.StatusBadRequest, err)
+			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
 
-		response.JSON(w, r, http.StatusOK, cart)
+		response.HTMLText(w, r, http.StatusOK, "Successfully removed the product from the cart")
 	}
 }
 
 // CartReset resets the cart to its default state
-func CartReset(cart *shopping.Cart) http.HandlerFunc {
+func CartReset(db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		cart.Reset()
+		c, _ := r.Cookie("CID")
 
-		response.JSON(w, r, http.StatusOK, cart)
+		err := shopping.Reset(db, c.Value)
+		if err != nil {
+			response.Error(w, r, http.StatusInternalServerError, err)
+			return
+		}
+
+		response.HTMLText(w, r, http.StatusOK, "Cart reseted")
 	}
 }
 
 // CartSize returns the size of the shopping cart
-func CartSize(cart *shopping.Cart) http.HandlerFunc {
+func CartSize(db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		size := cart.Size()
+		c, _ := r.Cookie("CID")
+
+		size, err := shopping.Size(db, c.Value)
+		if err != nil {
+			response.Error(w, r, http.StatusInternalServerError, err)
+			return
+		}
 
 		response.JSON(w, r, http.StatusOK, size)
 	}

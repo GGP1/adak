@@ -1,215 +1,129 @@
 package shopping
 
 import (
-	"strings"
-	"sync"
+	"github.com/jinzhu/gorm"
+	"github.com/pkg/errors"
+)
 
-	"github.com/GGP1/palo/pkg/model"
+var (
+	errProductNotFound = errors.New("no products found")
 )
 
 // FilterByBrand looks for products with the specified brand
-func (c *Cart) FilterByBrand(brand string) ([]model.Product, error) {
-	c.RLock()
-	defer c.RUnlock()
+func FilterByBrand(db *gorm.DB, cartID, brand string) ([]CartProduct, error) {
+	var products []CartProduct
 
-	var wg sync.WaitGroup
-	var products []model.Product
-
-	for _, v := range c.Products {
-		wg.Add(1)
-		go func(v *model.Product) {
-			defer wg.Done()
-			if strings.ToLower(brand) == strings.ToLower(v.Brand) {
-				products = append(products, *v)
-			}
-		}(v)
+	if err := db.Where("cart_id = ? AND brand = ?", cartID, brand).Find(&products).Error; err != nil {
+		return nil, errors.Wrap(err, "couldn't find the products")
 	}
-	wg.Wait()
 
 	if len(products) == 0 {
-		return nil, errNotFound
+		return nil, errProductNotFound
 	}
 
 	return products, nil
 }
 
 // FilterByCategory looks for products with the specified category
-func (c *Cart) FilterByCategory(category string) ([]model.Product, error) {
-	c.RLock()
-	defer c.RUnlock()
+func FilterByCategory(db *gorm.DB, cartID, category string) ([]CartProduct, error) {
+	var products []CartProduct
 
-	var wg sync.WaitGroup
-	var products []model.Product
-
-	for _, v := range c.Products {
-		wg.Add(1)
-		go func(v *model.Product) {
-			defer wg.Done()
-			if strings.ToLower(category) == strings.ToLower(v.Category) {
-				products = append(products, *v)
-			}
-		}(v)
+	if err := db.Where("cart_id = ? AND category = ?", cartID, category).Find(&products).Error; err != nil {
+		return nil, errors.Wrap(err, "couldn't find the products")
 	}
-	wg.Wait()
 
 	if len(products) == 0 {
-		return nil, errNotFound
+		return nil, errProductNotFound
 	}
 
 	return products, nil
 }
 
 // FilterByDiscount looks for products within the percentage of discount range specified
-func (c *Cart) FilterByDiscount(min, max float32) ([]model.Product, error) {
-	c.RLock()
-	defer c.RUnlock()
+func FilterByDiscount(db *gorm.DB, cartID string, min, max float32) ([]CartProduct, error) {
+	var products []CartProduct
 
-	var wg sync.WaitGroup
-	var products []model.Product
-
-	for _, v := range c.Products {
-		wg.Add(1)
-		go func(v *model.Product) {
-			defer wg.Done()
-			if v.Subtotal >= min && v.Discount <= max {
-				products = append(products, *v)
-			}
-		}(v)
+	if err := db.Where("cart_id = ? AND discount >= ? AND discount <= ?", cartID, min, max).Find(&products).Error; err != nil {
+		return nil, errors.Wrap(err, "couldn't find the products")
 	}
-	wg.Wait()
 
 	if len(products) == 0 {
-		return nil, errNotFound
+		return nil, errProductNotFound
 	}
 
 	return products, nil
 }
 
 // FilterBySubtotal looks for products within the subtotal price range specified
-func (c *Cart) FilterBySubtotal(min, max float32) ([]model.Product, error) {
-	c.RLock()
-	defer c.RUnlock()
+func FilterBySubtotal(db *gorm.DB, cartID string, min, max float32) ([]CartProduct, error) {
+	var products []CartProduct
 
-	var wg sync.WaitGroup
-	var products []model.Product
-
-	for _, v := range c.Products {
-		wg.Add(1)
-		go func(v *model.Product) {
-			defer wg.Done()
-			if v.Subtotal >= min && v.Subtotal <= max {
-				products = append(products, *v)
-			}
-		}(v)
+	if err := db.Where("cart_id = ? AND subtotal >= ? AND subtotal <= ?", cartID, min, max).Find(&products).Error; err != nil {
+		return nil, errors.Wrap(err, "couldn't find the products")
 	}
-	wg.Wait()
 
 	if len(products) == 0 {
-		return nil, errNotFound
+		return nil, errProductNotFound
 	}
 
 	return products, nil
 }
 
 // FilterByTaxes looks for products within the percentage of taxes range specified
-func (c *Cart) FilterByTaxes(min, max float32) ([]model.Product, error) {
-	c.RLock()
-	defer c.RUnlock()
+func FilterByTaxes(db *gorm.DB, cartID string, min, max float32) ([]CartProduct, error) {
+	var products []CartProduct
 
-	var wg sync.WaitGroup
-	var products []model.Product
-
-	for _, v := range c.Products {
-		wg.Add(1)
-		go func(v *model.Product) {
-			defer wg.Done()
-			if v.Taxes >= min && v.Taxes <= max {
-				products = append(products, *v)
-			}
-		}(v)
+	if err := db.Where("cart_id = ? AND taxes >= ? AND taxes <= ?", cartID, min, max).Find(&products).Error; err != nil {
+		return nil, errors.Wrap(err, "couldn't find the products")
 	}
-	wg.Wait()
 
 	if len(products) == 0 {
-		return nil, errNotFound
+		return nil, errProductNotFound
 	}
 
 	return products, nil
 }
 
 // FilterByTotal looks for products within the total price range specified
-func (c *Cart) FilterByTotal(min, max float32) ([]model.Product, error) {
-	c.RLock()
-	defer c.RUnlock()
+func FilterByTotal(db *gorm.DB, cartID string, min, max float32) ([]CartProduct, error) {
+	var products []CartProduct
 
-	var wg sync.WaitGroup
-	var products []model.Product
-
-	for _, v := range c.Products {
-		wg.Add(1)
-		go func(v *model.Product) {
-			defer wg.Done()
-			if v.Total >= min && v.Total <= max {
-				products = append(products, *v)
-			}
-		}(v)
+	if err := db.Where("cart_id = ? AND total >= ? AND total <= ?", cartID, min, max).Find(&products).Error; err != nil {
+		return nil, errors.Wrap(err, "couldn't find the products")
 	}
-	wg.Wait()
 
 	if len(products) == 0 {
-		return nil, errNotFound
+		return nil, errProductNotFound
 	}
 
 	return products, nil
 }
 
 // FilterByType looks for products with the specified type
-func (c *Cart) FilterByType(pType string) ([]model.Product, error) {
-	c.RLock()
-	defer c.RUnlock()
+func FilterByType(db *gorm.DB, cartID, pType string) ([]CartProduct, error) {
+	var products []CartProduct
 
-	var wg sync.WaitGroup
-	var products []model.Product
-
-	for _, v := range c.Products {
-		wg.Add(1)
-		go func(v *model.Product) {
-			defer wg.Done()
-			if strings.ToLower(pType) == strings.ToLower(v.Type) {
-				products = append(products, *v)
-			}
-		}(v)
+	if err := db.Where("cart_id = ? AND type = ?", cartID, pType).Find(&products).Error; err != nil {
+		return nil, errors.Wrap(err, "couldn't find the products")
 	}
-	wg.Wait()
 
 	if len(products) == 0 {
-		return nil, errNotFound
+		return nil, errProductNotFound
 	}
 
 	return products, nil
 }
 
 // FilterByWeight looks for products within the weight range specified
-func (c *Cart) FilterByWeight(min, max float32) ([]model.Product, error) {
-	c.RLock()
-	defer c.RUnlock()
+func FilterByWeight(db *gorm.DB, cartID string, min, max float32) ([]CartProduct, error) {
+	var products []CartProduct
 
-	var wg sync.WaitGroup
-	var products []model.Product
-
-	for _, v := range c.Products {
-		wg.Add(1)
-		go func(v *model.Product) {
-			defer wg.Done()
-			if v.Weight >= min && v.Weight <= max {
-				products = append(products, *v)
-			}
-		}(v)
+	if err := db.Where("cart_id = ? AND weight >= ? AND weight <= ?", cartID, min, max).Find(&products).Error; err != nil {
+		return nil, errors.Wrap(err, "couldn't find the products")
 	}
-	wg.Wait()
 
 	if len(products) == 0 {
-		return nil, errNotFound
+		return nil, errProductNotFound
 	}
 
 	return products, nil
