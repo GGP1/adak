@@ -12,18 +12,18 @@ import (
 // Product model
 type Product struct {
 	gorm.Model
-	ShopID      uint     `json:"shop_id;omitempty"`
-	Quantity    int      `json:"quantity;omitempty"`
-	Brand       string   `json:"brand;omitempty"`
-	Category    string   `json:"category;omitempty"`
-	Type        string   `json:"type;omitempty"`
-	Description string   `json:"description;omitempty"`
-	Weight      float32  `json:"weight;omitempty"`
-	Taxes       float32  `json:"taxes;omitempty"`
-	Discount    float32  `json:"discount;omitempty"`
-	Subtotal    float32  `json:"subtotal;omitempty"`
-	Total       float32  `json:"total;omitempty"`
-	Reviews     []Review `json:"reviews;omitempty" gorm:"foreignkey:ProductID"`
+	ShopID      uint     `json:"shop_id"`
+	Quantity    int      `json:"quantity"`
+	Brand       string   `json:"brand"`
+	Category    string   `json:"category"`
+	Type        string   `json:"type"`
+	Description string   `json:"description"`
+	Weight      float32  `json:"weight"`
+	Taxes       float32  `json:"taxes"`
+	Discount    float32  `json:"discount"`
+	Subtotal    float32  `json:"subtotal"`
+	Total       float32  `json:"total"`
+	Reviews     []Review `json:"reviews" gorm:"foreignkey:ProductID"`
 }
 
 // Validate checks that there is no missing fields

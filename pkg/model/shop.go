@@ -9,18 +9,18 @@ import (
 // Shop model
 type Shop struct {
 	gorm.Model
-	Name     string    `json:"name;omitempty"`
-	Location Location  `json:"location;omitempty"`
-	Reviews  []Review  `json:"reviews;omitempty" gorm:"foreignkey:ShopID"`
-	Products []Product `json:"products;omitempty" gorm:"foreignkey:ShopID"`
+	Name     string    `json:"name"`
+	Location Location  `json:"location"`
+	Reviews  []Review  `json:"reviews" gorm:"foreignkey:ShopID"`
+	Products []Product `json:"products" gorm:"foreignkey:ShopID"`
 }
 
 // Location of the shop
 type Location struct {
-	Country string `json:"country;omitempty"`
-	City    string `json:"city;omitempty"`
-	Address string `json:"address;omitempty"`
-	ShopID  uint   `json:"shop_id;omitempty"`
+	Country string `json:"country"`
+	City    string `json:"city"`
+	Address string `json:"address"`
+	ShopID  uint   `json:"shop_id"`
 }
 
 // Validate checks shop input correctness

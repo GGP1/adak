@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/GGP1/palo/internal/response"
 	"github.com/GGP1/palo/pkg/adding"
@@ -64,12 +63,12 @@ func (us *Users) Add(a adding.Service, pendingList email.Service) http.HandlerFu
 }
 
 // Delete deletes a user
-func (us *Users) Delete(d deleting.Service, pendingList, validatedList email.Service) http.HandlerFunc {
+func (us *Users) Delete(d deleting.Service, s auth.Session, pendingList, validatedList email.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var user model.User
 
 		id := mux.Vars(r)["id"]
-		c, _ := r.Cookie("UID")
+		cookie, _ := r.Cookie("UID")
 		// Generate a fixed token of the id and compare it with the cookie
 		// to check if it's the same user
 		userID, err := auth.GenerateFixedJWT(id)
@@ -78,8 +77,21 @@ func (us *Users) Delete(d deleting.Service, pendingList, validatedList email.Ser
 			return
 		}
 
-		if userID != c.Value {
+		if userID != cookie.Value {
 			response.Error(w, r, http.StatusUnauthorized, fmt.Errorf("not allowed to delete others user"))
+			return
+		}
+
+		// Remove user from email lists
+		err = pendingList.Remove(user.Email)
+		if err != nil {
+			response.Error(w, r, http.StatusInternalServerError, err)
+			return
+		}
+
+		err = validatedList.Remove(user.Email)
+		if err != nil {
+			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
 
@@ -89,43 +101,8 @@ func (us *Users) Delete(d deleting.Service, pendingList, validatedList email.Ser
 			return
 		}
 
-		// Remove user from email lists
-		pendingList.Remove(user.Email)
-		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
-		}
-
-		validatedList.Remove(user.Email)
-		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
-		}
-
 		// If the user is logged in, log him out
-		c2, _ := r.Cookie("SID")
-		if c2 != nil {
-			cookie := &http.Cookie{
-				Name:     "SID",
-				Value:    "0",
-				Expires:  time.Unix(1414414788, 1414414788000),
-				Path:     "/",
-				Domain:   "localhost",
-				Secure:   false,
-				HttpOnly: true,
-				MaxAge:   -1,
-			}
-			http.SetCookie(w, cookie)
-
-			http.SetCookie(w, &http.Cookie{
-				Name:     "UID",
-				Value:    "0",
-				Expires:  time.Unix(1414414788, 1414414788000),
-				Path:     "/",
-				Domain:   "localhost",
-				Secure:   false,
-				HttpOnly: true,
-				MaxAge:   -1,
-			})
-		}
+		s.Logout(w, r, cookie)
 
 		response.HTMLText(w, r, http.StatusOK, "User deleted successfully.")
 	}
