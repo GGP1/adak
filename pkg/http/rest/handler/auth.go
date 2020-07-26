@@ -51,7 +51,7 @@ func Login(s auth.Session, validatedList email.Service) http.HandlerFunc {
 		// Authenticate user
 		err = s.Login(w, user.Email, user.Password)
 		if err != nil {
-			response.Error(w, r, http.StatusUnauthorized, fmt.Errorf("invalid email or password"))
+			response.Error(w, r, http.StatusUnauthorized, err)
 			return
 		}
 
@@ -70,7 +70,7 @@ func Logout(s auth.Session) http.HandlerFunc {
 		}
 
 		// Logout user from the session and delete cookies
-		s.Logout(w, c)
+		s.Logout(w, r, c)
 
 		response.HTMLText(w, r, http.StatusOK, "You are now logged out.")
 	}

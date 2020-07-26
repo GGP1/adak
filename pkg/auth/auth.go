@@ -4,12 +4,16 @@ Package auth provides authentication and authorization support.
 package auth
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"strconv"
 	"sync"
 	"time"
 
+	"github.com/GGP1/palo/internal/cfg"
 	"github.com/GGP1/palo/pkg/model"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
@@ -67,13 +71,39 @@ func (s *session) Login(w http.ResponseWriter, email, password string) error {
 
 	err := s.DB.Where("email = ?", email).Take(&user).Error
 	if err != nil {
-		return err
+		return errors.New("invalid email")
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
 	if err != nil {
+		return errors.New("invalid password")
+	}
+
+	data, err := ioutil.ReadFile(cfg.AdminEmails)
+	if err != nil {
 		return err
 	}
+
+	var result map[string]interface{}
+	err = json.Unmarshal(data, &result)
+	if err != nil {
+		return err
+	}
+
+	for k := range result {
+		if k == user.Email {
+			setCookie(w, "AID", "adm", "/", s.length)
+		}
+	}
+
+	// SessionID -SID- used to add the user to the session map
+	sID := uuid.New()
+	setCookie(w, "SID", sID.String(), "/", s.length)
+
+	// Store user in session
+	s.Lock()
+	s.store[sID.String()] = userInfo{user.Email, time.Now()}
+	s.Unlock()
 
 	// Convert user id to string and generate a jwt token
 	id := strconv.Itoa(int(user.ID))
@@ -81,90 +111,29 @@ func (s *session) Login(w http.ResponseWriter, email, password string) error {
 	if err != nil {
 		return fmt.Errorf("failed generating a jwt token")
 	}
-
 	// UserID -UID- used to deny users from making requests to other accounts
-	http.SetCookie(w, &http.Cookie{
-		Name:     "UID",
-		Value:    userID,
-		Path:     "/",
-		Domain:   "127.0.0.1",
-		Secure:   false,
-		HttpOnly: true,
-		MaxAge:   s.length,
-	})
-
-	// SessionID -SID- used to add the user to the session map
-	sID := uuid.New()
-	cookie := &http.Cookie{
-		Name:     "SID",
-		Value:    sID.String(),
-		Path:     "/",
-		Domain:   "127.0.0.1",
-		Secure:   false,
-		HttpOnly: true,
-		MaxAge:   s.length,
-	}
-	http.SetCookie(w, cookie)
-
-	s.Lock()
-	s.store[cookie.Value] = userInfo{user.Email, time.Now()}
-	s.Unlock()
-
-	cartID := user.CartID
+	setCookie(w, "UID", userID, "/", s.length)
 
 	// CartID -CID- used to identify wich cart belongs to each user
-	http.SetCookie(w, &http.Cookie{
-		Name:     "CID",
-		Value:    cartID,
-		Path:     "/",
-		Domain:   "127.0.0.1",
-		Secure:   false,
-		HttpOnly: true,
-		MaxAge:   s.length,
-	})
+	cartID := user.CartID
+	setCookie(w, "CID", cartID, "/", s.length)
 
 	return nil
 }
 
 // Logout removes the user session and its cookies
-func (s *session) Logout(w http.ResponseWriter, c *http.Cookie) {
-	// Delete SID cookie
-	cookie := &http.Cookie{
-		Name:     "SID",
-		Value:    "0",
-		Expires:  time.Unix(1414414788, 1414414788000),
-		Path:     "/",
-		Domain:   "127.0.0.1",
-		Secure:   false,
-		HttpOnly: true,
-		MaxAge:   -1,
+func (s *session) Logout(w http.ResponseWriter, r *http.Request, c *http.Cookie) {
+	admin, _ := r.Cookie("AID")
+	if admin != nil {
+		deleteCookie(w, "AID")
 	}
-	http.SetCookie(w, cookie)
 
-	// Delete UID cookie
-	http.SetCookie(w, &http.Cookie{
-		Name:     "UID",
-		Value:    "0",
-		Expires:  time.Unix(1414414788, 1414414788000),
-		Path:     "/",
-		Domain:   "127.0.0.1",
-		Secure:   false,
-		HttpOnly: true,
-		MaxAge:   -1,
-	})
+	// Delete SID, UID and CID cookies
+	deleteCookie(w, "SID")
+	deleteCookie(w, "UID")
+	deleteCookie(w, "CID")
 
-	// Delete CID cookie
-	http.SetCookie(w, &http.Cookie{
-		Name:     "CID",
-		Value:    "0",
-		Expires:  time.Unix(1414414788, 1414414788000),
-		Path:     "/",
-		Domain:   "127.0.0.1",
-		Secure:   false,
-		HttpOnly: true,
-		MaxAge:   -1,
-	})
-
+	// Delete user from session
 	s.Lock()
 	delete(s.store, c.Value)
 	s.Unlock()
@@ -183,4 +152,29 @@ func (s *session) SessionClean() {
 		}
 	}
 	s.clean = time.Now()
+}
+
+func deleteCookie(w http.ResponseWriter, name string) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     name,
+		Value:    "0",
+		Expires:  time.Unix(1414414788, 1414414788000),
+		Path:     "/",
+		Domain:   "127.0.0.1",
+		Secure:   false,
+		HttpOnly: true,
+		MaxAge:   -1,
+	})
+}
+
+func setCookie(w http.ResponseWriter, name, value, path string, lenght int) {
+	http.SetCookie(w, &http.Cookie{
+		Name:     name,
+		Value:    value,
+		Path:     "/",
+		Domain:   "127.0.0.1",
+		Secure:   false,
+		HttpOnly: true,
+		MaxAge:   lenght,
+	})
 }

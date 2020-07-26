@@ -6,7 +6,7 @@ import "net/http"
 type Repository interface {
 	AlreadyLoggedIn(w http.ResponseWriter, r *http.Request) bool
 	Login(w http.ResponseWriter, email, password string) error
-	Logout(w http.ResponseWriter, c *http.Cookie)
+	Logout(w http.ResponseWriter, r *http.Request, c *http.Cookie)
 	SessionClean()
 }
 
@@ -14,6 +14,6 @@ type Repository interface {
 type Session interface {
 	AlreadyLoggedIn(w http.ResponseWriter, r *http.Request) bool
 	Login(w http.ResponseWriter, email, password string) error
-	Logout(w http.ResponseWriter, c *http.Cookie)
+	Logout(w http.ResponseWriter, r *http.Request, c *http.Cookie)
 	SessionClean()
 }

@@ -2,7 +2,7 @@
 TODO.txt
 
 internal/cfg
-internal/email/pendingList.json
-internal/email/validatedList.json
+
+pkg/auth/email/admins.json
 
 /web/node_modules
