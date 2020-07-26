@@ -48,26 +48,26 @@ func NewRouter(db *gorm.DB) http.Handler {
 	// 	Auth
 	// ==========
 	r.HandleFunc("/login", h.Login(session, validatedList)).Methods("POST")
-	r.HandleFunc("/logout", h.Logout(session)).Methods("GET")
-	r.HandleFunc("/email/{token}", h.ValidateEmail(pendingList, validatedList)).Methods("GET")
+	r.HandleFunc("/logout", m.RequireLogin(h.Logout(session))).Methods("GET")
+	r.HandleFunc("/verification/{token}", h.ValidateEmail(pendingList, validatedList)).Methods("GET")
 
 	// ==========
-	//  SHOPPING
+	//  Shopping
 	// ==========
 	r.HandleFunc("/cart", m.RequireLogin(h.CartGet(db))).Methods("GET")
 	r.HandleFunc("/cart/add/{quantity}", m.RequireLogin(h.CartAdd(db))).Methods("POST")
-	r.HandleFunc("/cart/brand/{brand}", h.CartFilterByBrand(db)).Methods("GET")
-	r.HandleFunc("/cart/category/{category}", h.CartFilterByCategory(db)).Methods("GET")
-	r.HandleFunc("/cart/discount/{min}/{max}", h.CartFilterByDiscount(db)).Methods("GET")
+	r.HandleFunc("/cart/brand/{brand}", m.RequireLogin(h.CartFilterByBrand(db))).Methods("GET")
+	r.HandleFunc("/cart/category/{category}", m.RequireLogin(h.CartFilterByCategory(db))).Methods("GET")
+	r.HandleFunc("/cart/discount/{min}/{max}", m.RequireLogin(h.CartFilterByDiscount(db))).Methods("GET")
 	r.HandleFunc("/cart/checkout", m.RequireLogin(h.CartCheckout(db))).Methods("GET")
 	r.HandleFunc("/cart/items", m.RequireLogin(h.CartItems(db))).Methods("GET")
 	r.HandleFunc("/cart/remove/{id}/{quantity}", m.RequireLogin(h.CartRemove(db))).Methods("DELETE")
 	r.HandleFunc("/cart/reset", m.RequireLogin(h.CartReset(db))).Methods("GET")
 	r.HandleFunc("/cart/size", m.RequireLogin(h.CartSize(db))).Methods("GET")
-	r.HandleFunc("/cart/taxes/{min}/{max}", h.CartFilterByTaxes(db)).Methods("GET")
-	r.HandleFunc("/cart/total/{min}/{max}", h.CartFilterByTotal(db)).Methods("GET")
-	r.HandleFunc("/cart/type/{type}", h.CartFilterByType(db)).Methods("GET")
-	r.HandleFunc("/cart/weight/{min}/{max}", h.CartFilterByWeight(db)).Methods("GET")
+	r.HandleFunc("/cart/taxes/{min}/{max}", m.RequireLogin(h.CartFilterByTaxes(db))).Methods("GET")
+	r.HandleFunc("/cart/total/{min}/{max}", m.RequireLogin(h.CartFilterByTotal(db))).Methods("GET")
+	r.HandleFunc("/cart/type/{type}", m.RequireLogin(h.CartFilterByType(db))).Methods("GET")
+	r.HandleFunc("/cart/weight/{min}/{max}", m.RequireLogin(h.CartFilterByWeight(db))).Methods("GET")
 
 	// ==========
 	// 	Home
@@ -81,8 +81,8 @@ func NewRouter(db *gorm.DB) http.Handler {
 	r.HandleFunc("/products", products.GetAll(l)).Methods("GET")
 	r.HandleFunc("/products/{id}", products.GetByID(l)).Methods("GET")
 	r.HandleFunc("/products/add", products.Add(a)).Methods("POST")
-	r.HandleFunc("/products/{id}", m.RequireLogin(products.Update(u))).Methods("PUT")
-	r.HandleFunc("/products/{id}", m.RequireLogin(products.Delete(d))).Methods("DELETE")
+	r.HandleFunc("/products/{id}", m.AdminsOnly(products.Update(u))).Methods("PUT")
+	r.HandleFunc("/products/{id}", m.AdminsOnly(products.Delete(d))).Methods("DELETE")
 
 	// ==========
 	// 	Reviews
@@ -91,7 +91,7 @@ func NewRouter(db *gorm.DB) http.Handler {
 	r.HandleFunc("/reviews", reviews.GetAll(l)).Methods("GET")
 	r.HandleFunc("/reviews/{id}", reviews.GetByID(l)).Methods("GET")
 	r.HandleFunc("/reviews/add", m.RequireLogin(reviews.Add(a))).Methods("POST")
-	r.HandleFunc("/reviews/{id}", m.RequireLogin(reviews.Delete(d))).Methods("DELETE")
+	r.HandleFunc("/reviews/{id}", m.AdminsOnly(reviews.Delete(d))).Methods("DELETE")
 
 	// ==========
 	// 	Shops
@@ -100,8 +100,8 @@ func NewRouter(db *gorm.DB) http.Handler {
 	r.HandleFunc("/shops", shops.GetAll(l)).Methods("GET")
 	r.HandleFunc("/shops/{id}", shops.GetByID(l)).Methods("GET")
 	r.HandleFunc("/shops/add", shops.Add(a)).Methods("POST")
-	r.HandleFunc("/shops/{id}", m.RequireLogin(shops.Update(u))).Methods("PUT")
-	r.HandleFunc("/shops/{id}", m.RequireLogin(shops.Delete(d))).Methods("DELETE")
+	r.HandleFunc("/shops/{id}", m.AdminsOnly(shops.Update(u))).Methods("PUT")
+	r.HandleFunc("/shops/{id}", m.AdminsOnly(shops.Delete(d))).Methods("DELETE")
 
 	// ==========
 	// 	Users
@@ -111,7 +111,7 @@ func NewRouter(db *gorm.DB) http.Handler {
 	r.HandleFunc("/users/{id}", users.GetByID(l)).Methods("GET")
 	r.HandleFunc("/users/add", users.Add(a, pendingList)).Methods("POST")
 	r.HandleFunc("/users/{id}", m.RequireLogin(users.Update(u))).Methods("PUT")
-	r.HandleFunc("/users/{id}", m.RequireLogin(users.Delete(d, pendingList, validatedList))).Methods("DELETE")
+	r.HandleFunc("/users/{id}", m.RequireLogin(users.Delete(d, session, pendingList, validatedList))).Methods("DELETE")
 
 	// Middlewares
 	r.Use(m.AllowCrossOrigin)
