@@ -43,14 +43,15 @@ func NewCart(userID string) *Cart {
 		Weight:   0,
 		Discount: 0,
 		Taxes:    0,
+		Subtotal: 0,
 		Total:    0,
+		Products: []*CartProduct{},
 	}
 }
 
 // Add a product to the cart
 func Add(db *gorm.DB, cartID string, product *CartProduct, quantity int) (*CartProduct, error) {
 	var cart Cart
-	var alreadyExists bool
 
 	if err := db.Where("id=?", cartID).Find(&cart).Error; err != nil {
 		return nil, errors.Wrap(err, "couldn't find the cart")
@@ -59,6 +60,7 @@ func Add(db *gorm.DB, cartID string, product *CartProduct, quantity int) (*CartP
 	product.CartID = cartID
 	taxes := ((product.Subtotal / 100) * product.Taxes)
 	discount := ((product.Subtotal / 100) * product.Discount)
+	product.Total = product.Total + product.Subtotal + taxes - discount
 
 	for i := 0; i < quantity; i++ {
 		cart.Counter++
@@ -70,16 +72,12 @@ func Add(db *gorm.DB, cartID string, product *CartProduct, quantity int) (*CartP
 		cart.Total = cart.Total + product.Subtotal + taxes - discount
 	}
 
-	for _, v := range cart.Products {
-		if v.ID == product.ID {
-			alreadyExists = true
-		}
-	}
-
-	if alreadyExists == true {
+	alreadyExists := db.Where("id=?", product.ID).First(&product).RowsAffected
+	if alreadyExists != 0 {
+		product.Quantity++
 		err := db.Save(&product).Error
 		if err != nil {
-			return nil, errors.Wrap(err, "couldn't create the product")
+			return nil, errors.Wrap(err, "couldn't update the product")
 		}
 	} else {
 		err := db.Create(&product).Error
@@ -167,7 +165,8 @@ func Remove(db *gorm.DB, cartID string, key int, quantity int) error {
 	}
 
 	if cart.Counter == 1 {
-		if err := Reset(db, cartID); err != nil {
+		err := Reset(db, cartID)
+		if err != nil {
 			return err
 		}
 		return nil
