@@ -38,12 +38,12 @@ func LogFormatter(next http.Handler) http.Handler {
 		path := r.URL.Path
 		latency := time.Since(start)
 
-		log := fmt.Sprintf("[PALO] %v | %3d | %-7s | %#v | %v",
+		log := fmt.Sprintf("[PALO] %v | %3d | %-10v | %-7s | %#v",
 			timestamp,
 			status,
+			latency,
 			method,
-			path,
-			latency)
+			path)
 
 		fmt.Println(log)
 	})
