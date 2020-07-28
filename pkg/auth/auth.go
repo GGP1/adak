@@ -4,16 +4,14 @@ Package auth provides authentication and authorization support.
 package auth
 
 import (
-	"encoding/json"
 	"errors"
 	"fmt"
-	"io/ioutil"
+	"math/rand"
 	"net/http"
 	"strconv"
 	"sync"
 	"time"
 
-	"github.com/GGP1/palo/internal/cfg"
 	"github.com/GGP1/palo/pkg/model"
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
@@ -36,7 +34,7 @@ type session struct {
 	repository Repository
 }
 
-// NewSession creates a new session with the necessary dependencies
+// NewSession creates a new session with the necessary dependencies.
 func NewSession(db *gorm.DB, r Repository) Session {
 	return &session{
 		DB:         db,
@@ -47,7 +45,7 @@ func NewSession(db *gorm.DB, r Repository) Session {
 	}
 }
 
-// AlreadyLoggedIn checks if the user have previously logged in
+// AlreadyLoggedIn checks if the user have previously logged in.
 func (s *session) AlreadyLoggedIn(w http.ResponseWriter, r *http.Request) bool {
 	cookie, err := r.Cookie("SID")
 	if err != nil {
@@ -65,7 +63,7 @@ func (s *session) AlreadyLoggedIn(w http.ResponseWriter, r *http.Request) bool {
 	return ok
 }
 
-// Login authenticates users and returns a jwt token
+// Login authenticates users and returns a jwt token.
 func (s *session) Login(w http.ResponseWriter, email, password string) error {
 	user := model.User{}
 
@@ -79,20 +77,12 @@ func (s *session) Login(w http.ResponseWriter, email, password string) error {
 		return errors.New("invalid password")
 	}
 
-	data, err := ioutil.ReadFile(cfg.AdminEmails)
-	if err != nil {
-		return err
-	}
+	num := rand.Int()
+	admID := strconv.Itoa(num)
 
-	var result map[string]interface{}
-	err = json.Unmarshal(data, &result)
-	if err != nil {
-		return err
-	}
-
-	for k := range result {
-		if k == user.Email {
-			setCookie(w, "AID", "adm", "/", s.length)
+	for _, admin := range adminList {
+		if admin == user.Email {
+			setCookie(w, "AID", admID, "/", s.length)
 		}
 	}
 
@@ -121,7 +111,7 @@ func (s *session) Login(w http.ResponseWriter, email, password string) error {
 	return nil
 }
 
-// Logout removes the user session and its cookies
+// Logout removes the user session and its cookies.
 func (s *session) Logout(w http.ResponseWriter, r *http.Request, c *http.Cookie) {
 	admin, _ := r.Cookie("AID")
 	if admin != nil {
@@ -144,7 +134,7 @@ func (s *session) Logout(w http.ResponseWriter, r *http.Request, c *http.Cookie)
 	}
 }
 
-// SessionClean deletes all the sessions that have expired
+// SessionClean deletes all the sessions that have expired.
 func (s *session) SessionClean() {
 	for key, value := range s.store {
 		if time.Now().Sub(value.lastSeen) > (time.Hour * 24) {

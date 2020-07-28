@@ -3,6 +3,6 @@ TODO.txt
 
 internal/cfg
 
-pkg/auth/email/admins.json
+pkg/auth/adminList.go
 
 /web/node_modules
