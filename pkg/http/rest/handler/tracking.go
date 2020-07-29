@@ -12,9 +12,9 @@ import (
 // FindHits retrieves total amount of hits stored.
 func FindHits(t tracking.Tracker) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		total := t.FindAll()
+		hits := t.FindAll()
 
-		response.JSON(w, r, http.StatusOK, total)
+		response.JSON(w, r, http.StatusOK, hits)
 	}
 }
 
@@ -24,9 +24,9 @@ func FindHitsByID(t tracking.Tracker) http.HandlerFunc {
 		id := mux.Vars(r)["id"]
 		hit, _ := strconv.Atoi(id)
 
-		total := t.FindByID(int64(hit))
+		hits := t.FindByID(int64(hit))
 
-		response.JSON(w, r, http.StatusOK, total)
+		response.JSON(w, r, http.StatusOK, hits)
 	}
 }
 
@@ -36,9 +36,9 @@ func FindHitsByDay(t tracking.Tracker) http.HandlerFunc {
 		day := mux.Vars(r)["day"]
 		hit, _ := strconv.Atoi(day)
 
-		total := t.FindByDay(hit)
+		hits := t.FindByDay(hit)
 
-		response.JSON(w, r, http.StatusOK, total)
+		response.HTMLText(w, r, http.StatusOK, hits)
 	}
 }
 
@@ -48,9 +48,9 @@ func FindHitsByHour(t tracking.Tracker) http.HandlerFunc {
 		hour := mux.Vars(r)["hour"]
 		hit, _ := strconv.Atoi(hour)
 
-		total := t.FindByHour(hit)
+		hits := t.FindByHour(hit)
 
-		response.JSON(w, r, http.StatusOK, total)
+		response.HTMLText(w, r, http.StatusOK, hits)
 	}
 }
 
@@ -59,9 +59,37 @@ func FindHitsByLanguage(t tracking.Tracker) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		language := mux.Vars(r)["language"]
 
-		total := t.FindByLanguage(language)
+		var lang string
 
-		response.JSON(w, r, http.StatusOK, total)
+		switch language {
+		case "english":
+			lang = "en-US"
+		case "spanish":
+			lang = "es-ES"
+		case "chinese":
+			lang = "zh-CN"
+		case "portuguese":
+			lang = "pt-BR"
+		case "german":
+			lang = "de"
+		case "french":
+			lang = "fr"
+		case "italian":
+			lang = "it"
+		case "russian":
+			lang = "ru"
+		case "hindi":
+			lang = "in"
+		case "japanese":
+			lang = "jp"
+		default:
+			response.HTMLText(w, r, http.StatusBadRequest, "No hits found with this language")
+			return
+		}
+
+		hits := t.FindByLanguage(lang)
+
+		response.HTMLText(w, r, http.StatusOK, hits)
 	}
 }
 
@@ -71,9 +99,9 @@ func FindHitsByMonth(t tracking.Tracker) http.HandlerFunc {
 		month := mux.Vars(r)["month"]
 		hit, _ := strconv.Atoi(month)
 
-		total := t.FindByMonth(hit)
+		hits := t.FindByMonth(hit)
 
-		response.JSON(w, r, http.StatusOK, total)
+		response.HTMLText(w, r, http.StatusOK, hits)
 	}
 }
 
@@ -82,9 +110,9 @@ func FindHitsByPath(t tracking.Tracker) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		path := mux.Vars(r)["path"]
 
-		total := t.FindByPath(path)
+		hits := t.FindByPath(path)
 
-		response.JSON(w, r, http.StatusOK, total)
+		response.HTMLText(w, r, http.StatusOK, hits)
 	}
 }
 
@@ -94,9 +122,9 @@ func FindHitsByWeekday(t tracking.Tracker) http.HandlerFunc {
 		weekday := mux.Vars(r)["weekday"]
 		hit, _ := strconv.Atoi(weekday)
 
-		total := t.FindByWeekday(hit)
+		hits := t.FindByWeekday(hit)
 
-		response.JSON(w, r, http.StatusOK, total)
+		response.HTMLText(w, r, http.StatusOK, hits)
 	}
 }
 
@@ -106,8 +134,8 @@ func FindHitsByYear(t tracking.Tracker) http.HandlerFunc {
 		year := mux.Vars(r)["year"]
 		hit, _ := strconv.Atoi(year)
 
-		total := t.FindByYear(hit)
+		hits := t.FindByYear(hit)
 
-		response.JSON(w, r, http.StatusOK, total)
+		response.HTMLText(w, r, http.StatusOK, hits)
 	}
 }
