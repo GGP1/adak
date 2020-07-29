@@ -9,7 +9,7 @@ var (
 	errProductNotFound = errors.New("no products found")
 )
 
-// FilterByBrand looks for products with the specified brand
+// FilterByBrand looks for products with the specified brand.
 func FilterByBrand(db *gorm.DB, cartID, brand string) ([]CartProduct, error) {
 	var products []CartProduct
 
@@ -24,7 +24,7 @@ func FilterByBrand(db *gorm.DB, cartID, brand string) ([]CartProduct, error) {
 	return products, nil
 }
 
-// FilterByCategory looks for products with the specified category
+// FilterByCategory looks for products with the specified category.
 func FilterByCategory(db *gorm.DB, cartID, category string) ([]CartProduct, error) {
 	var products []CartProduct
 
@@ -39,7 +39,7 @@ func FilterByCategory(db *gorm.DB, cartID, category string) ([]CartProduct, erro
 	return products, nil
 }
 
-// FilterByDiscount looks for products within the percentage of discount range specified
+// FilterByDiscount looks for products within the percentage of discount range specified.
 func FilterByDiscount(db *gorm.DB, cartID string, min, max float32) ([]CartProduct, error) {
 	var products []CartProduct
 
@@ -54,7 +54,7 @@ func FilterByDiscount(db *gorm.DB, cartID string, min, max float32) ([]CartProdu
 	return products, nil
 }
 
-// FilterBySubtotal looks for products within the subtotal price range specified
+// FilterBySubtotal looks for products within the subtotal price range specified.
 func FilterBySubtotal(db *gorm.DB, cartID string, min, max float32) ([]CartProduct, error) {
 	var products []CartProduct
 
@@ -69,7 +69,7 @@ func FilterBySubtotal(db *gorm.DB, cartID string, min, max float32) ([]CartProdu
 	return products, nil
 }
 
-// FilterByTaxes looks for products within the percentage of taxes range specified
+// FilterByTaxes looks for products within the percentage of taxes range specified.
 func FilterByTaxes(db *gorm.DB, cartID string, min, max float32) ([]CartProduct, error) {
 	var products []CartProduct
 
@@ -84,7 +84,7 @@ func FilterByTaxes(db *gorm.DB, cartID string, min, max float32) ([]CartProduct,
 	return products, nil
 }
 
-// FilterByTotal looks for products within the total price range specified
+// FilterByTotal looks for products within the total price range specified.
 func FilterByTotal(db *gorm.DB, cartID string, min, max float32) ([]CartProduct, error) {
 	var products []CartProduct
 
@@ -99,7 +99,7 @@ func FilterByTotal(db *gorm.DB, cartID string, min, max float32) ([]CartProduct,
 	return products, nil
 }
 
-// FilterByType looks for products with the specified type
+// FilterByType looks for products with the specified type.
 func FilterByType(db *gorm.DB, cartID, pType string) ([]CartProduct, error) {
 	var products []CartProduct
 
@@ -114,7 +114,7 @@ func FilterByType(db *gorm.DB, cartID, pType string) ([]CartProduct, error) {
 	return products, nil
 }
 
-// FilterByWeight looks for products within the weight range specified
+// FilterByWeight looks for products within the weight range specified.
 func FilterByWeight(db *gorm.DB, cartID string, min, max float32) ([]CartProduct, error) {
 	var products []CartProduct
 

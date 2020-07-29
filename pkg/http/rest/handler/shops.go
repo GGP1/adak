@@ -19,7 +19,7 @@ type Shops struct {
 	DB *gorm.DB
 }
 
-// Add creates a new shop and saves it
+// Add creates a new shop and saves it.
 func (s *Shops) Add(a adding.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var shop model.Shop
@@ -40,7 +40,7 @@ func (s *Shops) Add(a adding.Service) http.HandlerFunc {
 	}
 }
 
-// Delete deletes a shop
+// Delete removes a shop.
 func (s *Shops) Delete(d deleting.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var shop model.Shop
@@ -57,8 +57,8 @@ func (s *Shops) Delete(d deleting.Service) http.HandlerFunc {
 	}
 }
 
-// GetAll lists all the shops
-func (s *Shops) GetAll(l listing.Service) http.HandlerFunc {
+// Find lists all the shops.
+func (s *Shops) Find(l listing.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var shop []model.Shop
 
@@ -72,8 +72,8 @@ func (s *Shops) GetAll(l listing.Service) http.HandlerFunc {
 	}
 }
 
-// GetByID lists the shop with the id requested
-func (s *Shops) GetByID(l listing.Service) http.HandlerFunc {
+// FindByID lists the shop with the id requested.
+func (s *Shops) FindByID(l listing.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var shop model.Shop
 
@@ -89,7 +89,7 @@ func (s *Shops) GetByID(l listing.Service) http.HandlerFunc {
 	}
 }
 
-// Update updates the shop with the given id
+// Update updates the shop with the given id.
 func (s *Shops) Update(u updating.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var shop model.Shop

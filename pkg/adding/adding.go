@@ -18,12 +18,12 @@ type service struct {
 	r Repository
 }
 
-// NewService creates a deleting service with the necessary dependencies
+// NewService creates a deleting service with the necessary dependencies.
 func NewService(r Repository) Service {
 	return &service{r}
 }
 
-// AddProduct takes a new product and appends it to the database
+// AddProduct validates a product and saves it into the database.
 func (s *service) AddProduct(db *gorm.DB, product *model.Product) error {
 	err := product.Validate()
 	if err != nil {
@@ -37,7 +37,7 @@ func (s *service) AddProduct(db *gorm.DB, product *model.Product) error {
 	return nil
 }
 
-// AddReview takes a new review and appends it to the database
+// AddReview takes a new review and saves it into the database.
 func (s *service) AddReview(db *gorm.DB, review *model.Review) error {
 	if err := db.Create(review).Error; err != nil {
 		return fmt.Errorf("couldn't create the review")
@@ -46,7 +46,7 @@ func (s *service) AddReview(db *gorm.DB, review *model.Review) error {
 	return nil
 }
 
-// AddShop takes a new shop and appends it to the database
+// AddShop validates a shop and saves it into the database.
 func (s *service) AddShop(db *gorm.DB, shop *model.Shop) error {
 	err := shop.Validate()
 	if err != nil {
@@ -60,8 +60,8 @@ func (s *service) AddShop(db *gorm.DB, shop *model.Shop) error {
 	return nil
 }
 
-// AddUser takes a new user, hashes its password, sends
-// a verification email and appends it to the database
+// AddUser validates a user, hashes its password, sends
+// a verification email and saves it into the database.
 func (s *service) AddUser(db *gorm.DB, user *model.User) error {
 	err := user.Validate("")
 	if err != nil {

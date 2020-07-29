@@ -13,12 +13,12 @@ import (
 	"github.com/jinzhu/gorm"
 )
 
-// Reviews handles reviews routes
+// Reviews handles reviews routes.
 type Reviews struct {
 	DB *gorm.DB
 }
 
-// Add creates a new review and saves it
+// Add creates a new review and saves it.
 func (rev *Reviews) Add(a adding.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var review model.Review
@@ -39,7 +39,7 @@ func (rev *Reviews) Add(a adding.Service) http.HandlerFunc {
 	}
 }
 
-// Delete deletes a review
+// Delete removes a review.
 func (rev *Reviews) Delete(d deleting.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var review model.Review
@@ -56,8 +56,8 @@ func (rev *Reviews) Delete(d deleting.Service) http.HandlerFunc {
 	}
 }
 
-// GetAll lists all the reviews
-func (rev *Reviews) GetAll(l listing.Service) http.HandlerFunc {
+// Find lists all the reviews.
+func (rev *Reviews) Find(l listing.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var review []model.Review
 
@@ -71,8 +71,8 @@ func (rev *Reviews) GetAll(l listing.Service) http.HandlerFunc {
 	}
 }
 
-// GetByID lists the review with the id requested
-func (rev *Reviews) GetByID(l listing.Service) http.HandlerFunc {
+// FindByID lists the review with the id requested.
+func (rev *Reviews) FindByID(l listing.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var review model.Review
 

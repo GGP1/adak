@@ -7,7 +7,7 @@ import (
 	"github.com/jinzhu/gorm"
 )
 
-// MonoRepo contains the functions of all the services
+// MonoRepo contains the functions of all the services.
 type MonoRepo interface {
 	// Adding
 	AddProduct(db *gorm.DB, product *model.Product) error

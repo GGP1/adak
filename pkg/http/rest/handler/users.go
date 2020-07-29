@@ -23,7 +23,7 @@ type Users struct {
 	DB *gorm.DB
 }
 
-// Add creates a new user and saves it
+// Add creates a new user and saves it.
 func (us *Users) Add(a adding.Service, pendingList email.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var user model.User
@@ -62,7 +62,7 @@ func (us *Users) Add(a adding.Service, pendingList email.Service) http.HandlerFu
 	}
 }
 
-// Delete deletes a user
+// Delete removes a user.
 func (us *Users) Delete(d deleting.Service, s auth.Session, pendingList, validatedList email.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var user model.User
@@ -108,8 +108,8 @@ func (us *Users) Delete(d deleting.Service, s auth.Session, pendingList, validat
 	}
 }
 
-// GetAll lists all the users
-func (us *Users) GetAll(l listing.Service) http.HandlerFunc {
+// Find lists all the users
+func (us *Users) Find(l listing.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var user []model.User
 
@@ -123,8 +123,8 @@ func (us *Users) GetAll(l listing.Service) http.HandlerFunc {
 	}
 }
 
-// GetByID lists the user with the id requested
-func (us *Users) GetByID(l listing.Service) http.HandlerFunc {
+// FindByID lists the user with the id requested.
+func (us *Users) FindByID(l listing.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var user model.User
 
@@ -140,7 +140,7 @@ func (us *Users) GetByID(l listing.Service) http.HandlerFunc {
 	}
 }
 
-// Update updates the user with the given id
+// Update updates the user with the given id.
 func (us *Users) Update(u updating.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var user model.User

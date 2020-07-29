@@ -45,13 +45,15 @@ func NewSession(db *gorm.DB, r Repository) Session {
 	}
 }
 
-// AlreadyLoggedIn checks if the user have previously logged in.
+// AlreadyLoggedIn checks if the user have previously logged in or not.
 func (s *session) AlreadyLoggedIn(w http.ResponseWriter, r *http.Request) bool {
 	cookie, err := r.Cookie("SID")
 	if err != nil {
 		return false
 	}
 
+	s.Lock()
+	defer s.Unlock()
 	user, ok := s.store[cookie.Value]
 	if ok {
 		user.lastSeen = time.Now()
@@ -64,6 +66,7 @@ func (s *session) AlreadyLoggedIn(w http.ResponseWriter, r *http.Request) bool {
 }
 
 // Login authenticates users and returns a jwt token.
+// If the user is already logged in, redirects him to the home page.
 func (s *session) Login(w http.ResponseWriter, email, password string) error {
 	user := model.User{}
 
@@ -118,12 +121,12 @@ func (s *session) Logout(w http.ResponseWriter, r *http.Request, c *http.Cookie)
 		deleteCookie(w, "AID")
 	}
 
-	// Delete SID, UID and CID cookies
+	// Delete cookies
 	deleteCookie(w, "SID")
 	deleteCookie(w, "UID")
 	deleteCookie(w, "CID")
 
-	// Delete user from session
+	// Delete user session
 	s.Lock()
 	delete(s.store, c.Value)
 	s.Unlock()

@@ -14,12 +14,12 @@ type service struct {
 	r Repository
 }
 
-// NewService creates a updating service with the necessary dependencies
+// NewService creates a updating service with the necessary dependencies.
 func NewService(r Repository) Service {
 	return &service{r}
 }
 
-// UpdateProduct updates a product, returns an error
+// UpdateProduct updates a product, returns an error.
 func (s *service) UpdateProduct(db *gorm.DB, product *model.Product, id string) error {
 	err := db.Model(&product).Where("id=?", id).Update(
 		"brand", product.Brand,
@@ -39,7 +39,7 @@ func (s *service) UpdateProduct(db *gorm.DB, product *model.Product, id string) 
 	return nil
 }
 
-// UpdateShop updates a shop, returns an error
+// UpdateShop updates a shop, returns an error.
 func (s *service) UpdateShop(db *gorm.DB, shop *model.Shop, id string) error {
 	err := db.Model(&shop).Where("id=?", id).Update(
 		"name", shop.Name,
@@ -54,7 +54,7 @@ func (s *service) UpdateShop(db *gorm.DB, shop *model.Shop, id string) error {
 	return nil
 }
 
-// UpdateUser returns updates a user, returns an error
+// UpdateUser returns updates a user, returns an error.
 func (s *service) UpdateUser(db *gorm.DB, user *model.User, id string) error {
 	err := db.Model(&user).Where("id=?", id).Update(
 		"firstname", user.Firstname,

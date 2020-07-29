@@ -9,7 +9,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-// Config contains the server configuration
+// Config contains the server configuration.
 type Config struct {
 	Server struct {
 		Host    string `yaml:"host"`
@@ -22,7 +22,7 @@ type Config struct {
 	} `yaml:"server"`
 }
 
-// NewConfig returns a new configuration
+// NewConfig returns a new configuration.
 func NewConfig(configPath string) (*Config, error) {
 	config := &Config{}
 
@@ -42,7 +42,7 @@ func NewConfig(configPath string) (*Config, error) {
 }
 
 // ParseFlags will create and parse the CLI flags
-// and return the path to be used elsewhere
+// and return the path to be used elsewhere.
 func ParseFlags() (string, error) {
 	var configPath string
 
@@ -57,7 +57,7 @@ func ParseFlags() (string, error) {
 	return configPath, nil
 }
 
-// validateConfigPath checks if the flag is provided correctly
+// validateConfigPath checks if the flag is provided correctly.
 func validateConfigPath(path string) error {
 	s, err := os.Stat(path)
 	if err != nil {

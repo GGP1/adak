@@ -18,14 +18,14 @@ func TestUsersHandler(t *testing.T) {
 
 func list(t *testing.T) {
 	db, _, _ := storage.PostgresConnect()
-	repo := *new(repository.MonoRepo)
 
+	repo := *new(repository.MonoRepo)
 	users := handler.Users{DB: db}
 
 	req := httptest.NewRequest("GET", "localhost:4000/users", nil)
 	rec := httptest.NewRecorder()
 
-	handler := users.GetAll(repo)
+	handler := users.Find(repo)
 	handler(rec, req)
 
 	res := rec.Result()

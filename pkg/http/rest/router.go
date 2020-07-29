@@ -11,6 +11,7 @@ import (
 	"github.com/GGP1/palo/pkg/auth/email"
 	"github.com/GGP1/palo/pkg/deleting"
 	"github.com/GGP1/palo/pkg/repository"
+	"github.com/GGP1/palo/pkg/tracking"
 	"github.com/jinzhu/gorm"
 
 	// h -> handler
@@ -26,7 +27,7 @@ import (
 	"github.com/gorilla/mux"
 )
 
-// NewRouter creates and returns a mux router
+// NewRouter initializes services, creates and returns a mux router
 func NewRouter(db *gorm.DB) http.Handler {
 	r := mux.NewRouter().StrictSlash(true)
 
@@ -43,6 +44,8 @@ func NewRouter(db *gorm.DB) http.Handler {
 	// -- Email lists --
 	pendingList := email.NewList(db, "pending_list", repo)
 	validatedList := email.NewList(db, "validated_list", repo)
+	// -- Tracker --
+	tracker := *tracking.NewTracker(db, "")
 
 	// ==========
 	// 	Auth
@@ -50,6 +53,30 @@ func NewRouter(db *gorm.DB) http.Handler {
 	r.HandleFunc("/login", h.Login(session, validatedList)).Methods("POST")
 	r.HandleFunc("/logout", m.RequireLogin(h.Logout(session))).Methods("GET")
 	r.HandleFunc("/verification/{token}", h.ValidateEmail(pendingList, validatedList)).Methods("GET")
+
+	// ==========
+	// 	Home
+	// ==========
+	r.HandleFunc("/", h.Home(tracker)).Methods("GET")
+
+	// ==========
+	// 	Products
+	// ==========
+	products := h.Products{DB: db}
+	r.HandleFunc("/products", products.Find(l)).Methods("GET")
+	r.HandleFunc("/products/{id}", products.FindByID(l)).Methods("GET")
+	r.HandleFunc("/products/add", products.Add(a)).Methods("POST")
+	r.HandleFunc("/products/{id}", m.AdminsOnly(products.Update(u))).Methods("PUT")
+	r.HandleFunc("/products/{id}", m.AdminsOnly(products.Delete(d))).Methods("DELETE")
+
+	// ==========
+	// 	Reviews
+	// ==========
+	reviews := h.Reviews{DB: db}
+	r.HandleFunc("/reviews", reviews.Find(l)).Methods("GET")
+	r.HandleFunc("/reviews/{id}", reviews.FindByID(l)).Methods("GET")
+	r.HandleFunc("/reviews/add", m.RequireLogin(reviews.Add(a))).Methods("POST")
+	r.HandleFunc("/reviews/{id}", m.AdminsOnly(reviews.Delete(d))).Methods("DELETE")
 
 	// ==========
 	//  Shopping
@@ -70,45 +97,34 @@ func NewRouter(db *gorm.DB) http.Handler {
 	r.HandleFunc("/cart/weight/{min}/{max}", m.RequireLogin(h.CartFilterByWeight(db))).Methods("GET")
 
 	// ==========
-	// 	Home
-	// ==========
-	r.HandleFunc("/", h.Home()).Methods("GET")
-
-	// ==========
-	// 	Products
-	// ==========
-	products := h.Products{DB: db}
-	r.HandleFunc("/products", products.GetAll(l)).Methods("GET")
-	r.HandleFunc("/products/{id}", products.GetByID(l)).Methods("GET")
-	r.HandleFunc("/products/add", products.Add(a)).Methods("POST")
-	r.HandleFunc("/products/{id}", m.AdminsOnly(products.Update(u))).Methods("PUT")
-	r.HandleFunc("/products/{id}", m.AdminsOnly(products.Delete(d))).Methods("DELETE")
-
-	// ==========
-	// 	Reviews
-	// ==========
-	reviews := h.Reviews{DB: db}
-	r.HandleFunc("/reviews", reviews.GetAll(l)).Methods("GET")
-	r.HandleFunc("/reviews/{id}", reviews.GetByID(l)).Methods("GET")
-	r.HandleFunc("/reviews/add", m.RequireLogin(reviews.Add(a))).Methods("POST")
-	r.HandleFunc("/reviews/{id}", m.AdminsOnly(reviews.Delete(d))).Methods("DELETE")
-
-	// ==========
 	// 	Shops
 	// ==========
 	shops := h.Shops{DB: db}
-	r.HandleFunc("/shops", shops.GetAll(l)).Methods("GET")
-	r.HandleFunc("/shops/{id}", shops.GetByID(l)).Methods("GET")
+	r.HandleFunc("/shops", shops.Find(l)).Methods("GET")
+	r.HandleFunc("/shops/{id}", shops.FindByID(l)).Methods("GET")
 	r.HandleFunc("/shops/add", shops.Add(a)).Methods("POST")
 	r.HandleFunc("/shops/{id}", m.AdminsOnly(shops.Update(u))).Methods("PUT")
 	r.HandleFunc("/shops/{id}", m.AdminsOnly(shops.Delete(d))).Methods("DELETE")
 
 	// ==========
+	// 	Tracker
+	// ==========
+	r.HandleFunc("/tracker", h.FindHits(tracker)).Methods("GET")
+	r.HandleFunc("/tracker/{id}", h.FindHitsByID(tracker)).Methods("GET")
+	r.HandleFunc("/tracker/day/{day}", h.FindHitsByDay(tracker)).Methods("GET")
+	r.HandleFunc("/tracker/hour/{hour}", h.FindHitsByHour(tracker)).Methods("GET")
+	r.HandleFunc("/tracker/language/{language}", h.FindHitsByLanguage(tracker)).Methods("GET")
+	r.HandleFunc("/tracker/month/{month}", h.FindHitsByMonth(tracker)).Methods("GET")
+	r.HandleFunc("/tracker/path/{path}", h.FindHitsByPath(tracker)).Methods("GET")
+	r.HandleFunc("/tracker/weekday/{weekday}", h.FindHitsByWeekday(tracker)).Methods("GET")
+	r.HandleFunc("/tracker/year/{year}", h.FindHitsByYear(tracker)).Methods("GET")
+
+	// ==========
 	// 	Users
 	// ==========
 	users := h.Users{DB: db}
-	r.HandleFunc("/users", users.GetAll(l)).Methods("GET")
-	r.HandleFunc("/users/{id}", users.GetByID(l)).Methods("GET")
+	r.HandleFunc("/users", users.Find(l)).Methods("GET")
+	r.HandleFunc("/users/{id}", users.FindByID(l)).Methods("GET")
 	r.HandleFunc("/users/add", users.Add(a, pendingList)).Methods("POST")
 	r.HandleFunc("/users/{id}", m.RequireLogin(users.Update(u))).Methods("PUT")
 	r.HandleFunc("/users/{id}", m.RequireLogin(users.Delete(d, session, pendingList, validatedList))).Methods("DELETE")

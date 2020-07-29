@@ -1,6 +1,4 @@
-/*
-Package handler contains the methods used by the router
-*/
+// Package handler contains the handlers used by the router
 package handler
 
 import (
@@ -17,7 +15,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-// Login takes a user and authenticates it
+// Login takes a user credentials and authenticates it.
 func Login(s auth.Session, validatedList email.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if s.AlreadyLoggedIn(w, r) {
@@ -59,7 +57,7 @@ func Login(s auth.Session, validatedList email.Service) http.HandlerFunc {
 	}
 }
 
-// Logout removes the authentication cookie
+// Logout logs the user out from the session and removes cookies.
 func Logout(s auth.Session) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		c, _ := r.Cookie("SID")
@@ -76,7 +74,8 @@ func Logout(s auth.Session) http.HandlerFunc {
 	}
 }
 
-// ValidateEmail is the email verification page
+// ValidateEmail saves the user email into the validated list.
+// Once in the validated list, the user is able to log in.
 func ValidateEmail(pendingList, validatedList email.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var validated bool

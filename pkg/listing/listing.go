@@ -15,12 +15,12 @@ type service struct {
 	r Repository
 }
 
-// NewService creates a listing service with the necessary dependencies
+// NewService creates a listing service with the necessary dependencies.
 func NewService(r Repository) Service {
 	return &service{r}
 }
 
-// GetProducts lists all the products stored in the database
+// GetProducts lists all the products stored in the database.
 func (s *service) GetProducts(db *gorm.DB, product *[]model.Product) error {
 	err := db.Preload("Reviews").Find(product).Error
 	if err != nil {
@@ -29,7 +29,7 @@ func (s *service) GetProducts(db *gorm.DB, product *[]model.Product) error {
 	return nil
 }
 
-// GetProductByID lists the product requested from the database
+// GetProductByID lists the product requested from the database.
 func (s *service) GetProductByID(db *gorm.DB, product *model.Product, id string) error {
 	err := db.Preload("Reviews").First(product, id).Error
 	if err != nil {
@@ -38,7 +38,7 @@ func (s *service) GetProductByID(db *gorm.DB, product *model.Product, id string)
 	return nil
 }
 
-// GetReviews lists all the reviews stored in the database
+// GetReviews lists all the reviews stored in the database.
 func (s *service) GetReviews(db *gorm.DB, review *[]model.Review) error {
 	err := db.Find(review).Error
 	if err != nil {
@@ -47,7 +47,7 @@ func (s *service) GetReviews(db *gorm.DB, review *[]model.Review) error {
 	return nil
 }
 
-// GetReviewByID lists the review requested from the database
+// GetReviewByID lists the review requested from the database.
 func (s *service) GetReviewByID(db *gorm.DB, review *model.Review, id string) error {
 	err := db.First(review, id).Error
 	if err != nil {
@@ -56,7 +56,7 @@ func (s *service) GetReviewByID(db *gorm.DB, review *model.Review, id string) er
 	return nil
 }
 
-// GetShops lists all the shops stored in the database
+// GetShops lists all the shops stored in the database.
 func (s *service) GetShops(db *gorm.DB, shop *[]model.Shop) error {
 	err := db.Preload("Location").Preload("Reviews").Preload("Products").Find(shop).Error
 	if err != nil {
@@ -65,7 +65,7 @@ func (s *service) GetShops(db *gorm.DB, shop *[]model.Shop) error {
 	return nil
 }
 
-// GetShopByID lists the shop requested from the database
+// GetShopByID lists the shop requested from the database.
 func (s *service) GetShopByID(db *gorm.DB, shop *model.Shop, id string) error {
 	err := db.Preload("Location").Preload("Reviews").Preload("Products").First(shop, id).Error
 	if err != nil {
@@ -74,7 +74,7 @@ func (s *service) GetShopByID(db *gorm.DB, shop *model.Shop, id string) error {
 	return nil
 }
 
-// GetUsers lists all the users stored in the database
+// GetUsers lists all the users stored in the database.
 func (s *service) GetUsers(db *gorm.DB, user *[]model.User) error {
 	err := db.Preload("Reviews").Find(user).Error
 	if err != nil {
@@ -83,7 +83,7 @@ func (s *service) GetUsers(db *gorm.DB, user *[]model.User) error {
 	return nil
 }
 
-// GetUserByID lists the user requested from the database
+// GetUserByID lists the user requested from the database.
 func (s *service) GetUserByID(db *gorm.DB, user *model.User, id string) error {
 	err := db.Preload("Reviews").First(user, id).Error
 	if err != nil {

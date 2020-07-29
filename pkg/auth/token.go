@@ -8,7 +8,7 @@ import (
 	"github.com/dgrijalva/jwt-go"
 )
 
-// GenerateJWT creates a new jwt token - changes over time -
+// GenerateJWT creates a new jwt token - changes over time -.
 func GenerateJWT(user model.User) (string, error) {
 	key := []byte(cfg.SecretKey)
 
@@ -22,7 +22,7 @@ func GenerateJWT(user model.User) (string, error) {
 	return token.SignedString(key)
 }
 
-// GenerateFixedJWT creates a jwt token that does not vary
+// GenerateFixedJWT creates a jwt token that does not vary.
 func GenerateFixedJWT(id string) (string, error) {
 	key := []byte(cfg.SecretKey)
 

@@ -15,12 +15,12 @@ import (
 	"github.com/gorilla/mux"
 )
 
-// Products handles products routes
+// Products handles products routes.
 type Products struct {
 	DB *gorm.DB
 }
 
-// Add creates a new product and saves it
+// Add creates a new product and saves it.
 func (p *Products) Add(a adding.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var product model.Product
@@ -41,7 +41,7 @@ func (p *Products) Add(a adding.Service) http.HandlerFunc {
 	}
 }
 
-// Delete deletes a product
+// Delete removes a product.
 func (p *Products) Delete(d deleting.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var product model.Product
@@ -58,8 +58,8 @@ func (p *Products) Delete(d deleting.Service) http.HandlerFunc {
 	}
 }
 
-// GetAll lists all the products
-func (p *Products) GetAll(l listing.Service) http.HandlerFunc {
+// Find lists all the products.
+func (p *Products) Find(l listing.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var product []model.Product
 
@@ -73,8 +73,8 @@ func (p *Products) GetAll(l listing.Service) http.HandlerFunc {
 	}
 }
 
-// GetByID lists the product with the id requested
-func (p *Products) GetByID(l listing.Service) http.HandlerFunc {
+// FindByID lists the product with the id requested.
+func (p *Products) FindByID(l listing.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var product model.Product
 
@@ -90,7 +90,7 @@ func (p *Products) GetByID(l listing.Service) http.HandlerFunc {
 	}
 }
 
-// Update updates the product with the given id
+// Update updates the product with the given id.
 func (p *Products) Update(u updating.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var product model.Product

@@ -1,6 +1,6 @@
 package email
 
-// Repository provides access to the storage
+// Repository provides access to the storage.
 type Repository interface {
 	Add(email, token string) error
 	Read() (map[string]string, error)
@@ -8,7 +8,7 @@ type Repository interface {
 	Seek(email string) error
 }
 
-// Service provides email lists operations
+// Service provides email lists operations.
 type Service interface {
 	Add(email, token string) error
 	Read() (map[string]string, error)

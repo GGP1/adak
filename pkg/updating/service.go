@@ -5,7 +5,7 @@ import (
 	"github.com/jinzhu/gorm"
 )
 
-// Repository provides access to the storage
+// Repository provides access to the storage.
 type Repository interface {
 	UpdateProduct(db *gorm.DB, product *model.Product, id string) error
 	UpdateShop(db *gorm.DB, shop *model.Shop, id string) error

@@ -15,13 +15,13 @@ import (
 	"github.com/GGP1/palo/pkg/model"
 )
 
-// Items represents a struct with the values passed to the template
+// Items represents a struct with the values passed to the template.
 type Items struct {
 	Name  string
 	Token string
 }
 
-// SendValidation sends a validation email to the user
+// SendValidation sends a validation email to the user.
 func SendValidation(user model.User, token string) error {
 	// =================
 	// 	Email content

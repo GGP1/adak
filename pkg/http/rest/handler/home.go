@@ -5,11 +5,18 @@ import (
 	"strings"
 
 	"github.com/GGP1/palo/internal/response"
+	"github.com/GGP1/palo/pkg/tracking"
 )
 
-// Home page
-func Home() http.HandlerFunc {
+// Home gives users a welcome and takes non-invasive information from them.
+func Home(t tracking.Tracker) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		err := t.Hit(r)
+		if err != nil {
+			response.Error(w, r, http.StatusInternalServerError, err)
+			return
+		}
+
 		lang := r.Header.Get("Accept-Language")
 
 		if lang != "" {
@@ -17,6 +24,7 @@ func Home() http.HandlerFunc {
 			response.HTMLText(w, r, http.StatusOK, sentence)
 			return
 		}
+
 		response.HTMLText(w, r, http.StatusOK, "Welcome to the Palo home page")
 	}
 }

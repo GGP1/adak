@@ -9,14 +9,14 @@ import (
 	"time"
 )
 
-// Expiration ON/OFF
+// Expiration ON/OFF.
 const (
 	NoExpiration      time.Duration = -1
 	DefaultExpiration time.Duration = 0
 )
 
 // Cache holds a default expiration, a map of items,
-// the mutexes and its name
+// the mutexes and its name.
 type Cache struct {
 	defaultExpiration time.Duration
 	items             map[string]Item
@@ -24,15 +24,13 @@ type Cache struct {
 }
 
 // Item represents the object that the user stores
-// in the cache, with its expiration
+// in the cache, with its expiration.
 type Item struct {
 	Object     interface{}
 	Expiration int64
 }
 
-// New creates a cache
-// TODO: Create a file that contains the cache map
-// and set 2 functions: load and save
+// New creates a cache.
 func New(defaultExpiration time.Duration) *Cache {
 	items := make(map[string]Item)
 
@@ -48,7 +46,7 @@ func New(defaultExpiration time.Duration) *Cache {
 	return newCache
 }
 
-// Add checks if an item doesn't exist yet, if not, stores it
+// Add checks if an item doesn't exist yet, if not, stores it.
 func (c *Cache) Add(key string, obj interface{}, defaultExpiration time.Duration) error {
 	c.Lock()
 	defer c.Unlock()
@@ -64,14 +62,14 @@ func (c *Cache) Add(key string, obj interface{}, defaultExpiration time.Duration
 	return nil
 }
 
-// Delete an item
+// Delete an item.
 func (c *Cache) Delete(key string) {
 	c.Lock()
 	delete(c.items, key)
 	c.Unlock()
 }
 
-// Get an item
+// Get an item.
 func (c *Cache) Get(key string) (interface{}, bool) {
 	c.RLock()
 	defer c.RUnlock()
@@ -92,7 +90,7 @@ func (c *Cache) Get(key string) (interface{}, bool) {
 	return item.Object, true
 }
 
-// Items returns a map copy of the items stored in the cache
+// Items returns a map copy of the items stored in the cache.
 func (c *Cache) Items() (map[string]Item, error) {
 	c.Lock()
 	defer c.Unlock()
@@ -111,7 +109,7 @@ func (c *Cache) Items() (map[string]Item, error) {
 	return newMap, nil
 }
 
-// Replace an item with a new one and store it
+// Replace an item with a new one and store it.
 func (c *Cache) Replace(key string, obj interface{}, defaultExpiration time.Duration) error {
 	c.Lock()
 	defer c.Unlock()
@@ -126,7 +124,7 @@ func (c *Cache) Replace(key string, obj interface{}, defaultExpiration time.Dura
 	return nil
 }
 
-// Reset deletes all the items from the cache
+// Reset deletes all the items from the cache.
 func (c *Cache) Reset() error {
 	c.Lock()
 	c.items = map[string]Item{}
@@ -135,7 +133,7 @@ func (c *Cache) Reset() error {
 	return nil
 }
 
-// Set a new item to the cache
+// Set a new item to the cache.
 func (c *Cache) Set(key string, obj interface{}, defaultExpiration time.Duration) error {
 	var expiration int64
 
@@ -159,7 +157,7 @@ func (c *Cache) Set(key string, obj interface{}, defaultExpiration time.Duration
 	return nil
 }
 
-// Size returns the number of items stored in the cache
+// Size returns the number of items stored in the cache.
 func (c *Cache) Size() (int, error) {
 	c.RLock()
 	defer c.RUnlock()

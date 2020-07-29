@@ -8,7 +8,7 @@ import (
 	"net/http"
 )
 
-// HTMLText is the protocol function for html text resposes
+// HTMLText is the function used to send html text resposes.
 func HTMLText(w http.ResponseWriter, r *http.Request, status int, text string) {
 	w.Header().Set("Content-Type", "text/html; charset=UTF-8")
 
@@ -17,7 +17,7 @@ func HTMLText(w http.ResponseWriter, r *http.Request, status int, text string) {
 	fmt.Fprintln(w, text)
 }
 
-// JSON is the protocol function for JSON responses
+// JSON is the function used to send JSON responses.
 func JSON(w http.ResponseWriter, r *http.Request, status int, v interface{}) {
 	var buf bytes.Buffer
 
@@ -35,7 +35,7 @@ func JSON(w http.ResponseWriter, r *http.Request, status int, v interface{}) {
 	}
 }
 
-// Error is the protocol function for error resposes
+// Error is the function used to send error resposes.
 func Error(w http.ResponseWriter, r *http.Request, status int, err error) {
 	// Set content type, statusCode and write the error
 	http.Error(w, err.Error(), status)

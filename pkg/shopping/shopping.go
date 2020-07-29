@@ -7,7 +7,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-// Cart stores the products that the user chose to buy
+// Cart stores the products that the user chose to buy.
 type Cart struct {
 	ID       string         `json:"id"`
 	Counter  int            `json:"counter"`
@@ -19,7 +19,7 @@ type Cart struct {
 	Products []*CartProduct `json:"products" gorm:"foreignkey:CartID"`
 }
 
-// CartProduct represents a product that has been appended to the cart
+// CartProduct represents a product that has been appended to the cart.
 type CartProduct struct {
 	CartID      string  `json:"cart_id"`
 	ID          int     `json:"id"`
@@ -35,7 +35,7 @@ type CartProduct struct {
 	Total       float32 `json:"total"`
 }
 
-// NewCart returns a cart with the default values
+// NewCart returns a cart with the default values.
 func NewCart(userID string) *Cart {
 	return &Cart{
 		ID:       userID,
@@ -49,7 +49,7 @@ func NewCart(userID string) *Cart {
 	}
 }
 
-// Add a product to the cart
+// Add a product to the cart.
 func Add(db *gorm.DB, cartID string, product *CartProduct, quantity int) (*CartProduct, error) {
 	var cart Cart
 
@@ -94,7 +94,7 @@ func Add(db *gorm.DB, cartID string, product *CartProduct, quantity int) (*CartP
 	return product, nil
 }
 
-// Checkout takes all the products and returns the total price
+// Checkout takes all the products and returns the total price.
 func Checkout(db *gorm.DB, cartID string) (float32, error) {
 	var cart Cart
 
@@ -107,7 +107,7 @@ func Checkout(db *gorm.DB, cartID string) (float32, error) {
 	return total, nil
 }
 
-// Get returns the user cart
+// Get returns the user cart.
 func Get(db *gorm.DB, cartID string) (Cart, error) {
 	var cart Cart
 
@@ -118,7 +118,7 @@ func Get(db *gorm.DB, cartID string) (Cart, error) {
 	return cart, nil
 }
 
-// Items prints cart Products
+// Items prints cart Products.
 func Items(db *gorm.DB, cartID string) ([]CartProduct, error) {
 	var cart Cart
 	var list []CartProduct
@@ -140,7 +140,7 @@ func Items(db *gorm.DB, cartID string) ([]CartProduct, error) {
 	return list, nil
 }
 
-// Remove takes away the specified quantity of products from the cart
+// Remove takes away the specified quantity of products from the cart.
 func Remove(db *gorm.DB, cartID string, key int, quantity int) error {
 	var cart Cart
 	var product CartProduct
@@ -192,7 +192,7 @@ func Remove(db *gorm.DB, cartID string, key int, quantity int) error {
 	return nil
 }
 
-// Reset cart products
+// Reset cart products.
 func Reset(db *gorm.DB, cartID string) error {
 	var cart Cart
 	var product CartProduct
@@ -220,7 +220,7 @@ func Reset(db *gorm.DB, cartID string) error {
 	return nil
 }
 
-// Size returns the quantity of products in the cart
+// Size returns the quantity of products in the cart.
 func Size(db *gorm.DB, cartID string) (int, error) {
 	var cart Cart
 
@@ -231,7 +231,7 @@ func Size(db *gorm.DB, cartID string) (int, error) {
 	return cart.Counter, nil
 }
 
-// String returns a string with the cart details
+// String returns a string with the cart details.
 func String(db *gorm.DB, cartID string) (string, error) {
 	var cart Cart
 

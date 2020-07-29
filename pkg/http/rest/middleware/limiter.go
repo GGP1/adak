@@ -13,7 +13,7 @@ import (
 )
 
 // visitor holds the rate limiter for each visitor and the
-// last time the visitor was seen
+// last time the visitor was seen.
 type visitor struct {
 	// Control how frequent the events are allowed to happen
 	limiter *rate.Limiter
@@ -30,7 +30,7 @@ func init() {
 }
 
 // LimitRate limits the number of requests allowed
-// per user per second
+// per user per second.
 func LimitRate(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ip, _, err := net.SplitHostPort(r.RemoteAddr)
@@ -51,7 +51,7 @@ func LimitRate(next http.Handler) http.Handler {
 }
 
 // Checks if the visitors map exists and creates a new one
-// if not, update last visit and return the visitor limiter
+// if not, update last visit and return the visitor limiter.
 func getVisitor(ip string, r rate.Limit, b int) *rate.Limiter {
 	mutex.RLock()
 	defer mutex.RUnlock()
@@ -72,7 +72,7 @@ func getVisitor(ip string, r rate.Limit, b int) *rate.Limiter {
 }
 
 // Every minute look for the visitors in the map that
-// haven't been seen for 10 minutes
+// haven't been seen for 10 minutes.
 func cleanupVisitors() {
 	for {
 		time.Sleep(time.Minute)

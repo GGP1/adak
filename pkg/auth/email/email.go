@@ -2,24 +2,22 @@ package email
 
 import (
 	"fmt"
-	"sync"
 
 	"github.com/jinzhu/gorm"
 )
 
-// List contains a list of users emails and their tokens
+// List represents an email lists and provides the methods to make
+// queries, each list may contain a unique table.
 type List struct {
 	DB *gorm.DB
 	// Used to distinguish between tables of the same struct
 	tableName string
 	r         Repository
-	sync.RWMutex
-
-	Email string `json:"email"`
-	Token string `json:"token"`
+	Email     string `json:"email"`
+	Token     string `json:"token"`
 }
 
-// NewList creates the email list service
+// NewList creates the email list service.
 func NewList(db *gorm.DB, tableName string, r Repository) Service {
 	return &List{
 		DB:        db,
@@ -30,13 +28,10 @@ func NewList(db *gorm.DB, tableName string, r Repository) Service {
 	}
 }
 
-// Add a user to the list
+// Add a user to the list.
 func (l *List) Add(email, token string) error {
-
-	l.Lock()
 	l.Email = email
 	l.Token = token
-	l.Unlock()
 
 	err := l.DB.Table(l.tableName).Create(l).Error
 	if err != nil {
@@ -46,7 +41,7 @@ func (l *List) Add(email, token string) error {
 	return nil
 }
 
-// Read returns a map with the email list or an error
+// Read returns a map with the email list or an error.
 func (l *List) Read() (map[string]string, error) {
 	err := l.DB.Table(l.tableName).Find(l).Error
 	if err != nil {
@@ -58,7 +53,7 @@ func (l *List) Read() (map[string]string, error) {
 	return emailList, nil
 }
 
-// Remove deletes a key from the map
+// Remove deletes an email from the list.
 func (l *List) Remove(key string) error {
 	err := l.DB.Table(l.tableName).Delete(l, key).Error
 	if err != nil {
@@ -68,7 +63,7 @@ func (l *List) Remove(key string) error {
 	return nil
 }
 
-// Seek looks for the specified email in the database
+// Seek looks for the specified email in the list.
 func (l *List) Seek(email string) error {
 	err := l.DB.Table(l.tableName).First(l, "email = ?", email).Error
 	if err != nil {

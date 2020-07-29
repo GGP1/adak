@@ -11,13 +11,13 @@ import (
 	"time"
 )
 
-// Server holds a http server
+// Server holds a http server.
 type Server struct {
 	*http.Server
 	TimeoutShutdown time.Duration
 }
 
-// New returns a new server
+// New returns a new server.
 func New(c *Config, router http.Handler) *Server {
 	return &Server{
 		&http.Server{
@@ -31,7 +31,7 @@ func New(c *Config, router http.Handler) *Server {
 	}
 }
 
-// Start runs the server listening for errors
+// Start runs the server listening for errors.
 func (srv *Server) Start() error {
 	serverErr := make(chan error, 1)
 
@@ -51,11 +51,11 @@ func (srv *Server) Start() error {
 	case <-shutdown:
 		log.Println("main: Start shutdown")
 
-		// Give outstanding requests a deadline for completion.
+		// Give outstanding requests a deadline for completion
 		ctx, cancel := context.WithTimeout(context.Background(), srv.TimeoutShutdown)
 		defer cancel()
 
-		// Asking listener to shutdown and load shed.
+		// Asking listener to shutdown and load shed
 		err := srv.Shutdown(ctx)
 		if err != nil {
 			return fmt.Errorf("main: Graceful shutdown did not complete in %v : %v", srv.TimeoutShutdown, err)
