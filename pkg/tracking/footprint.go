@@ -17,7 +17,7 @@ func Footprint(r *http.Request, salt string) string {
 
 	sb.WriteString(r.Header.Get("User-Agent"))
 	sb.WriteString(getIP(r))
-	sb.WriteString(time.Now().UTC().Format("20060102"))
+	sb.WriteString(string(time.Now().UnixNano()))
 	sb.WriteString(salt)
 	hash := md5.New()
 

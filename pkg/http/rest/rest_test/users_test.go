@@ -19,7 +19,7 @@ func TestUsersHandler(t *testing.T) {
 func list(t *testing.T) {
 	db, _, _ := storage.PostgresConnect()
 
-	repo := *new(repository.MonoRepo)
+	repo := *new(repository.Repo)
 	users := handler.Users{DB: db}
 
 	req := httptest.NewRequest("GET", "localhost:4000/users", nil)

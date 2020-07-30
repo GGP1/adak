@@ -1,151 +1,131 @@
-// Package tracking is a privacy-focused user tracker based on
+// Package tracking is a privacy-focused user tracker inspired on
 // github.com/emvi/pirsch
 package tracking
 
 import (
-	"fmt"
+	"context"
+	"encoding/json"
 	"net/http"
 	"strings"
 
-	"github.com/jinzhu/gorm"
+	elastic "github.com/olivere/elastic/v7"
 	"github.com/pkg/errors"
 )
 
-// Tracer is the interface that wraps the basic Hit method.
-type Tracer interface {
-	Hit(r *http.Request) error
+// Hitter is the interface that wraps Hit methods.
+type Hitter interface {
+	Hit(ctx context.Context, r *http.Request) error
+	DeleteHit(ctx context.Context, id string) error
+	Get(ctx context.Context) ([]Hit, error)
+}
+
+// Searcher is the interface that serves searching methods.
+type Searcher interface {
+	Search(ctx context.Context, value string) ([]interface{}, error)
 }
 
 // Tracker provides methods to track requests and store them in a data store.
 // In case of an error it will panic.
 type Tracker struct {
-	DB   *gorm.DB
-	salt string
+	ESClient *elastic.Client
+	salt     string
 }
 
 // NewTracker returns a new user tracker.
-func NewTracker(db *gorm.DB, salt string) *Tracker {
+func NewTracker(esClient *elastic.Client, salt string) *Tracker {
 	return &Tracker{
-		DB:   db,
-		salt: salt,
+		ESClient: esClient,
+		salt:     salt,
 	}
 }
 
 // DeleteHit takes away the hit with the id specified from the database.
-func (tracker *Tracker) DeleteHit(id int64) int64 {
-	var hit Hit
-	total := tracker.DB.Where("id=?", id).Delete(&hit).RowsAffected
+func (t *Tracker) DeleteHit(ctx context.Context, id string) error {
+	bq := elastic.NewBoolQuery()
+	bq.Must(elastic.NewTermQuery("id", id))
+	_, err := elastic.NewDeleteByQueryService(t.ESClient).
+		Index("hits").
+		Query(bq).
+		Do(ctx)
 
-	return total
+	if err != nil {
+		return errors.Wrap(err, "couldn't delete the hit")
+	}
+
+	return nil
 }
 
-// FindAll lists all the hits stored in the database.
-func (tracker *Tracker) FindAll() int64 {
-	var hit Hit
-	total := tracker.DB.Find(&hit).RowsAffected
+// Get lists all the hits stored in the database.
+func (t *Tracker) Get(ctx context.Context) ([]Hit, error) {
+	var hits []Hit
 
-	return total
-}
+	searchSrc := elastic.NewSearchSource()
+	searchSrc.Query(elastic.NewMatchAllQuery())
 
-// FindByID lists the hit with the id specified.
-func (tracker *Tracker) FindByID(id int64) int64 {
-	var hit Hit
-	total := tracker.DB.Where("id=?", id).Find(&hit).RowsAffected
+	searchSv := t.ESClient.Search().Index("hits").SearchSource(searchSrc)
 
-	return total
-}
+	searchResult, err := searchSv.Do(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "couldn't find the hit")
+	}
 
-// FindByDay lists the hits that were stored in the day specified.
-func (tracker *Tracker) FindByDay(day int) string {
-	var hit Hit
-	hits := tracker.DB.Where("day=?", day).Find(&hit).RowsAffected
-	average := tracker.calculatePercentage(hits)
+	for _, r := range searchResult.Hits.Hits {
+		var hit Hit
+		err := json.Unmarshal(r.Source, &hit)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed unmarshaling data")
+		}
 
-	result := fmt.Sprintf("<strong>Hits</strong>: %d<br><br><strong>Percentage of the total</strong>: %f%%", hits, average)
+		hits = append(hits, hit)
+	}
 
-	return result
-}
-
-// FindByHour lists the hits that were stored in the hour specified.
-func (tracker *Tracker) FindByHour(hour int) string {
-	var hit Hit
-	hits := tracker.DB.Where("hour=?", hour).Find(&hit).RowsAffected
-	average := tracker.calculatePercentage(hits)
-
-	result := fmt.Sprintf("<strong>Hits</strong>: %d<br><br><strong>Percentage of the total</strong>: %f%%", hits, average)
-
-	return result
-}
-
-// FindByLanguage lists the hits that have the language specified.
-func (tracker *Tracker) FindByLanguage(language string) string {
-	var hit Hit
-	hits := tracker.DB.Where("language=?", language).Find(&hit).RowsAffected
-	average := tracker.calculatePercentage(hits)
-
-	result := fmt.Sprintf("<strong>Hits</strong>: %d<br><br><strong>Percentage of the total</strong>: %f%%", hits, average)
-
-	return result
-}
-
-// FindByMonth lists the hits that were stored in the month specified.
-func (tracker *Tracker) FindByMonth(month int) string {
-	var hit Hit
-	hits := tracker.DB.Where("month=?", month).Find(&hit).RowsAffected
-	average := tracker.calculatePercentage(hits)
-
-	result := fmt.Sprintf("<strong>Hits</strong>: %d<br><br><strong>Percentage of the total</strong>: %f%%", hits, average)
-
-	return result
-}
-
-// FindByPath lists the hits that were stored in the month specified.
-func (tracker *Tracker) FindByPath(path string) string {
-	var hit Hit
-	hits := tracker.DB.Where("path=?", path).Find(&hit).RowsAffected
-	average := tracker.calculatePercentage(hits)
-
-	result := fmt.Sprintf("<strong>Hits</strong>: %d<br><br><strong>Percentage of the total</strong>: %f%%", hits, average)
-
-	return result
-}
-
-// FindByWeekday lists the hits that were stored in the weekday specified.
-func (tracker *Tracker) FindByWeekday(weekday int) string {
-	var hit Hit
-	hits := tracker.DB.Where("weekday=?", weekday).Find(&hit).RowsAffected
-	average := tracker.calculatePercentage(hits)
-
-	result := fmt.Sprintf("<strong>Hits</strong>: %d<br><br><strong>Percentage of the total</strong>: %f%%", hits, average)
-
-	return result
-}
-
-// FindByYear lists the hits that were stored in the year specified.
-func (tracker *Tracker) FindByYear(year int) string {
-	var hit Hit
-	hits := tracker.DB.Where("year=?", year).Find(&hit).RowsAffected
-	average := tracker.calculatePercentage(hits)
-
-	result := fmt.Sprintf("<strong>Hits</strong>: %d<br><br><strong>Percentage of the total</strong>: %f%%", hits, average)
-
-	return result
+	return hits, nil
 }
 
 // Hit stores the given request.
 // The request might be ignored if it meets certain conditions.
-// The actions performed within this function run in their own goroutine, so you don't need to create one yourself.
-func (tracker *Tracker) Hit(r *http.Request) error {
+func (t *Tracker) Hit(ctx context.Context, r *http.Request) error {
 	if !ignoreHit(r) {
-		hit := HitRequest(r, tracker.salt)
+		hit := HitRequest(r, t.salt)
 
-		err := tracker.DB.Create(hit).Error
+		_, err := t.ESClient.Index().
+			Index("hits").
+			BodyJson(hit.String()).
+			Do(ctx)
+
 		if err != nil {
-			return errors.Wrap(err, "couldn't create the hit")
+			return errors.Wrap(err, "couldn't save the hit")
 		}
 	}
 
 	return nil
+}
+
+// Search looks for a value and returns a slice of the hits that contain that value.
+func (t *Tracker) Search(ctx context.Context, value string) ([]Hit, error) {
+	var hits []Hit
+
+	searchSource := elastic.NewSearchSource()
+	searchSource.Query(elastic.NewQueryStringQuery(value))
+
+	searchService := t.ESClient.Search().Index("hits").SearchSource(searchSource)
+
+	searchResult, err := searchService.Do(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "search failed")
+	}
+
+	for _, r := range searchResult.Hits.Hits {
+		var hit Hit
+		err := json.Unmarshal(r.Source, &hit)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed unmarshaling data")
+		}
+
+		hits = append(hits, hit)
+	}
+
+	return hits, nil
 }
 
 // Check headers commonly used by bots.
@@ -169,14 +149,4 @@ func ignoreHit(r *http.Request) bool {
 	}
 
 	return false
-}
-
-// calculateAverage returns the percentage that hits represent of the total hits stored
-func (tracker *Tracker) calculatePercentage(hits int64) float64 {
-	var hit Hit
-	total := tracker.DB.Find(&hit).RowsAffected
-
-	percentage := (100 / (float64(total)) * float64(hits))
-
-	return percentage
 }
