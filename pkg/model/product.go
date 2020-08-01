@@ -13,7 +13,6 @@ import (
 type Product struct {
 	gorm.Model
 	ShopID      uint     `json:"shop_id"`
-	Quantity    int      `json:"quantity"`
 	Brand       string   `json:"brand"`
 	Category    string   `json:"category"`
 	Type        string   `json:"type"`
@@ -28,6 +27,9 @@ type Product struct {
 
 // Validate checks that there is no missing fields
 func (p *Product) Validate() error {
+	if p.ShopID == 0 {
+		return errors.New("shop id is required")
+	}
 	if p.Brand == "" {
 		return errors.New("brand is required")
 	}
@@ -46,10 +48,6 @@ func (p *Product) Validate() error {
 
 	if p.Subtotal == 0 {
 		return errors.New("subtotal is required")
-	}
-
-	if p.Total == 0 {
-		return errors.New("total is required")
 	}
 
 	return nil
