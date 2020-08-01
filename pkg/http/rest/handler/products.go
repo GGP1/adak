@@ -9,6 +9,7 @@ import (
 	"github.com/GGP1/palo/pkg/deleting"
 	"github.com/GGP1/palo/pkg/listing"
 	"github.com/GGP1/palo/pkg/model"
+	"github.com/GGP1/palo/pkg/searching"
 	"github.com/GGP1/palo/pkg/updating"
 	"github.com/jinzhu/gorm"
 
@@ -61,15 +62,15 @@ func (p *Products) Delete(d deleting.Service) http.HandlerFunc {
 // Find lists all the products.
 func (p *Products) Find(l listing.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var product []model.Product
+		var products []model.Product
 
-		err := l.GetProducts(p.DB, &product)
+		err := l.GetProducts(p.DB, &products)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
 
-		response.JSON(w, r, http.StatusOK, product)
+		response.JSON(w, r, http.StatusOK, products)
 	}
 }
 
@@ -87,6 +88,22 @@ func (p *Products) FindByID(l listing.Service) http.HandlerFunc {
 		}
 
 		response.JSON(w, r, http.StatusOK, product)
+	}
+}
+
+// Search looks for the products with the given value.
+func (p *Products) Search(s searching.Service) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		search := mux.Vars(r)["search"]
+		var products []model.Product
+
+		err := s.SearchProducts(p.DB, &products, search)
+		if err != nil {
+			response.Error(w, r, http.StatusInternalServerError, err)
+			return
+		}
+
+		response.JSON(w, r, http.StatusOK, products)
 	}
 }
 

@@ -31,6 +31,11 @@ type Repo interface {
 	GetUsers(db *gorm.DB, user *[]model.User) error
 	GetUserByID(db *gorm.DB, user *model.User, id string) error
 
+	// Searching
+	SearchProducts(db *gorm.DB, products *[]model.Product, search string) error
+	SearchShops(db *gorm.DB, users *[]model.Shop, search string) error
+	SearchUsers(db *gorm.DB, users *[]model.User, search string) error
+
 	// Updating
 	UpdateProduct(db *gorm.DB, product *model.Product, id string) error
 	UpdateShop(db *gorm.DB, shop *model.Shop, id string) error

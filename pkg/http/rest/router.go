@@ -12,6 +12,7 @@ import (
 	"github.com/GGP1/palo/pkg/auth/email"
 	"github.com/GGP1/palo/pkg/deleting"
 	"github.com/GGP1/palo/pkg/repository"
+	"github.com/GGP1/palo/pkg/searching"
 	"github.com/GGP1/palo/pkg/tracking"
 
 	// h -> handler
@@ -39,6 +40,7 @@ func NewRouter(ctx context.Context, db *gorm.DB, esClient *elastic.Client) http.
 	d := deleting.NewService(repo)
 	l := listing.NewService(repo)
 	u := updating.NewService(repo)
+	s := searching.NewService(repo)
 	// -- Auth session --
 	session := auth.NewSession(db, repo)
 	// -- Email lists --
@@ -62,6 +64,7 @@ func NewRouter(ctx context.Context, db *gorm.DB, esClient *elastic.Client) http.
 	r.HandleFunc("/products/add", products.Add(a)).Methods("POST")
 	r.HandleFunc("/products/{id}", m.AdminsOnly(products.Update(u))).Methods("PUT")
 	r.HandleFunc("/products/{id}", m.AdminsOnly(products.Delete(d))).Methods("DELETE")
+	r.HandleFunc("/products/search/{search}", products.Search(s)).Methods("GET")
 
 	// Reviews
 	reviews := h.Reviews{DB: db}
@@ -93,6 +96,7 @@ func NewRouter(ctx context.Context, db *gorm.DB, esClient *elastic.Client) http.
 	r.HandleFunc("/shops/add", shops.Add(a)).Methods("POST")
 	r.HandleFunc("/shops/{id}", m.AdminsOnly(shops.Update(u))).Methods("PUT")
 	r.HandleFunc("/shops/{id}", m.AdminsOnly(shops.Delete(d))).Methods("DELETE")
+	r.HandleFunc("/shops/search/{search}", shops.Search(s)).Methods("GET")
 
 	// Tracking
 	r.HandleFunc("/tracker", m.AdminsOnly(h.GetHits(ctx, tracker))).Methods("GET")
@@ -107,6 +111,7 @@ func NewRouter(ctx context.Context, db *gorm.DB, esClient *elastic.Client) http.
 	r.HandleFunc("/users/add", users.Add(a, pendingList)).Methods("POST")
 	r.HandleFunc("/users/{id}", m.RequireLogin(users.Update(u))).Methods("PUT")
 	r.HandleFunc("/users/{id}", m.RequireLogin(users.Delete(d, session, pendingList, validatedList))).Methods("DELETE")
+	r.HandleFunc("/users/search/{search}", users.Search(s)).Methods("GET")
 
 	// Middlewares
 	r.Use(m.AllowCrossOrigin)

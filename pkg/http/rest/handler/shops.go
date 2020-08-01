@@ -9,6 +9,7 @@ import (
 	"github.com/GGP1/palo/pkg/deleting"
 	"github.com/GGP1/palo/pkg/listing"
 	"github.com/GGP1/palo/pkg/model"
+	"github.com/GGP1/palo/pkg/searching"
 	"github.com/GGP1/palo/pkg/updating"
 	"github.com/gorilla/mux"
 	"github.com/jinzhu/gorm"
@@ -86,6 +87,22 @@ func (s *Shops) FindByID(l listing.Service) http.HandlerFunc {
 		}
 
 		response.JSON(w, r, http.StatusOK, shop)
+	}
+}
+
+// Search looks for the products with the given value.
+func (s *Shops) Search(sr searching.Service) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		search := mux.Vars(r)["search"]
+		var shops []model.Shop
+
+		err := sr.SearchShops(s.DB, &shops, search)
+		if err != nil {
+			response.Error(w, r, http.StatusInternalServerError, err)
+			return
+		}
+
+		response.JSON(w, r, http.StatusOK, shops)
 	}
 }
 
