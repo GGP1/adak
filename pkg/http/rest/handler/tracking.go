@@ -51,3 +51,19 @@ func SearchHit(ctx context.Context, t tracking.Tracker) http.HandlerFunc {
 		response.JSON(w, r, http.StatusOK, hits)
 	}
 }
+
+// SearchHitByField returns the hits that matched with the search
+func SearchHitByField(ctx context.Context, t tracking.Tracker) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		field := mux.Vars(r)["field"]
+		value := mux.Vars(r)["value"]
+
+		hits, err := t.SearchByField(ctx, field, value)
+		if err != nil {
+			response.Error(w, r, http.StatusInternalServerError, err)
+			return
+		}
+
+		response.JSON(w, r, http.StatusOK, hits)
+	}
+}

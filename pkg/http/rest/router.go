@@ -98,6 +98,7 @@ func NewRouter(ctx context.Context, db *gorm.DB, esClient *elastic.Client) http.
 	r.HandleFunc("/tracker", m.AdminsOnly(h.GetHits(ctx, tracker))).Methods("GET")
 	r.HandleFunc("/tracker/{id}", m.AdminsOnly(h.DeleteHit(ctx, tracker))).Methods("DELETE")
 	r.HandleFunc("/tracker/search/{search}", m.AdminsOnly(h.SearchHit(ctx, tracker))).Methods("GET")
+	r.HandleFunc("/tracker/{field}/{value}", m.AdminsOnly(h.SearchHitByField(ctx, tracker))).Methods("GET")
 
 	// Users
 	users := h.Users{DB: db}

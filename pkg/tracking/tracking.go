@@ -128,6 +128,33 @@ func (t *Tracker) Search(ctx context.Context, value string) ([]Hit, error) {
 	return hits, nil
 }
 
+// SearchByField looks for a value and returns a slice of the hits that contain that value.
+func (t *Tracker) SearchByField(ctx context.Context, field, value string) ([]Hit, error) {
+	var hits []Hit
+
+	searchSource := elastic.NewSearchSource()
+	searchSource.Query(elastic.NewMatchQuery(field, value))
+
+	searchService := t.ESClient.Search().Index("hits").SearchSource(searchSource)
+
+	searchResult, err := searchService.Do(ctx)
+	if err != nil {
+		return nil, errors.Wrap(err, "search failed")
+	}
+
+	for _, r := range searchResult.Hits.Hits {
+		var hit Hit
+		err := json.Unmarshal(r.Source, &hit)
+		if err != nil {
+			return nil, errors.Wrap(err, "failed unmarshaling data")
+		}
+
+		hits = append(hits, hit)
+	}
+
+	return hits, nil
+}
+
 // Check headers commonly used by bots.
 // If the user is a bot return true, else return false.
 func ignoreHit(r *http.Request) bool {
