@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"context"
 	"net/http"
 	"strings"
 
@@ -10,9 +9,9 @@ import (
 )
 
 // Home gives users a welcome and takes non-invasive information from them.
-func Home(ctx context.Context, t tracking.Tracker) http.HandlerFunc {
+func Home(t tracking.Tracker) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		err := t.Hit(ctx, r)
+		err := t.Hit(r)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return

@@ -4,7 +4,6 @@ Package rest contains all the functions related to the rest api
 package rest
 
 import (
-	"context"
 	"net/http"
 
 	"github.com/GGP1/palo/pkg/adding"
@@ -25,11 +24,10 @@ import (
 
 	"github.com/gorilla/mux"
 	"github.com/jinzhu/gorm"
-	elastic "github.com/olivere/elastic/v7"
 )
 
 // NewRouter initializes services, creates and returns a mux router
-func NewRouter(ctx context.Context, db *gorm.DB, esClient *elastic.Client) http.Handler {
+func NewRouter(db *gorm.DB) http.Handler {
 	r := mux.NewRouter().StrictSlash(true)
 
 	// Create repository
@@ -47,7 +45,7 @@ func NewRouter(ctx context.Context, db *gorm.DB, esClient *elastic.Client) http.
 	pendingList := email.NewList(db, "pending_list", repo)
 	validatedList := email.NewList(db, "validated_list", repo)
 	// -- Tracker --
-	tracker := *tracking.NewTracker(esClient, "salty")
+	tracker := *tracking.NewTracker(db, "")
 
 	// Auth
 	r.HandleFunc("/login", h.Login(session, validatedList)).Methods("POST")
@@ -55,7 +53,7 @@ func NewRouter(ctx context.Context, db *gorm.DB, esClient *elastic.Client) http.
 	r.HandleFunc("/verification/{token}", h.ValidateEmail(pendingList, validatedList)).Methods("GET")
 
 	// Home
-	r.HandleFunc("/", h.Home(ctx, tracker)).Methods("GET")
+	r.HandleFunc("/", h.Home(tracker)).Methods("GET")
 
 	// Products
 	products := h.Products{DB: db}
@@ -99,10 +97,10 @@ func NewRouter(ctx context.Context, db *gorm.DB, esClient *elastic.Client) http.
 	r.HandleFunc("/shops/search/{search}", shops.Search(s)).Methods("GET")
 
 	// Tracking
-	r.HandleFunc("/tracker", m.AdminsOnly(h.GetHits(ctx, tracker))).Methods("GET")
-	r.HandleFunc("/tracker/{id}", m.AdminsOnly(h.DeleteHit(ctx, tracker))).Methods("DELETE")
-	r.HandleFunc("/tracker/search/{search}", m.AdminsOnly(h.SearchHit(ctx, tracker))).Methods("GET")
-	r.HandleFunc("/tracker/{field}/{value}", m.AdminsOnly(h.SearchHitByField(ctx, tracker))).Methods("GET")
+	r.HandleFunc("/tracker", m.AdminsOnly(h.GetHits(tracker))).Methods("GET")
+	r.HandleFunc("/tracker/{id}", m.AdminsOnly(h.DeleteHit(tracker))).Methods("DELETE")
+	r.HandleFunc("/tracker/search/{search}", m.AdminsOnly(h.SearchHit(tracker))).Methods("GET")
+	r.HandleFunc("/tracker/{field}/{value}", m.AdminsOnly(h.SearchHitByField(tracker))).Methods("GET")
 
 	// Users
 	users := h.Users{DB: db}

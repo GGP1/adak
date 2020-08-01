@@ -1,7 +1,6 @@
 package handler
 
 import (
-	"context"
 	"net/http"
 
 	"github.com/GGP1/palo/internal/response"
@@ -10,11 +9,11 @@ import (
 )
 
 // DeleteHit prints the hit with the specified day.
-func DeleteHit(ctx context.Context, t tracking.Tracker) http.HandlerFunc {
+func DeleteHit(t tracking.Tracker) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := mux.Vars(r)["id"]
 
-		err := t.DeleteHit(ctx, id)
+		err := t.DeleteHit(id)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
@@ -25,9 +24,9 @@ func DeleteHit(ctx context.Context, t tracking.Tracker) http.HandlerFunc {
 }
 
 // GetHits retrieves total amount of hits stored.
-func GetHits(ctx context.Context, t tracking.Tracker) http.HandlerFunc {
+func GetHits(t tracking.Tracker) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		hits, err := t.Get(ctx)
+		hits, err := t.Get()
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
@@ -38,11 +37,11 @@ func GetHits(ctx context.Context, t tracking.Tracker) http.HandlerFunc {
 }
 
 // SearchHit returns the hits that matched with the search
-func SearchHit(ctx context.Context, t tracking.Tracker) http.HandlerFunc {
+func SearchHit(t tracking.Tracker) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		search := mux.Vars(r)["search"]
 
-		hits, err := t.Search(ctx, search)
+		hits, err := t.Search(search)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
@@ -53,12 +52,12 @@ func SearchHit(ctx context.Context, t tracking.Tracker) http.HandlerFunc {
 }
 
 // SearchHitByField returns the hits that matched with the search
-func SearchHitByField(ctx context.Context, t tracking.Tracker) http.HandlerFunc {
+func SearchHitByField(t tracking.Tracker) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		field := mux.Vars(r)["field"]
 		value := mux.Vars(r)["value"]
 
-		hits, err := t.SearchByField(ctx, field, value)
+		hits, err := t.SearchByField(field, value)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return

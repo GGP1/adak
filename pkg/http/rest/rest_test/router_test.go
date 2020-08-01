@@ -1,8 +1,6 @@
 package rest_test
 
 import (
-	"context"
-	"log"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -19,20 +17,13 @@ const (
 
 // Fix
 func TestRouting(t *testing.T) {
-	ctx := context.Background()
-
 	db, close, err := storage.PostgresConnect()
 	if err != nil {
 		t.Fatal("Database failed connecting")
 	}
 	defer close()
 
-	esClient, err := storage.Elasticsearch(ctx)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	srv := httptest.NewServer(rest.NewRouter(ctx, db, esClient))
+	srv := httptest.NewServer(rest.NewRouter(db))
 	defer srv.Close()
 
 	t.Log("Given the need to test the router.")

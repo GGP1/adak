@@ -49,9 +49,44 @@ func getLanguage(r *http.Request) string {
 	lang := r.Header.Get("Accept-Language")
 
 	if lang != "" {
+		english := "en-US"
+		spanish := "es-ES"
+		chinese := "zh-CN"
+		portuguese := "pt-BR"
+		german := "de"
+		french := "fr"
+		italian := "it"
+		russian := "ru"
+		hindi := "in"
+		japanese := "jp"
+
 		langs := strings.Split(lang, ";")
 		parts := strings.Split(langs[0], ",")
-		return parts[0]
+		var language string
+
+		switch parts[0] {
+		case english:
+			language = "English"
+		case spanish:
+			language = "Spanish"
+		case portuguese:
+			language = "Portuguese"
+		case chinese:
+			language = "Chinese"
+		case german:
+			language = "German"
+		case french:
+			language = "French"
+		case italian:
+			language = "Italian"
+		case russian:
+			language = "Russian"
+		case hindi:
+			language = "Hindi"
+		case japanese:
+			language = "Japanese"
+		}
+		return language
 	}
 
 	return ""

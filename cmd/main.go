@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"log"
 
 	"github.com/GGP1/palo/cmd/server"
@@ -12,20 +11,13 @@ import (
 )
 
 func main() {
-	ctx := context.Background()
-
 	db, close, err := storage.PostgresConnect()
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer close()
 
-	esClient, err := storage.Elasticsearch(ctx)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	router := rest.NewRouter(ctx, db, esClient)
+	router := rest.NewRouter(db)
 
 	configPath, err := server.ParseFlags()
 	if err != nil {

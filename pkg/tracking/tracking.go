@@ -3,51 +3,44 @@
 package tracking
 
 import (
-	"context"
-	"encoding/json"
 	"net/http"
 	"strings"
 
-	elastic "github.com/olivere/elastic/v7"
+	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
 )
 
 // Hitter is the interface that wraps Hit methods.
 type Hitter interface {
-	Hit(ctx context.Context, r *http.Request) error
-	DeleteHit(ctx context.Context, id string) error
-	Get(ctx context.Context) ([]Hit, error)
+	Hit(r *http.Request) error
+	DeleteHit(id string) error
+	Get() ([]Hit, error)
 }
 
 // Searcher is the interface that serves searching methods.
 type Searcher interface {
-	Search(ctx context.Context, value string) ([]interface{}, error)
+	Search(value string) ([]interface{}, error)
 }
 
 // Tracker provides methods to track requests and store them in a data store.
 // In case of an error it will panic.
 type Tracker struct {
-	ESClient *elastic.Client
-	salt     string
+	DB   *gorm.DB
+	salt string
 }
 
 // NewTracker returns a new user tracker.
-func NewTracker(esClient *elastic.Client, salt string) *Tracker {
+func NewTracker(db *gorm.DB, salt string) *Tracker {
 	return &Tracker{
-		ESClient: esClient,
-		salt:     salt,
+		DB:   db,
+		salt: salt,
 	}
 }
 
 // DeleteHit takes away the hit with the id specified from the database.
-func (t *Tracker) DeleteHit(ctx context.Context, id string) error {
-	bq := elastic.NewBoolQuery()
-	bq.Must(elastic.NewTermQuery("id", id))
-	_, err := elastic.NewDeleteByQueryService(t.ESClient).
-		Index("hits").
-		Query(bq).
-		Do(ctx)
-
+func (t *Tracker) DeleteHit(id string) error {
+	var hit Hit
+	err := t.DB.Delete(&hit, id).Error
 	if err != nil {
 		return errors.Wrap(err, "couldn't delete the hit")
 	}
@@ -56,27 +49,12 @@ func (t *Tracker) DeleteHit(ctx context.Context, id string) error {
 }
 
 // Get lists all the hits stored in the database.
-func (t *Tracker) Get(ctx context.Context) ([]Hit, error) {
+func (t *Tracker) Get() ([]Hit, error) {
 	var hits []Hit
 
-	searchSrc := elastic.NewSearchSource()
-	searchSrc.Query(elastic.NewMatchAllQuery())
-
-	searchSv := t.ESClient.Search().Index("hits").SearchSource(searchSrc)
-
-	searchResult, err := searchSv.Do(ctx)
+	err := t.DB.Find(&hits).Error
 	if err != nil {
-		return nil, errors.Wrap(err, "couldn't find the hit")
-	}
-
-	for _, r := range searchResult.Hits.Hits {
-		var hit Hit
-		err := json.Unmarshal(r.Source, &hit)
-		if err != nil {
-			return nil, errors.Wrap(err, "failed unmarshaling data")
-		}
-
-		hits = append(hits, hit)
+		return nil, errors.Wrap(err, "couldn't find the hits")
 	}
 
 	return hits, nil
@@ -84,15 +62,11 @@ func (t *Tracker) Get(ctx context.Context) ([]Hit, error) {
 
 // Hit stores the given request.
 // The request might be ignored if it meets certain conditions.
-func (t *Tracker) Hit(ctx context.Context, r *http.Request) error {
+func (t *Tracker) Hit(r *http.Request) error {
 	if !ignoreHit(r) {
 		hit := HitRequest(r, t.salt)
 
-		_, err := t.ESClient.Index().
-			Index("hits").
-			BodyJson(hit.String()).
-			Do(ctx)
-
+		err := t.DB.Create(&hit).Error
 		if err != nil {
 			return errors.Wrap(err, "couldn't save the hit")
 		}
@@ -102,54 +76,30 @@ func (t *Tracker) Hit(ctx context.Context, r *http.Request) error {
 }
 
 // Search looks for a value and returns a slice of the hits that contain that value.
-func (t *Tracker) Search(ctx context.Context, value string) ([]Hit, error) {
+func (t *Tracker) Search(value string) ([]Hit, error) {
 	var hits []Hit
 
-	searchSource := elastic.NewSearchSource()
-	searchSource.Query(elastic.NewQueryStringQuery(value))
-
-	searchService := t.ESClient.Search().Index("hits").SearchSource(searchSource)
-
-	searchResult, err := searchService.Do(ctx)
+	err := t.DB.
+		Where(`to_tsvector(id || ' ' || footprint || ' ' || 
+		path || ' ' || url || ' ' || 
+		language || ' ' || referer || ' ' || 
+		user_agent || ' ' || date) @@ to_tsquery(?)`, value).
+		Find(&hits).
+		Error
 	if err != nil {
-		return nil, errors.Wrap(err, "search failed")
-	}
-
-	for _, r := range searchResult.Hits.Hits {
-		var hit Hit
-		err := json.Unmarshal(r.Source, &hit)
-		if err != nil {
-			return nil, errors.Wrap(err, "failed unmarshaling data")
-		}
-
-		hits = append(hits, hit)
+		return nil, errors.Wrap(err, "no hits found")
 	}
 
 	return hits, nil
 }
 
 // SearchByField looks for a value and returns a slice of the hits that contain that value.
-func (t *Tracker) SearchByField(ctx context.Context, field, value string) ([]Hit, error) {
+func (t *Tracker) SearchByField(field, value string) ([]Hit, error) {
 	var hits []Hit
 
-	searchSource := elastic.NewSearchSource()
-	searchSource.Query(elastic.NewMatchQuery(field, value))
-
-	searchService := t.ESClient.Search().Index("hits").SearchSource(searchSource)
-
-	searchResult, err := searchService.Do(ctx)
+	err := t.DB.Where("CONTAINS(?, '?')", field, value).Error
 	if err != nil {
-		return nil, errors.Wrap(err, "search failed")
-	}
-
-	for _, r := range searchResult.Hits.Hits {
-		var hit Hit
-		err := json.Unmarshal(r.Source, &hit)
-		if err != nil {
-			return nil, errors.Wrap(err, "failed unmarshaling data")
-		}
-
-		hits = append(hits, hit)
+		return nil, errors.Wrap(err, "no hits found")
 	}
 
 	return hits, nil
