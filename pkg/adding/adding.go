@@ -30,6 +30,10 @@ func (s *service) AddProduct(db *gorm.DB, product *model.Product) error {
 		return fmt.Errorf("%w", err)
 	}
 
+	taxes := ((product.Subtotal / 100) * product.Taxes)
+	discount := ((product.Subtotal / 100) * product.Discount)
+	product.Total = product.Subtotal + taxes - discount
+
 	if err := db.Create(product).Error; err != nil {
 		return fmt.Errorf("couldn't create the product")
 	}
