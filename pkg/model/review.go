@@ -4,7 +4,7 @@ import (
 	"github.com/jinzhu/gorm"
 )
 
-// Review model
+// Review represents users critics over a shop or a product.
 type Review struct {
 	gorm.Model
 	Stars     uint8  `json:"stars"`

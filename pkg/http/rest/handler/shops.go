@@ -5,12 +5,13 @@ import (
 	"net/http"
 
 	"github.com/GGP1/palo/internal/response"
-	"github.com/GGP1/palo/pkg/adding"
+	"github.com/GGP1/palo/pkg/creating"
 	"github.com/GGP1/palo/pkg/deleting"
 	"github.com/GGP1/palo/pkg/listing"
 	"github.com/GGP1/palo/pkg/model"
 	"github.com/GGP1/palo/pkg/searching"
 	"github.com/GGP1/palo/pkg/updating"
+
 	"github.com/gorilla/mux"
 	"github.com/jinzhu/gorm"
 )
@@ -20,8 +21,8 @@ type Shops struct {
 	DB *gorm.DB
 }
 
-// Add creates a new shop and saves it.
-func (s *Shops) Add(a adding.Service) http.HandlerFunc {
+// Create creates a new shop and saves it.
+func (s *Shops) Create(c creating.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var shop model.Shop
 
@@ -31,7 +32,7 @@ func (s *Shops) Add(a adding.Service) http.HandlerFunc {
 		}
 		defer r.Body.Close()
 
-		err := a.AddShop(s.DB, &shop)
+		err := c.CreateShop(s.DB, &shop)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
@@ -58,8 +59,8 @@ func (s *Shops) Delete(d deleting.Service) http.HandlerFunc {
 	}
 }
 
-// Find lists all the shops.
-func (s *Shops) Find(l listing.Service) http.HandlerFunc {
+// Get lists all the shops.
+func (s *Shops) Get(l listing.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var shop []model.Shop
 
@@ -73,8 +74,8 @@ func (s *Shops) Find(l listing.Service) http.HandlerFunc {
 	}
 }
 
-// FindByID lists the shop with the id requested.
-func (s *Shops) FindByID(l listing.Service) http.HandlerFunc {
+// GetByID lists the shop with the id requested.
+func (s *Shops) GetByID(l listing.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var shop model.Shop
 

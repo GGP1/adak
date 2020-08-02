@@ -1,6 +1,4 @@
-/*
-Package model contains all the objects used in the api
-*/
+// Package model contains the objects used in the api.
 package model
 
 import (
@@ -9,7 +7,8 @@ import (
 	"github.com/jinzhu/gorm"
 )
 
-// Product model
+// Product represents a market commodity.
+// It contains its properties, reviews and belongs to one shop.
 type Product struct {
 	gorm.Model
 	ShopID      uint     `json:"shop_id"`
@@ -25,7 +24,7 @@ type Product struct {
 	Reviews     []Review `json:"reviews" gorm:"foreignkey:ProductID"`
 }
 
-// Validate checks that there is no missing fields
+// Validate checks that there is no missing fields.
 func (p *Product) Validate() error {
 	if p.ShopID == 0 {
 		return errors.New("shop id is required")

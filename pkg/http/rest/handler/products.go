@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/GGP1/palo/internal/response"
-	"github.com/GGP1/palo/pkg/adding"
+	"github.com/GGP1/palo/pkg/creating"
 	"github.com/GGP1/palo/pkg/deleting"
 	"github.com/GGP1/palo/pkg/listing"
 	"github.com/GGP1/palo/pkg/model"
@@ -21,8 +21,8 @@ type Products struct {
 	DB *gorm.DB
 }
 
-// Add creates a new product and saves it.
-func (p *Products) Add(a adding.Service) http.HandlerFunc {
+// Create creates a new product and saves it.
+func (p *Products) Create(c creating.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var product model.Product
 
@@ -32,7 +32,7 @@ func (p *Products) Add(a adding.Service) http.HandlerFunc {
 		}
 		defer r.Body.Close()
 
-		err := a.AddProduct(p.DB, &product)
+		err := c.CreateProduct(p.DB, &product)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
@@ -59,8 +59,8 @@ func (p *Products) Delete(d deleting.Service) http.HandlerFunc {
 	}
 }
 
-// Find lists all the products.
-func (p *Products) Find(l listing.Service) http.HandlerFunc {
+// Get lists all the products.
+func (p *Products) Get(l listing.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var products []model.Product
 
@@ -74,8 +74,8 @@ func (p *Products) Find(l listing.Service) http.HandlerFunc {
 	}
 }
 
-// FindByID lists the product with the id requested.
-func (p *Products) FindByID(l listing.Service) http.HandlerFunc {
+// GetByID lists the product with the id requested.
+func (p *Products) GetByID(l listing.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var product model.Product
 

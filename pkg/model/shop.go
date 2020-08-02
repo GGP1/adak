@@ -6,7 +6,8 @@ import (
 	"github.com/jinzhu/gorm"
 )
 
-// Shop model
+// Shop represents a market with its name and location.
+// Each shop has multiple reviews and products.
 type Shop struct {
 	gorm.Model
 	Name     string    `json:"name"`
@@ -15,7 +16,7 @@ type Shop struct {
 	Products []Product `json:"products" gorm:"foreignkey:ShopID"`
 }
 
-// Location of the shop
+// Location of the shop.
 type Location struct {
 	Country string `json:"country"`
 	City    string `json:"city"`
@@ -23,7 +24,7 @@ type Location struct {
 	ShopID  uint   `json:"shop_id"`
 }
 
-// Validate checks shop input correctness
+// Validate checks shop input correctness.
 func (s *Shop) Validate() error {
 	if s.Name == "" {
 		return errors.New("name is required")

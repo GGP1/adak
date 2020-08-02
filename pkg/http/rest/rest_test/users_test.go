@@ -25,7 +25,7 @@ func list(t *testing.T) {
 	req := httptest.NewRequest("GET", "localhost:4000/users", nil)
 	rec := httptest.NewRecorder()
 
-	handler := users.Find(repo)
+	handler := users.Get(repo)
 	handler(rec, req)
 
 	res := rec.Result()

@@ -8,7 +8,8 @@ import (
 	"github.com/jinzhu/gorm"
 )
 
-// User model
+// User represents platform customers.
+// Each user has a unique cart.
 type User struct {
 	gorm.Model
 	Firstname string   `json:"firstname"`
@@ -19,7 +20,7 @@ type User struct {
 	Reviews   []Review `json:"reviews" gorm:"foreignkey:UserID"`
 }
 
-// Validate checks if the inputs are correct
+// Validate checks if the inputs are correct.
 func (u *User) Validate(action string) error {
 	switch strings.ToLower(action) {
 	case "update":

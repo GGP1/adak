@@ -16,7 +16,7 @@ func Footprint(r *http.Request, salt string) string {
 	var sb strings.Builder
 
 	sb.WriteString(r.Header.Get("User-Agent"))
-	sb.WriteString(getIP(r))
+	sb.WriteString(getUserIP(r))
 	sb.WriteString(string(time.Now().UnixNano()))
 	sb.WriteString(salt)
 	hash := md5.New()
@@ -28,8 +28,7 @@ func Footprint(r *http.Request, salt string) string {
 	return hex.EncodeToString(hash.Sum(nil))
 }
 
-// Get user IP
-func getIP(r *http.Request) string {
+func getUserIP(r *http.Request) string {
 	forwarded := r.Header.Get("X-Forwarded-For")
 
 	if forwarded != "" {

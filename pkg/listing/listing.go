@@ -1,6 +1,4 @@
-/*
-Package listing includes database listing operations
-*/
+// Package listing includes database listing operations
 package listing
 
 import (

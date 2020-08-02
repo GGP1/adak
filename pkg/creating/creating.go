@@ -1,33 +1,33 @@
 /*
-Package adding includes database adding operations
+Package creating includes database creating operations
 */
-package adding
+package creating
 
 import (
 	"fmt"
 
 	"github.com/GGP1/palo/pkg/model"
 	"github.com/GGP1/palo/pkg/shopping"
-	"github.com/google/uuid"
-	"golang.org/x/crypto/bcrypt"
 
+	"github.com/google/uuid"
 	"github.com/jinzhu/gorm"
+	"golang.org/x/crypto/bcrypt"
 )
 
 // Repository provides access to the storage.
 type Repository interface {
-	AddProduct(db *gorm.DB, product *model.Product) error
-	AddReview(db *gorm.DB, review *model.Review) error
-	AddShop(db *gorm.DB, shop *model.Shop) error
-	AddUser(db *gorm.DB, user *model.User) error
+	CreateProduct(db *gorm.DB, product *model.Product) error
+	CreateReview(db *gorm.DB, review *model.Review) error
+	CreateShop(db *gorm.DB, shop *model.Shop) error
+	CreateUser(db *gorm.DB, user *model.User) error
 }
 
 // Service provides models adding operations.
 type Service interface {
-	AddProduct(db *gorm.DB, product *model.Product) error
-	AddReview(db *gorm.DB, review *model.Review) error
-	AddShop(db *gorm.DB, shop *model.Shop) error
-	AddUser(db *gorm.DB, user *model.User) error
+	CreateProduct(db *gorm.DB, product *model.Product) error
+	CreateReview(db *gorm.DB, review *model.Review) error
+	CreateShop(db *gorm.DB, shop *model.Shop) error
+	CreateUser(db *gorm.DB, user *model.User) error
 }
 
 type service struct {
@@ -39,8 +39,8 @@ func NewService(r Repository) Service {
 	return &service{r}
 }
 
-// AddProduct validates a product and saves it into the database.
-func (s *service) AddProduct(db *gorm.DB, product *model.Product) error {
+// CreateProduct validates a product and saves it into the database.
+func (s *service) CreateProduct(db *gorm.DB, product *model.Product) error {
 	err := product.Validate()
 	if err != nil {
 		return fmt.Errorf("%w", err)
@@ -57,8 +57,8 @@ func (s *service) AddProduct(db *gorm.DB, product *model.Product) error {
 	return nil
 }
 
-// AddReview takes a new review and saves it into the database.
-func (s *service) AddReview(db *gorm.DB, review *model.Review) error {
+// CreateReview takes a new review and saves it into the database.
+func (s *service) CreateReview(db *gorm.DB, review *model.Review) error {
 	if err := db.Create(review).Error; err != nil {
 		return fmt.Errorf("couldn't create the review")
 	}
@@ -66,8 +66,8 @@ func (s *service) AddReview(db *gorm.DB, review *model.Review) error {
 	return nil
 }
 
-// AddShop validates a shop and saves it into the database.
-func (s *service) AddShop(db *gorm.DB, shop *model.Shop) error {
+// CreateShop validates a shop and saves it into the database.
+func (s *service) CreateShop(db *gorm.DB, shop *model.Shop) error {
 	err := shop.Validate()
 	if err != nil {
 		return fmt.Errorf("%w", err)
@@ -80,9 +80,9 @@ func (s *service) AddShop(db *gorm.DB, shop *model.Shop) error {
 	return nil
 }
 
-// AddUser validates a user, hashes its password, sends
+// CreateUser validates a user, hashes its password, sends
 // a verification email and saves it into the database.
-func (s *service) AddUser(db *gorm.DB, user *model.User) error {
+func (s *service) CreateUser(db *gorm.DB, user *model.User) error {
 	err := user.Validate("")
 	if err != nil {
 		return fmt.Errorf("%w", err)

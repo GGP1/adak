@@ -5,10 +5,11 @@ import (
 	"net/http"
 
 	"github.com/GGP1/palo/internal/response"
-	"github.com/GGP1/palo/pkg/adding"
+	"github.com/GGP1/palo/pkg/creating"
 	"github.com/GGP1/palo/pkg/deleting"
 	"github.com/GGP1/palo/pkg/listing"
 	"github.com/GGP1/palo/pkg/model"
+
 	"github.com/gorilla/mux"
 	"github.com/jinzhu/gorm"
 )
@@ -18,8 +19,8 @@ type Reviews struct {
 	DB *gorm.DB
 }
 
-// Add creates a new review and saves it.
-func (rev *Reviews) Add(a adding.Service) http.HandlerFunc {
+// Create creates a new review and saves it.
+func (rev *Reviews) Create(c creating.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var review model.Review
 
@@ -29,7 +30,7 @@ func (rev *Reviews) Add(a adding.Service) http.HandlerFunc {
 		}
 		defer r.Body.Close()
 
-		err := a.AddReview(rev.DB, &review)
+		err := c.CreateReview(rev.DB, &review)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
@@ -56,8 +57,8 @@ func (rev *Reviews) Delete(d deleting.Service) http.HandlerFunc {
 	}
 }
 
-// Find lists all the reviews.
-func (rev *Reviews) Find(l listing.Service) http.HandlerFunc {
+// Get lists all the reviews.
+func (rev *Reviews) Get(l listing.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var review []model.Review
 
@@ -71,8 +72,8 @@ func (rev *Reviews) Find(l listing.Service) http.HandlerFunc {
 	}
 }
 
-// FindByID lists the review with the id requested.
-func (rev *Reviews) FindByID(l listing.Service) http.HandlerFunc {
+// GetByID lists the review with the id requested.
+func (rev *Reviews) GetByID(l listing.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var review model.Review
 

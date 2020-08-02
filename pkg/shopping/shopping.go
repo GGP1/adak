@@ -7,7 +7,8 @@ import (
 	"github.com/pkg/errors"
 )
 
-// Cart stores the products that the user chose to buy.
+// Cart represents a temporary record of items that the customer
+// selected for purchase.
 type Cart struct {
 	ID       string         `json:"id"`
 	Counter  int            `json:"counter"`
@@ -49,7 +50,7 @@ func NewCart(userID string) *Cart {
 	}
 }
 
-// Add a product to the cart.
+// Add adds a product to the cart.
 func Add(db *gorm.DB, cartID string, product *CartProduct, quantity int) (*CartProduct, error) {
 	var cart Cart
 
@@ -118,7 +119,7 @@ func Get(db *gorm.DB, cartID string) (Cart, error) {
 	return cart, nil
 }
 
-// Items prints cart Products.
+// Items prints cart products.
 func Items(db *gorm.DB, cartID string) ([]CartProduct, error) {
 	var cart Cart
 	var list []CartProduct
@@ -192,7 +193,7 @@ func Remove(db *gorm.DB, cartID string, key int, quantity int) error {
 	return nil
 }
 
-// Reset cart products.
+// Reset sets the cart to its default values.
 func Reset(db *gorm.DB, cartID string) error {
 	var cart Cart
 	var product CartProduct

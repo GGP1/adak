@@ -7,13 +7,13 @@ import (
 	"github.com/jinzhu/gorm"
 )
 
-// Repo contains the functions of all the services.
+// Repo contains all services methods.
 type Repo interface {
-	// Adding
-	AddProduct(db *gorm.DB, product *model.Product) error
-	AddReview(db *gorm.DB, review *model.Review) error
-	AddShop(db *gorm.DB, shop *model.Shop) error
-	AddUser(db *gorm.DB, user *model.User) error
+	// Creating
+	CreateProduct(db *gorm.DB, product *model.Product) error
+	CreateReview(db *gorm.DB, review *model.Review) error
+	CreateShop(db *gorm.DB, shop *model.Shop) error
+	CreateUser(db *gorm.DB, user *model.User) error
 
 	// Deleting
 	DeleteProduct(db *gorm.DB, product *model.Product, id string) error
@@ -33,7 +33,7 @@ type Repo interface {
 
 	// Searching
 	SearchProducts(db *gorm.DB, products *[]model.Product, search string) error
-	SearchShops(db *gorm.DB, users *[]model.Shop, search string) error
+	SearchShops(db *gorm.DB, shops *[]model.Shop, search string) error
 	SearchUsers(db *gorm.DB, users *[]model.User, search string) error
 
 	// Updating
@@ -45,7 +45,7 @@ type Repo interface {
 	AlreadyLoggedIn(w http.ResponseWriter, r *http.Request) bool
 	Login(w http.ResponseWriter, email, password string) error
 	Logout(w http.ResponseWriter, r *http.Request, c *http.Cookie)
-	SessionClean()
+	Clean()
 
 	// Email
 	Add(email, token string) error

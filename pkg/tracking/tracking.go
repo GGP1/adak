@@ -1,5 +1,4 @@
-// Package tracking is a privacy-focused user tracker inspired on
-// github.com/emvi/pirsch
+// Package tracking provides privacy-focused user tracking functions.
 package tracking
 
 import (
@@ -10,6 +9,8 @@ import (
 	"github.com/pkg/errors"
 )
 
+// inspired on github.com/emvi/pirsch
+
 // Hitter is the interface that wraps Hit methods.
 type Hitter interface {
 	Hit(r *http.Request) error
@@ -17,7 +18,7 @@ type Hitter interface {
 	Get() ([]Hit, error)
 }
 
-// Searcher is the interface that serves searching methods.
+// Searcher is the interface that wraps the basic search method.
 type Searcher interface {
 	Search(value string) ([]interface{}, error)
 }

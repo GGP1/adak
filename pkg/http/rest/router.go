@@ -6,9 +6,9 @@ package rest
 import (
 	"net/http"
 
-	"github.com/GGP1/palo/pkg/adding"
 	"github.com/GGP1/palo/pkg/auth"
 	"github.com/GGP1/palo/pkg/auth/email"
+	"github.com/GGP1/palo/pkg/creating"
 	"github.com/GGP1/palo/pkg/deleting"
 	"github.com/GGP1/palo/pkg/repository"
 	"github.com/GGP1/palo/pkg/searching"
@@ -34,7 +34,7 @@ func NewRouter(db *gorm.DB) http.Handler {
 	repo := *new(repository.Repo)
 
 	// Services
-	a := adding.NewService(repo)
+	c := creating.NewService(repo)
 	d := deleting.NewService(repo)
 	l := listing.NewService(repo)
 	u := updating.NewService(repo)
@@ -57,23 +57,23 @@ func NewRouter(db *gorm.DB) http.Handler {
 
 	// Products
 	products := h.Products{DB: db}
-	r.HandleFunc("/products", products.Find(l)).Methods("GET")
-	r.HandleFunc("/products/{id}", products.FindByID(l)).Methods("GET")
-	r.HandleFunc("/products/add", products.Add(a)).Methods("POST")
+	r.HandleFunc("/products", products.Get(l)).Methods("GET")
+	r.HandleFunc("/products/{id}", products.GetByID(l)).Methods("GET")
+	r.HandleFunc("/products/create", products.Create(c)).Methods("POST")
 	r.HandleFunc("/products/{id}", m.AdminsOnly(products.Update(u))).Methods("PUT")
 	r.HandleFunc("/products/{id}", m.AdminsOnly(products.Delete(d))).Methods("DELETE")
 	r.HandleFunc("/products/search/{search}", products.Search(s)).Methods("GET")
 
 	// Reviews
 	reviews := h.Reviews{DB: db}
-	r.HandleFunc("/reviews", reviews.Find(l)).Methods("GET")
-	r.HandleFunc("/reviews/{id}", reviews.FindByID(l)).Methods("GET")
-	r.HandleFunc("/reviews/add", m.RequireLogin(reviews.Add(a))).Methods("POST")
+	r.HandleFunc("/reviews", reviews.Get(l)).Methods("GET")
+	r.HandleFunc("/reviews/{id}", reviews.GetByID(l)).Methods("GET")
+	r.HandleFunc("/reviews/create", m.RequireLogin(reviews.Create(c))).Methods("POST")
 	r.HandleFunc("/reviews/{id}", m.AdminsOnly(reviews.Delete(d))).Methods("DELETE")
 
 	// Shopping
 	r.HandleFunc("/cart", m.RequireLogin(h.CartGet(db))).Methods("GET")
-	r.HandleFunc("/cart/add/{quantity}", m.RequireLogin(h.CartAdd(db))).Methods("POST")
+	r.HandleFunc("/cart/create/{quantity}", m.RequireLogin(h.CartAdd(db))).Methods("POST")
 	r.HandleFunc("/cart/brand/{brand}", m.RequireLogin(h.CartFilterByBrand(db))).Methods("GET")
 	r.HandleFunc("/cart/category/{category}", m.RequireLogin(h.CartFilterByCategory(db))).Methods("GET")
 	r.HandleFunc("/cart/discount/{min}/{max}", m.RequireLogin(h.CartFilterByDiscount(db))).Methods("GET")
@@ -89,9 +89,9 @@ func NewRouter(db *gorm.DB) http.Handler {
 
 	//	Shops
 	shops := h.Shops{DB: db}
-	r.HandleFunc("/shops", shops.Find(l)).Methods("GET")
-	r.HandleFunc("/shops/{id}", shops.FindByID(l)).Methods("GET")
-	r.HandleFunc("/shops/add", shops.Add(a)).Methods("POST")
+	r.HandleFunc("/shops", shops.Get(l)).Methods("GET")
+	r.HandleFunc("/shops/{id}", shops.GetByID(l)).Methods("GET")
+	r.HandleFunc("/shops/create", shops.Create(c)).Methods("POST")
 	r.HandleFunc("/shops/{id}", m.AdminsOnly(shops.Update(u))).Methods("PUT")
 	r.HandleFunc("/shops/{id}", m.AdminsOnly(shops.Delete(d))).Methods("DELETE")
 	r.HandleFunc("/shops/search/{search}", shops.Search(s)).Methods("GET")
@@ -104,9 +104,9 @@ func NewRouter(db *gorm.DB) http.Handler {
 
 	// Users
 	users := h.Users{DB: db}
-	r.HandleFunc("/users", users.Find(l)).Methods("GET")
-	r.HandleFunc("/users/{id}", users.FindByID(l)).Methods("GET")
-	r.HandleFunc("/users/add", users.Add(a, pendingList)).Methods("POST")
+	r.HandleFunc("/users", users.Get(l)).Methods("GET")
+	r.HandleFunc("/users/{id}", users.GetByID(l)).Methods("GET")
+	r.HandleFunc("/users/create", users.Create(c, pendingList)).Methods("POST")
 	r.HandleFunc("/users/{id}", m.RequireLogin(users.Update(u))).Methods("PUT")
 	r.HandleFunc("/users/{id}", m.RequireLogin(users.Delete(d, session, pendingList, validatedList))).Methods("DELETE")
 	r.HandleFunc("/users/search/{search}", users.Search(s)).Methods("GET")

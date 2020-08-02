@@ -1,6 +1,5 @@
-/*
-Package storage makes the database connection
-*/
+// Package storage implements functions for the manipulation
+// of databases and caches.
 package storage
 
 import (

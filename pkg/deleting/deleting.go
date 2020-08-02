@@ -1,6 +1,4 @@
-/*
-Package deleting includes database deleting operations
-*/
+// Package deleting includes database deleting operations
 package deleting
 
 import (

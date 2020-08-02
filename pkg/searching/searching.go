@@ -1,7 +1,10 @@
+// Package searching provides a service for searching specific information
+// in the database related to the core api models.
 package searching
 
 import (
 	"github.com/GGP1/palo/pkg/model"
+
 	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
 )
@@ -9,14 +12,14 @@ import (
 // Repository provides access to the storage.
 type Repository interface {
 	SearchProducts(db *gorm.DB, products *[]model.Product, search string) error
-	SearchShops(db *gorm.DB, users *[]model.Shop, search string) error
+	SearchShops(db *gorm.DB, shops *[]model.Shop, search string) error
 	SearchUsers(db *gorm.DB, users *[]model.User, search string) error
 }
 
 // Service provides models searching operations.
 type Service interface {
 	SearchProducts(db *gorm.DB, products *[]model.Product, search string) error
-	SearchShops(db *gorm.DB, users *[]model.Shop, search string) error
+	SearchShops(db *gorm.DB, shops *[]model.Shop, search string) error
 	SearchUsers(db *gorm.DB, users *[]model.User, search string) error
 }
 
@@ -56,7 +59,7 @@ func (s *service) SearchShops(db *gorm.DB, shops *[]model.Shop, search string) e
 // SearchUsers looks for the users that contain the value specified. (Only text fields)
 func (s *service) SearchUsers(db *gorm.DB, users *[]model.User, search string) error {
 	err := db.Preload("Reviews").
-		Where("WHERE deleted_at IS NULL AND to_tsvector(firstname || ' ' || lastname || ' ' || email) @@ to_tsquery(?)").
+		Where("deleted_at IS NULL AND to_tsvector(firstname || ' ' || lastname || ' ' || email) @@ to_tsquery(?)", search).
 		Find(&users).Error
 	if err != nil {
 		return errors.Wrap(err, "couldn't find users")

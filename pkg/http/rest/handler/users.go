@@ -6,17 +6,17 @@ import (
 	"net/http"
 
 	"github.com/GGP1/palo/internal/response"
-	"github.com/GGP1/palo/pkg/adding"
 	"github.com/GGP1/palo/pkg/auth"
 	"github.com/GGP1/palo/pkg/auth/email"
+	"github.com/GGP1/palo/pkg/creating"
 	"github.com/GGP1/palo/pkg/deleting"
 	"github.com/GGP1/palo/pkg/listing"
 	"github.com/GGP1/palo/pkg/model"
 	"github.com/GGP1/palo/pkg/searching"
 	"github.com/GGP1/palo/pkg/updating"
-	"github.com/jinzhu/gorm"
 
 	"github.com/gorilla/mux"
+	"github.com/jinzhu/gorm"
 )
 
 // Users handles users routes
@@ -24,8 +24,8 @@ type Users struct {
 	DB *gorm.DB
 }
 
-// Add creates a new user and saves it.
-func (us *Users) Add(a adding.Service, pendingList email.Service) http.HandlerFunc {
+// Create creates a new user and saves it.
+func (us *Users) Create(c creating.Service, pendingList email.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var user model.User
 
@@ -35,7 +35,7 @@ func (us *Users) Add(a adding.Service, pendingList email.Service) http.HandlerFu
 		}
 		defer r.Body.Close()
 
-		err := a.AddUser(us.DB, &user)
+		err := c.CreateUser(us.DB, &user)
 		if err != nil {
 			response.Error(w, r, http.StatusBadRequest, err)
 			return
@@ -109,8 +109,8 @@ func (us *Users) Delete(d deleting.Service, s auth.Session, pendingList, validat
 	}
 }
 
-// Find lists all the users
-func (us *Users) Find(l listing.Service) http.HandlerFunc {
+// Get lists all the users
+func (us *Users) Get(l listing.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var user []model.User
 
@@ -124,8 +124,8 @@ func (us *Users) Find(l listing.Service) http.HandlerFunc {
 	}
 }
 
-// FindByID lists the user with the id requested.
-func (us *Users) FindByID(l listing.Service) http.HandlerFunc {
+// GetByID lists the user with the id requested.
+func (us *Users) GetByID(l listing.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var user model.User
 
