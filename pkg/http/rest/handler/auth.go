@@ -10,8 +10,8 @@ import (
 	"github.com/GGP1/palo/pkg/auth"
 	"github.com/GGP1/palo/pkg/auth/email"
 	"github.com/GGP1/palo/pkg/model"
+	"github.com/go-chi/chi"
 
-	"github.com/gorilla/mux"
 	"github.com/pkg/errors"
 )
 
@@ -79,7 +79,7 @@ func Logout(s auth.Session) http.HandlerFunc {
 func ValidateEmail(pendingList, validatedList email.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var validated bool
-		token := mux.Vars(r)["token"]
+		token := chi.URLParam(r, "token")
 
 		pList, err := pendingList.Read()
 		if err != nil {

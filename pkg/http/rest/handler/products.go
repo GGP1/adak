@@ -11,9 +11,8 @@ import (
 	"github.com/GGP1/palo/pkg/model"
 	"github.com/GGP1/palo/pkg/searching"
 	"github.com/GGP1/palo/pkg/updating"
+	"github.com/go-chi/chi"
 	"github.com/jinzhu/gorm"
-
-	"github.com/gorilla/mux"
 )
 
 // Products handles products routes.
@@ -47,7 +46,7 @@ func (p *Products) Delete(d deleting.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var product model.Product
 
-		id := mux.Vars(r)["id"]
+		id := chi.URLParam(r, "id")
 
 		err := d.DeleteProduct(p.DB, &product, id)
 		if err != nil {
@@ -79,7 +78,7 @@ func (p *Products) GetByID(l listing.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var product model.Product
 
-		id := mux.Vars(r)["id"]
+		id := chi.URLParam(r, "id")
 
 		err := l.GetProductByID(p.DB, &product, id)
 		if err != nil {
@@ -94,7 +93,7 @@ func (p *Products) GetByID(l listing.Service) http.HandlerFunc {
 // Search looks for the products with the given value.
 func (p *Products) Search(s searching.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		search := mux.Vars(r)["search"]
+		search := chi.URLParam(r, "search")
 		var products []model.Product
 
 		err := s.SearchProducts(p.DB, &products, search)
@@ -112,7 +111,7 @@ func (p *Products) Update(u updating.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var product model.Product
 
-		id := mux.Vars(r)["id"]
+		id := chi.URLParam(r, "id")
 
 		if err := json.NewDecoder(r.Body).Decode(&product); err != nil {
 			response.Error(w, r, http.StatusBadRequest, err)

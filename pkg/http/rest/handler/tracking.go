@@ -5,14 +5,13 @@ import (
 
 	"github.com/GGP1/palo/internal/response"
 	"github.com/GGP1/palo/pkg/tracking"
-
-	"github.com/gorilla/mux"
+	"github.com/go-chi/chi"
 )
 
 // DeleteHit prints the hit with the specified day.
 func DeleteHit(t tracking.Tracker) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		id := mux.Vars(r)["id"]
+		id := chi.URLParam(r, "id")
 
 		err := t.DeleteHit(id)
 		if err != nil {
@@ -40,7 +39,7 @@ func GetHits(t tracking.Tracker) http.HandlerFunc {
 // SearchHit returns the hits that matched with the search
 func SearchHit(t tracking.Tracker) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		search := mux.Vars(r)["search"]
+		search := chi.URLParam(r, "search")
 
 		hits, err := t.Search(search)
 		if err != nil {
@@ -55,8 +54,8 @@ func SearchHit(t tracking.Tracker) http.HandlerFunc {
 // SearchHitByField returns the hits that matched with the search
 func SearchHitByField(t tracking.Tracker) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		field := mux.Vars(r)["field"]
-		value := mux.Vars(r)["value"]
+		field := chi.URLParam(r, "field")
+		value := chi.URLParam(r, "value")
 
 		hits, err := t.SearchByField(field, value)
 		if err != nil {

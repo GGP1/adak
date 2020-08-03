@@ -14,8 +14,8 @@ import (
 	"github.com/GGP1/palo/pkg/model"
 	"github.com/GGP1/palo/pkg/searching"
 	"github.com/GGP1/palo/pkg/updating"
+	"github.com/go-chi/chi"
 
-	"github.com/gorilla/mux"
 	"github.com/jinzhu/gorm"
 )
 
@@ -68,7 +68,7 @@ func (us *Users) Delete(d deleting.Service, s auth.Session, pendingList, validat
 	return func(w http.ResponseWriter, r *http.Request) {
 		var user model.User
 
-		id := mux.Vars(r)["id"]
+		id := chi.URLParam(r, "id")
 		cookie, _ := r.Cookie("UID")
 		// Generate a fixed token of the id and compare it with the cookie
 		// to check if it's the same user
@@ -129,7 +129,7 @@ func (us *Users) GetByID(l listing.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var user model.User
 
-		id := mux.Vars(r)["id"]
+		id := chi.URLParam(r, "id")
 
 		err := l.GetUserByID(us.DB, &user, id)
 		if err != nil {
@@ -144,7 +144,7 @@ func (us *Users) GetByID(l listing.Service) http.HandlerFunc {
 // Search looks for the products with the given value.
 func (us *Users) Search(s searching.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		search := mux.Vars(r)["search"]
+		search := chi.URLParam(r, "search")
 		var users []model.User
 
 		err := s.SearchUsers(us.DB, &users, search)
@@ -162,7 +162,7 @@ func (us *Users) Update(u updating.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var user model.User
 
-		id := mux.Vars(r)["id"]
+		id := chi.URLParam(r, "id")
 		c, _ := r.Cookie("UID")
 		// Generate a fixed token of the id and compare it with the cookie
 		// to check if it's the same user

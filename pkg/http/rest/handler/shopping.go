@@ -8,8 +8,8 @@ import (
 
 	"github.com/GGP1/palo/internal/response"
 	"github.com/GGP1/palo/pkg/shopping"
+	"github.com/go-chi/chi"
 
-	"github.com/gorilla/mux"
 	"github.com/jinzhu/gorm"
 )
 
@@ -18,7 +18,7 @@ func CartAdd(db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var product shopping.CartProduct
 
-		q := mux.Vars(r)["quantity"]
+		q := chi.URLParam(r, "quantity")
 		quantity, err := strconv.Atoi(q)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
@@ -65,7 +65,7 @@ func CartCheckout(db *gorm.DB) http.HandlerFunc {
 // CartFilterByBrand returns the products filtered by brand
 func CartFilterByBrand(db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		brand := mux.Vars(r)["brand"]
+		brand := chi.URLParam(r, "brand")
 		c, _ := r.Cookie("CID")
 
 		products, err := shopping.FilterByBrand(db, c.Value, brand)
@@ -81,7 +81,7 @@ func CartFilterByBrand(db *gorm.DB) http.HandlerFunc {
 // CartFilterByCategory returns the products filtered by category
 func CartFilterByCategory(db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		category := mux.Vars(r)["category"]
+		category := chi.URLParam(r, "category")
 		c, _ := r.Cookie("CID")
 
 		products, err := shopping.FilterByCategory(db, c.Value, category)
@@ -97,8 +97,8 @@ func CartFilterByCategory(db *gorm.DB) http.HandlerFunc {
 // CartFilterByDiscount returns the products filtered by discount
 func CartFilterByDiscount(db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		min := mux.Vars(r)["min"]
-		max := mux.Vars(r)["max"]
+		min := chi.URLParam(r, "min")
+		max := chi.URLParam(r, "max")
 		c, _ := r.Cookie("CID")
 
 		minDiscount, _ := strconv.ParseFloat(min, 32)
@@ -117,8 +117,8 @@ func CartFilterByDiscount(db *gorm.DB) http.HandlerFunc {
 // CartFilterBySubtotal returns the products filtered by subtotal
 func CartFilterBySubtotal(db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		min := mux.Vars(r)["min"]
-		max := mux.Vars(r)["max"]
+		min := chi.URLParam(r, "min")
+		max := chi.URLParam(r, "max")
 		c, _ := r.Cookie("CID")
 
 		minSubtotal, _ := strconv.ParseFloat(min, 32)
@@ -137,8 +137,8 @@ func CartFilterBySubtotal(db *gorm.DB) http.HandlerFunc {
 // CartFilterByTaxes returns the products filtered by taxes
 func CartFilterByTaxes(db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		min := mux.Vars(r)["min"]
-		max := mux.Vars(r)["max"]
+		min := chi.URLParam(r, "min")
+		max := chi.URLParam(r, "max")
 		c, _ := r.Cookie("CID")
 
 		minTaxes, _ := strconv.ParseFloat(min, 32)
@@ -157,8 +157,8 @@ func CartFilterByTaxes(db *gorm.DB) http.HandlerFunc {
 // CartFilterByTotal returns the products filtered by total
 func CartFilterByTotal(db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		min := mux.Vars(r)["min"]
-		max := mux.Vars(r)["max"]
+		min := chi.URLParam(r, "min")
+		max := chi.URLParam(r, "max")
 		c, _ := r.Cookie("CID")
 
 		minTotal, _ := strconv.ParseFloat(min, 32)
@@ -177,7 +177,7 @@ func CartFilterByTotal(db *gorm.DB) http.HandlerFunc {
 // CartFilterByType returns the products filtered by type
 func CartFilterByType(db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		productType := mux.Vars(r)["type"]
+		productType := chi.URLParam(r, "type")
 		c, _ := r.Cookie("CID")
 
 		products, err := shopping.FilterByType(db, c.Value, productType)
@@ -193,8 +193,8 @@ func CartFilterByType(db *gorm.DB) http.HandlerFunc {
 // CartFilterByWeight returns the products filtered by weight
 func CartFilterByWeight(db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		min := mux.Vars(r)["min"]
-		max := mux.Vars(r)["max"]
+		min := chi.URLParam(r, "min")
+		max := chi.URLParam(r, "max")
 		c, _ := r.Cookie("CID")
 
 		minWeight, _ := strconv.ParseFloat(min, 32)
@@ -242,8 +242,8 @@ func CartItems(db *gorm.DB) http.HandlerFunc {
 // CartRemove takes out a product from the shopping cart
 func CartRemove(db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		id := mux.Vars(r)["id"]
-		q := mux.Vars(r)["quantity"]
+		id := chi.URLParam(r, "id")
+		q := chi.URLParam(r, "quantity")
 		c, _ := r.Cookie("CID")
 
 		key, err := strconv.Atoi(id)

@@ -11,8 +11,8 @@ import (
 	"github.com/GGP1/palo/pkg/model"
 	"github.com/GGP1/palo/pkg/searching"
 	"github.com/GGP1/palo/pkg/updating"
+	"github.com/go-chi/chi"
 
-	"github.com/gorilla/mux"
 	"github.com/jinzhu/gorm"
 )
 
@@ -47,7 +47,7 @@ func (s *Shops) Delete(d deleting.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var shop model.Shop
 
-		id := mux.Vars(r)["id"]
+		id := chi.URLParam(r, "id")
 
 		err := d.DeleteShop(s.DB, &shop, id)
 		if err != nil {
@@ -79,7 +79,7 @@ func (s *Shops) GetByID(l listing.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var shop model.Shop
 
-		id := mux.Vars(r)["id"]
+		id := chi.URLParam(r, "id")
 
 		err := l.GetShopByID(s.DB, &shop, id)
 		if err != nil {
@@ -94,7 +94,7 @@ func (s *Shops) GetByID(l listing.Service) http.HandlerFunc {
 // Search looks for the products with the given value.
 func (s *Shops) Search(sr searching.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		search := mux.Vars(r)["search"]
+		search := chi.URLParam(r, "search")
 		var shops []model.Shop
 
 		err := sr.SearchShops(s.DB, &shops, search)
@@ -112,7 +112,7 @@ func (s *Shops) Update(u updating.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var shop model.Shop
 
-		id := mux.Vars(r)["id"]
+		id := chi.URLParam(r, "id")
 
 		if err := json.NewDecoder(r.Body).Decode(&shop); err != nil {
 			response.Error(w, r, http.StatusBadRequest, err)

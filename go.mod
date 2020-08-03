@@ -5,8 +5,8 @@ go 1.14
 require (
 	github.com/badoux/checkmail v0.0.0-20200623144435-f9f80cb795fa
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible
+	github.com/go-chi/chi v4.1.2+incompatible
 	github.com/google/uuid v1.1.1
-	github.com/gorilla/mux v1.7.4
 	github.com/jinzhu/gorm v1.9.15
 	github.com/lib/pq v1.8.0 // direct
 	github.com/pkg/errors v0.9.1

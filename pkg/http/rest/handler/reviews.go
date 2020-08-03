@@ -9,8 +9,8 @@ import (
 	"github.com/GGP1/palo/pkg/deleting"
 	"github.com/GGP1/palo/pkg/listing"
 	"github.com/GGP1/palo/pkg/model"
+	"github.com/go-chi/chi"
 
-	"github.com/gorilla/mux"
 	"github.com/jinzhu/gorm"
 )
 
@@ -45,7 +45,7 @@ func (rev *Reviews) Delete(d deleting.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var review model.Review
 
-		id := mux.Vars(r)["id"]
+		id := chi.URLParam(r, "id")
 
 		err := d.DeleteReview(rev.DB, &review, id)
 		if err != nil {
@@ -77,7 +77,7 @@ func (rev *Reviews) GetByID(l listing.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var review model.Review
 
-		id := mux.Vars(r)["id"]
+		id := chi.URLParam(r, "id")
 
 		err := l.GetReviewByID(rev.DB, &review, id)
 		if err != nil {
