@@ -26,13 +26,11 @@ func SendValidation(user model.User, token string) error {
 	// =================
 	// 	Email content
 	// =================
-	username := user.Firstname + " " + user.Lastname
-
 	from := mail.Address{Name: "Palo", Address: cfg.EmailSender}
-	to := mail.Address{Name: username, Address: user.Email}
+	to := mail.Address{Name: user.Name, Address: user.Email}
 	subject := "Validation email"
 	items := Items{
-		Name:  user.Firstname + " " + user.Lastname,
+		Name:  user.Name,
 		Token: token,
 	}
 
@@ -47,7 +45,7 @@ func SendValidation(user model.User, token string) error {
 		message += fmt.Sprintf("%s: %s\r\n", k, v)
 	}
 
-	t, err := template.ParseFiles("../pkg/auth/email/template.html")
+	t, err := template.ParseFiles("../pkg/auth/email/email.html")
 	if err != nil {
 		return err
 	}
