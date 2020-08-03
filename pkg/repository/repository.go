@@ -16,6 +16,7 @@ type Repo interface {
 	CreateUser(db *gorm.DB, user *model.User) error
 
 	// Deleting
+	DeleteCart(db *gorm.DB, id string) error
 	DeleteProduct(db *gorm.DB, product *model.Product, id string) error
 	DeleteReview(db *gorm.DB, review *model.Review, id string) error
 	DeleteShop(db *gorm.DB, shop *model.Shop, id string) error

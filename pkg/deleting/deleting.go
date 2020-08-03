@@ -1,16 +1,18 @@
-// Package deleting includes database deleting operations
+// Package deleting includes database deleting operations.
 package deleting
 
 import (
 	"fmt"
 
 	"github.com/GGP1/palo/pkg/model"
+	"github.com/GGP1/palo/pkg/shopping"
 
 	"github.com/jinzhu/gorm"
 )
 
 // Repository provides access to the storage.
 type Repository interface {
+	DeleteCart(db *gorm.DB, id string) error
 	DeleteProduct(db *gorm.DB, product *model.Product, id string) error
 	DeleteReview(db *gorm.DB, review *model.Review, id string) error
 	DeleteShop(db *gorm.DB, shop *model.Shop, id string) error
@@ -19,6 +21,7 @@ type Repository interface {
 
 // Service provides models deleting operations.
 type Service interface {
+	DeleteCart(db *gorm.DB, id string) error
 	DeleteProduct(db *gorm.DB, product *model.Product, id string) error
 	DeleteReview(db *gorm.DB, review *model.Review, id string) error
 	DeleteShop(db *gorm.DB, shop *model.Shop, id string) error
@@ -62,6 +65,16 @@ func (s *service) DeleteShop(db *gorm.DB, shop *model.Shop, id string) error {
 func (s *service) DeleteUser(db *gorm.DB, user *model.User, id string) error {
 	if err := db.Delete(user, id).Error; err != nil {
 		return fmt.Errorf("couldn't delete the user")
+	}
+	return nil
+}
+
+// DeleteCart takes a cart from the database and permanently deletes it.
+func (s *service) DeleteCart(db *gorm.DB, id string) error {
+	var cart shopping.Cart
+
+	if err := db.Delete(&cart, id).Error; err != nil {
+		return fmt.Errorf("couldn't delete the cart")
 	}
 	return nil
 }

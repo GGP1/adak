@@ -96,6 +96,13 @@ func (us *Users) Delete(d deleting.Service, s auth.Session, pendingList, validat
 			return
 		}
 
+		// Delete user cart
+		err = d.DeleteCart(us.DB, user.CartID)
+		if err != nil {
+			response.Error(w, r, http.StatusInternalServerError, err)
+			return
+		}
+
 		err = d.DeleteUser(us.DB, &user, id)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
