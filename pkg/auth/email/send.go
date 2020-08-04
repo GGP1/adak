@@ -5,7 +5,6 @@ package email
 
 import (
 	"bytes"
-	"crypto/tls"
 	"fmt"
 	"html/template"
 	"net/mail"
@@ -13,6 +12,7 @@ import (
 
 	"github.com/GGP1/palo/internal/cfg"
 	"github.com/GGP1/palo/pkg/model"
+	"github.com/pkg/errors"
 )
 
 // Items represents a struct with the values passed to the template.
@@ -61,59 +61,15 @@ func SendValidation(user model.User, token string) error {
 	// =================
 	// Connect to smtp
 	// =================
-	serverName := "smtp.gmail.com:465"
-	host := "stmp.gmail.com"
+	smtpHost := "smtp.gmail.com"
+	smtpPort := "587"
 
-	auth := smtp.PlainAuth("", cfg.EmailSender, cfg.EmailPassword, host)
+	auth := smtp.PlainAuth("", cfg.EmailSender, cfg.EmailPassword, smtpHost)
 
-	tlsConfig := &tls.Config{
-		InsecureSkipVerify: false,
-		ServerName:         host,
-	}
-
-	conn, err := tls.Dial("tcp", serverName, tlsConfig)
+	err = smtp.SendMail(smtpHost+":"+smtpPort, auth, from.Address, []string{to.Address}, []byte(message))
 	if err != nil {
-		return err
-	}
-
-	client, err := smtp.NewClient(conn, host)
-	if err != nil {
-		return err
-	}
-
-	err = client.Auth(auth)
-	if err != nil {
-		return err
-	}
-
-	err = client.Mail(from.Address)
-	if err != nil {
-		return err
-	}
-
-	err = client.Rcpt(to.Address)
-	if err != nil {
-		return err
-	}
-
-	w, err := client.Data()
-	if err != nil {
-		return err
-	}
-
-	_, err = w.Write([]byte(message))
-	if err != nil {
-		return err
-	}
-
-	err = w.Close()
-	if err != nil {
-		return err
-	}
-
-	err = client.Quit()
-	if err != nil {
-		return err
+		fmt.Println(err)
+		return errors.Wrap(err, "couldn't send the email")
 	}
 
 	return nil
