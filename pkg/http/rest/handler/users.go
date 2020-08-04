@@ -35,12 +35,6 @@ func (us *Users) Create(c creating.Service, pendingList email.Service) http.Hand
 		}
 		defer r.Body.Close()
 
-		err := c.CreateUser(us.DB, &user)
-		if err != nil {
-			response.Error(w, r, http.StatusBadRequest, err)
-			return
-		}
-
 		token, err := auth.GenerateJWT(user)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, fmt.Errorf("could not generate a jwt token: %w", err))
@@ -56,6 +50,12 @@ func (us *Users) Create(c creating.Service, pendingList email.Service) http.Hand
 		err = email.SendValidation(user, token)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, fmt.Errorf("failed sending validation email: %w", err))
+			return
+		}
+
+		err = c.CreateUser(us.DB, &user)
+		if err != nil {
+			response.Error(w, r, http.StatusBadRequest, err)
 			return
 		}
 
