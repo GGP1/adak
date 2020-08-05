@@ -4,6 +4,7 @@ import (
 	"errors"
 	"strings"
 
+	"github.com/GGP1/palo/pkg/ordering"
 	"github.com/badoux/checkmail"
 	"github.com/jinzhu/gorm"
 )
@@ -12,24 +13,20 @@ import (
 // Each user has a unique cart.
 type User struct {
 	gorm.Model
-	Firstname string   `json:"firstname"`
-	Lastname  string   `json:"lastname"`
-	Email     string   `json:"email;unique"`
-	Password  string   `json:"password"`
-	CartID    string   `json:"cart_id"`
-	Reviews   []Review `json:"reviews" gorm:"foreignkey:UserID"`
+	Name     string           `json:"name"`
+	Email    string           `json:"email;unique"`
+	Password string           `json:"password"`
+	CartID   string           `json:"cart_id"`
+	Orders   []ordering.Order `json:"orders" gorm:"foreignkey:UserID"`
+	Reviews  []Review         `json:"reviews" gorm:"foreignkey:UserID"`
 }
 
 // Validate checks if the inputs are correct.
 func (u *User) Validate(action string) error {
 	switch strings.ToLower(action) {
 	case "update":
-		if u.Firstname == "" {
-			return errors.New("firstname is required")
-		}
-
-		if u.Lastname == "" {
-			return errors.New("lastname is required")
+		if u.Name == "" {
+			return errors.New("username is required")
 		}
 
 		if u.Email == "" {
@@ -54,12 +51,8 @@ func (u *User) Validate(action string) error {
 		}
 
 	default:
-		if u.Firstname == "" {
-			return errors.New("firstname is required")
-		}
-
-		if u.Lastname == "" {
-			return errors.New("lastname is required")
+		if u.Name == "" {
+			return errors.New("username is required")
 		}
 
 		if u.Password == "" {

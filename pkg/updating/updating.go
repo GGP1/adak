@@ -69,8 +69,7 @@ func (s *service) UpdateShop(db *gorm.DB, shop *model.Shop, id string) error {
 // UpdateUser returns updates a user, returns an error.
 func (s *service) UpdateUser(db *gorm.DB, user *model.User, id string) error {
 	err := db.Model(&user).Where("id=?", id).Update(
-		"firstname", user.Firstname,
-		"lastname", user.Lastname,
+		"username", user.Name,
 		"email", user.Email).
 		Error
 	if err != nil {

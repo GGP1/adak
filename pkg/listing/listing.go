@@ -104,7 +104,7 @@ func (s *service) GetShopByID(db *gorm.DB, shop *model.Shop, id string) error {
 
 // GetUsers lists all the users stored in the database.
 func (s *service) GetUsers(db *gorm.DB, user *[]model.User) error {
-	err := db.Preload("Reviews").Find(user).Error
+	err := db.Preload("Orders").Preload("Reviews").Find(user).Error
 	if err != nil {
 		return fmt.Errorf("users not found")
 	}
@@ -113,7 +113,7 @@ func (s *service) GetUsers(db *gorm.DB, user *[]model.User) error {
 
 // GetUserByID lists the user requested from the database.
 func (s *service) GetUserByID(db *gorm.DB, user *model.User, id string) error {
-	err := db.Preload("Reviews").First(user, id).Error
+	err := db.Preload("Orders").Preload("Reviews").First(user, id).Error
 	if err != nil {
 		return fmt.Errorf("user not found")
 	}
