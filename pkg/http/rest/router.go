@@ -37,8 +37,8 @@ func NewRouter(db *gorm.DB) http.Handler {
 	c := creating.NewService(repo)
 	d := deleting.NewService(repo)
 	l := listing.NewService(repo)
-	u := updating.NewService(repo)
 	s := searching.NewService(repo)
+	u := updating.NewService(repo)
 	// -- Auth session --
 	session := auth.NewSession(db, repo)
 	// -- Email lists --
@@ -46,6 +46,12 @@ func NewRouter(db *gorm.DB) http.Handler {
 	validatedList := email.NewList(db, "validated_list", repo)
 	// -- Tracker --
 	tracker := *tracking.NewTracker(db, "")
+
+	// Create handlers
+	products := h.Products{DB: db}
+	reviews := h.Reviews{DB: db}
+	shops := h.Shops{DB: db}
+	users := h.Users{DB: db}
 
 	// Middlewares
 	r.Use(m.AllowCrossOrigin)
@@ -57,29 +63,40 @@ func NewRouter(db *gorm.DB) http.Handler {
 	r.Get("/logout", m.RequireLogin(h.Logout(session)))
 	r.Get("/verification/{token}", h.ValidateEmail(pendingList, validatedList))
 
+	// Creating
+	r.Post("/products/create", m.AdminsOnly(products.Create(c)))
+	r.Post("/reviews/create", m.RequireLogin(reviews.Create(c)))
+	r.Post("/shops/create", m.AdminsOnly(shops.Create(c)))
+	r.Post("/users/create", users.Create(c, pendingList))
+
+	// Deleting
+	r.Delete("/products/{id}", m.AdminsOnly(products.Delete(d)))
+	r.Delete("/reviews/{id}", m.AdminsOnly(reviews.Delete(d)))
+	r.Delete("/shops/{id}", m.AdminsOnly(shops.Delete(d)))
+	r.Delete("/users/{id}", m.RequireLogin(users.Delete(d, session, pendingList, validatedList)))
+
 	// Home
 	r.Get("/", h.Home(tracker))
 
-	// Ordering
-	r.Get("/orders", m.AdminsOnly(h.GetOrder(db)))
-	r.Get("/order/{year}/{month}/{day}/{hour}/{minutes}", m.RequireLogin(h.NewOrder(db)))
-	r.Delete("/order/{id}", m.AdminsOnly(h.DeleteOrder(db)))
-
-	// Products
-	products := h.Products{DB: db}
+	// Listing
 	r.Get("/products", products.Get(l))
 	r.Get("/products/{id}", products.GetByID(l))
-	r.Post("/products/create", products.Create(c))
-	r.Put("/products/{id}", m.AdminsOnly(products.Update(u)))
-	r.Delete("/products/{id}", m.AdminsOnly(products.Delete(d)))
-	r.Get("/products/search/{search}", products.Search(s))
-
-	// Reviews
-	reviews := h.Reviews{DB: db}
 	r.Get("/reviews", reviews.Get(l))
 	r.Get("/reviews/{id}", reviews.GetByID(l))
-	r.Post("/reviews/create", m.RequireLogin(reviews.Create(c)))
-	r.Delete("/reviews/{id}", m.AdminsOnly(reviews.Delete(d)))
+	r.Get("/shops", shops.Get(l))
+	r.Get("/shops/{id}", shops.GetByID(l))
+	r.Get("/users", users.Get(l))
+	r.Get("/users/{id}", users.GetByID(l))
+
+	// Ordering
+	r.Get("/orders", m.AdminsOnly(h.GetOrder(db)))
+	r.Delete("/order/{id}", m.AdminsOnly(h.DeleteOrder(db)))
+	r.Get("/order/{year}/{month}/{day}/{hour}/{minutes}", m.RequireLogin(h.NewOrder(db)))
+
+	// Searching
+	r.Get("/products/search/{search}", products.Search(s))
+	r.Get("/shops/search/{search}", shops.Search(s))
+	r.Get("/users/search/{search}", users.Search(s))
 
 	// Shopping
 	r.Get("/cart", m.RequireLogin(h.CartGet(db)))
@@ -97,29 +114,16 @@ func NewRouter(db *gorm.DB) http.Handler {
 	r.Get("/cart/type/{type}", m.RequireLogin(h.CartFilterByType(db)))
 	r.Get("/cart/weight/{min}/{max}", m.RequireLogin(h.CartFilterByWeight(db)))
 
-	// Shops
-	shops := h.Shops{DB: db}
-	r.Get("/shops", shops.Get(l))
-	r.Get("/shops/{id}", shops.GetByID(l))
-	r.Post("/shops/create", shops.Create(c))
-	r.Put("/shops/{id}", m.AdminsOnly(shops.Update(u)))
-	r.Delete("/shops/{id}", m.AdminsOnly(shops.Delete(d)))
-	r.Get("/shops/search/{search}", shops.Search(s))
-
 	// Tracking
 	r.Get("/tracker", m.AdminsOnly(h.GetHits(tracker)))
 	r.Delete("/tracker/{id}", m.AdminsOnly(h.DeleteHit(tracker)))
 	r.Get("/tracker/search/{search}", m.AdminsOnly(h.SearchHit(tracker)))
 	r.Get("/tracker/{field}/{value}", m.AdminsOnly(h.SearchHitByField(tracker)))
 
-	// Users
-	users := h.Users{DB: db}
-	r.Get("/users", users.Get(l))
-	r.Get("/users/{id}", users.GetByID(l))
-	r.Post("/users/create", users.Create(c, pendingList))
+	// Updating
+	r.Put("/products/{id}", m.AdminsOnly(products.Update(u)))
+	r.Put("/shops/{id}", m.AdminsOnly(shops.Update(u)))
 	r.Put("/users/{id}", m.RequireLogin(users.Update(u)))
-	r.Delete("/users/{id}", m.RequireLogin(users.Delete(d, session, pendingList, validatedList)))
-	r.Get("/users/search/{search}", users.Search(s))
 
 	http.Handle("/", r)
 
