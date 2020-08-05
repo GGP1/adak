@@ -60,6 +60,11 @@ func NewRouter(db *gorm.DB) http.Handler {
 	// Home
 	r.Get("/", h.Home(tracker))
 
+	// Ordering
+	r.Get("/orders", m.AdminsOnly(h.GetOrder(db)))
+	r.Get("/order/{year}/{month}/{day}/{hour}/{minutes}", m.RequireLogin(h.NewOrder(db)))
+	r.Delete("/order/{id}", m.AdminsOnly(h.DeleteOrder(db)))
+
 	// Products
 	products := h.Products{DB: db}
 	r.Get("/products", products.Get(l))
@@ -78,7 +83,7 @@ func NewRouter(db *gorm.DB) http.Handler {
 
 	// Shopping
 	r.Get("/cart", m.RequireLogin(h.CartGet(db)))
-	r.Post("/cart/create/{quantity}", m.RequireLogin(h.CartAdd(db)))
+	r.Post("/cart/add/{quantity}", m.RequireLogin(h.CartAdd(db)))
 	r.Get("/cart/brand/{brand}", m.RequireLogin(h.CartFilterByBrand(db)))
 	r.Get("/cart/category/{category}", m.RequireLogin(h.CartFilterByCategory(db)))
 	r.Get("/cart/discount/{min}/{max}", m.RequireLogin(h.CartFilterByDiscount(db)))

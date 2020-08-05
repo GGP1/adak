@@ -8,6 +8,7 @@ import (
 	"github.com/GGP1/palo/internal/cfg"
 	"github.com/GGP1/palo/pkg/auth/email"
 	"github.com/GGP1/palo/pkg/model"
+	"github.com/GGP1/palo/pkg/ordering"
 	"github.com/GGP1/palo/pkg/shopping"
 	"github.com/GGP1/palo/pkg/tracking"
 
@@ -28,10 +29,13 @@ func PostgresConnect() (*gorm.DB, func() error, error) {
 		return nil, nil, fmt.Errorf("connection to the database died: %w", err)
 	}
 
+	db.DropTable(&model.User{}, &ordering.Order{}, &ordering.OrderCart{}, &ordering.OrderProduct{})
+
 	err = tableExists(db,
 		&model.Product{}, &model.User{}, &model.Review{}, &model.Shop{}, &model.Location{},
 		&shopping.Cart{}, &shopping.CartProduct{},
-		&tracking.Hit{})
+		&tracking.Hit{},
+		&ordering.Order{}, &ordering.OrderCart{}, &ordering.OrderProduct{})
 	if err != nil {
 		return nil, nil, err
 	}

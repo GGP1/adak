@@ -10,7 +10,8 @@ import (
 // Cart represents a temporary record of items that the customer
 // selected for purchase.
 type Cart struct {
-	ID       string         `json:"id"`
+	ID string `json:"id"`
+	// Counter contains the quantity of products placed in the cart
 	Counter  int            `json:"counter"`
 	Weight   float32        `json:"weight"`
 	Discount float32        `json:"discount"`
