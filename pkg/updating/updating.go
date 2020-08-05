@@ -34,6 +34,7 @@ func NewService(r Repository) Service {
 // UpdateProduct updates a product, returns an error.
 func (s *service) UpdateProduct(db *gorm.DB, product *model.Product, id string) error {
 	err := db.Model(&product).Where("id=?", id).Update(
+		"stock", product.Stock,
 		"brand", product.Brand,
 		"category", product.Category,
 		"type", product.Type,
@@ -69,7 +70,7 @@ func (s *service) UpdateShop(db *gorm.DB, shop *model.Shop, id string) error {
 // UpdateUser returns updates a user, returns an error.
 func (s *service) UpdateUser(db *gorm.DB, user *model.User, id string) error {
 	err := db.Model(&user).Where("id=?", id).Update(
-		"username", user.Name,
+		"name", user.Name,
 		"email", user.Email).
 		Error
 	if err != nil {

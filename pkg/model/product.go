@@ -12,6 +12,7 @@ import (
 type Product struct {
 	gorm.Model
 	ShopID      uint     `json:"shop_id"`
+	Stock       uint     `json:"stock"`
 	Brand       string   `json:"brand"`
 	Category    string   `json:"category"`
 	Type        string   `json:"type"`
@@ -29,6 +30,7 @@ func (p *Product) Validate() error {
 	if p.ShopID == 0 {
 		return errors.New("shop id is required")
 	}
+
 	if p.Brand == "" {
 		return errors.New("brand is required")
 	}
@@ -45,8 +47,24 @@ func (p *Product) Validate() error {
 		return errors.New("weight is required")
 	}
 
+	if p.Weight < 0 {
+		return errors.New("invalid weight")
+	}
+
 	if p.Subtotal == 0 {
 		return errors.New("subtotal is required")
+	}
+
+	if p.Subtotal < 0 {
+		return errors.New("invalid subtotal")
+	}
+
+	if p.Discount < 0 {
+		return errors.New("invalid discount")
+	}
+
+	if p.Taxes < 0 {
+		return errors.New("invalid taxes")
 	}
 
 	return nil
