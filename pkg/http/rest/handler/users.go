@@ -69,16 +69,16 @@ func (us *Users) Delete(d deleting.Service, s auth.Session, pendingList, validat
 		var user model.User
 
 		id := chi.URLParam(r, "id")
-		cookie, _ := r.Cookie("UID")
-		// Generate a fixed token of the id and compare it with the cookie
-		// to check if it's the same user
-		userID, err := auth.GenerateFixedJWT(id)
+		uID, _ := r.Cookie("UID")
+
+		// Check if it's the same user
+		userID, err := auth.ParseFixedJWT(uID.Value)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
 
-		if userID != cookie.Value {
+		if userID != id {
 			response.Error(w, r, http.StatusUnauthorized, fmt.Errorf("not allowed to delete others user"))
 			return
 		}
@@ -110,7 +110,7 @@ func (us *Users) Delete(d deleting.Service, s auth.Session, pendingList, validat
 		}
 
 		// If the user is logged in, log him out
-		s.Logout(w, r, cookie)
+		s.Logout(w, r, uID)
 
 		response.HTMLText(w, r, http.StatusOK, "User deleted successfully.")
 	}
