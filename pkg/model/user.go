@@ -14,7 +14,7 @@ import (
 type User struct {
 	gorm.Model
 	Name     string           `json:"name"`
-	Email    string           `json:"email;unique"`
+	Email    string           `json:"email"`
 	Password string           `json:"password"`
 	CartID   string           `json:"cart_id"`
 	Orders   []ordering.Order `json:"orders" gorm:"foreignkey:UserID"`
