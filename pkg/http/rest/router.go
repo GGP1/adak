@@ -93,6 +93,9 @@ func NewRouter(db *gorm.DB) http.Handler {
 	r.Delete("/order/{id}", m.AdminsOnly(h.DeleteOrder(db)))
 	r.Get("/order/{year}/{month}/{day}/{hour}/{minutes}", m.RequireLogin(h.NewOrder(db)))
 
+	// Payment
+	r.Post("/payment", m.RequireLogin(h.CreatePayment()))
+
 	// Searching
 	r.Get("/products/search/{search}", products.Search(s))
 	r.Get("/shops/search/{search}", shops.Search(s))

@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"bytes"
+	"encoding/json"
 	"errors"
 	"net/http"
 	"strconv"
@@ -87,6 +89,18 @@ func NewOrder(db *gorm.DB) http.HandlerFunc {
 		}
 
 		order, err := ordering.New(db, userID.(string), cart, date)
+		if err != nil {
+			response.Error(w, r, http.StatusInternalServerError, err)
+			return
+		}
+
+		orderJSON, err := json.Marshal(order)
+		if err != nil {
+			response.Error(w, r, http.StatusInternalServerError, err)
+			return
+		}
+
+		_, err = http.Post("/payment", "application/json", bytes.NewBuffer(orderJSON))
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
