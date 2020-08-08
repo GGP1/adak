@@ -45,11 +45,9 @@ func (s *Shops) Create(c creating.Service) http.HandlerFunc {
 // Delete removes a shop.
 func (s *Shops) Delete(d deleting.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var shop model.Shop
-
 		id := chi.URLParam(r, "id")
 
-		err := d.DeleteShop(s.DB, &shop, id)
+		err := d.DeleteShop(s.DB, id)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return

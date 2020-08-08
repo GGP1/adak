@@ -22,6 +22,7 @@ func CreatePayment() http.HandlerFunc {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
+		r.Body.Close()
 
 		params := &stripe.PaymentIntentParams{
 			Amount:   stripe.Int64(int64(order.Cart.Total)),

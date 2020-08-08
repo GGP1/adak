@@ -103,7 +103,7 @@ func (us *Users) Delete(d deleting.Service, s auth.Session, pendingList, validat
 			return
 		}
 
-		err = d.DeleteUser(us.DB, &user, id)
+		err = d.DeleteUser(us.DB, id)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
@@ -170,16 +170,16 @@ func (us *Users) Update(u updating.Service) http.HandlerFunc {
 		var user model.User
 
 		id := chi.URLParam(r, "id")
-		c, _ := r.Cookie("UID")
-		// Generate a fixed token of the id and compare it with the cookie
-		// to check if it's the same user
-		userID, err := auth.GenerateFixedJWT(id)
+		uID, _ := r.Cookie("UID")
+
+		// Check if it's the same user
+		userID, err := auth.ParseFixedJWT(uID.Value)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
 
-		if userID != c.Value {
+		if userID != id {
 			response.Error(w, r, http.StatusUnauthorized, fmt.Errorf("not allowed to update others user"))
 			return
 		}
@@ -196,6 +196,6 @@ func (us *Users) Update(u updating.Service) http.HandlerFunc {
 			return
 		}
 
-		response.JSON(w, r, http.StatusOK, user)
+		response.HTMLText(w, r, http.StatusOK, "User updated successfully.")
 	}
 }

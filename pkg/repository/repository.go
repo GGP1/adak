@@ -17,10 +17,10 @@ type Repo interface {
 
 	// Deleting
 	DeleteCart(db *gorm.DB, id string) error
-	DeleteProduct(db *gorm.DB, product *model.Product, id string) error
-	DeleteReview(db *gorm.DB, review *model.Review, id string) error
-	DeleteShop(db *gorm.DB, shop *model.Shop, id string) error
-	DeleteUser(db *gorm.DB, user *model.User, id string) error
+	DeleteProduct(db *gorm.DB, id string) error
+	DeleteReview(db *gorm.DB, id string) error
+	DeleteShop(db *gorm.DB, id string) error
+	DeleteUser(db *gorm.DB, id string) error
 
 	// Listing
 	GetProducts(db *gorm.DB, product *[]model.Product) error
@@ -44,9 +44,10 @@ type Repo interface {
 
 	// Auth session
 	AlreadyLoggedIn(w http.ResponseWriter, r *http.Request) bool
+	Clean()
 	Login(w http.ResponseWriter, email, password string) error
 	Logout(w http.ResponseWriter, r *http.Request, c *http.Cookie)
-	Clean()
+	PasswordChange(id, oldPass, newPass string) error
 
 	// Email
 	Add(email, token string) error

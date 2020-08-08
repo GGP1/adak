@@ -43,11 +43,9 @@ func (rev *Reviews) Create(c creating.Service) http.HandlerFunc {
 // Delete removes a review.
 func (rev *Reviews) Delete(d deleting.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var review model.Review
-
 		id := chi.URLParam(r, "id")
 
-		err := d.DeleteReview(rev.DB, &review, id)
+		err := d.DeleteReview(rev.DB, id)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return

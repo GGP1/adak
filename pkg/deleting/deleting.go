@@ -13,19 +13,19 @@ import (
 // Repository provides access to the storage.
 type Repository interface {
 	DeleteCart(db *gorm.DB, id string) error
-	DeleteProduct(db *gorm.DB, product *model.Product, id string) error
-	DeleteReview(db *gorm.DB, review *model.Review, id string) error
-	DeleteShop(db *gorm.DB, shop *model.Shop, id string) error
-	DeleteUser(db *gorm.DB, user *model.User, id string) error
+	DeleteProduct(db *gorm.DB, id string) error
+	DeleteReview(db *gorm.DB, id string) error
+	DeleteShop(db *gorm.DB, id string) error
+	DeleteUser(db *gorm.DB, id string) error
 }
 
 // Service provides models deleting operations.
 type Service interface {
 	DeleteCart(db *gorm.DB, id string) error
-	DeleteProduct(db *gorm.DB, product *model.Product, id string) error
-	DeleteReview(db *gorm.DB, review *model.Review, id string) error
-	DeleteShop(db *gorm.DB, shop *model.Shop, id string) error
-	DeleteUser(db *gorm.DB, user *model.User, id string) error
+	DeleteProduct(db *gorm.DB, id string) error
+	DeleteReview(db *gorm.DB, id string) error
+	DeleteShop(db *gorm.DB, id string) error
+	DeleteUser(db *gorm.DB, id string) error
 }
 
 type service struct {
@@ -38,7 +38,9 @@ func NewService(r Repository) Service {
 }
 
 // DeleteProduct takes a product from the database and permanently deletes it.
-func (s *service) DeleteProduct(db *gorm.DB, product *model.Product, id string) error {
+func (s *service) DeleteProduct(db *gorm.DB, id string) error {
+	var product model.Product
+
 	if err := db.Delete(product, id).Error; err != nil {
 		return fmt.Errorf("couldn't delete the product")
 	}
@@ -46,7 +48,9 @@ func (s *service) DeleteProduct(db *gorm.DB, product *model.Product, id string) 
 }
 
 // DeleteReview takes a review from the database and permanently deletes it.
-func (s *service) DeleteReview(db *gorm.DB, review *model.Review, id string) error {
+func (s *service) DeleteReview(db *gorm.DB, id string) error {
+	var review model.Review
+
 	if err := db.Delete(review, id).Error; err != nil {
 		return fmt.Errorf("couldn't delete the review")
 	}
@@ -54,7 +58,9 @@ func (s *service) DeleteReview(db *gorm.DB, review *model.Review, id string) err
 }
 
 // DeleteShop takes a shop from the database and permanently deletes it.
-func (s *service) DeleteShop(db *gorm.DB, shop *model.Shop, id string) error {
+func (s *service) DeleteShop(db *gorm.DB, id string) error {
+	var shop model.Shop
+
 	if err := db.Delete(shop, id).Error; err != nil {
 		return fmt.Errorf("couldn't delete the shop")
 	}
@@ -62,7 +68,8 @@ func (s *service) DeleteShop(db *gorm.DB, shop *model.Shop, id string) error {
 }
 
 // DeleteUser takes a user from the database and permanently deletes it.
-func (s *service) DeleteUser(db *gorm.DB, user *model.User, id string) error {
+func (s *service) DeleteUser(db *gorm.DB, id string) error {
+	var user model.User
 	if err := db.Delete(user, id).Error; err != nil {
 		return fmt.Errorf("couldn't delete the user")
 	}
