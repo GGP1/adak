@@ -9,6 +9,7 @@ import (
 	"github.com/GGP1/palo/internal/response"
 	"github.com/GGP1/palo/pkg/auth"
 	"github.com/GGP1/palo/pkg/auth/email"
+	"github.com/GGP1/palo/pkg/listing"
 	"github.com/GGP1/palo/pkg/model"
 	"github.com/go-chi/chi"
 
@@ -23,7 +24,7 @@ func Login(s auth.Session, validatedList email.Service) http.HandlerFunc {
 			return
 		}
 
-		user := model.User{}
+		var user model.User
 
 		err := json.NewDecoder(r.Body).Decode(&user)
 		if err != nil {
@@ -32,7 +33,6 @@ func Login(s auth.Session, validatedList email.Service) http.HandlerFunc {
 		}
 		defer r.Body.Close()
 
-		// Validate it has no empty values
 		err = user.Validate("login")
 		if err != nil {
 			response.Error(w, r, http.StatusBadRequest, err)
@@ -46,7 +46,6 @@ func Login(s auth.Session, validatedList email.Service) http.HandlerFunc {
 			return
 		}
 
-		// Authenticate user
 		err = s.Login(w, user.Email, user.Password)
 		if err != nil {
 			response.Error(w, r, http.StatusUnauthorized, err)
@@ -74,12 +73,47 @@ func Logout(s auth.Session) http.HandlerFunc {
 	}
 }
 
+// PasswordChange updates the user password.
+func PasswordChange(s auth.Session, l listing.Service) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		type changePassword struct {
+			OldPassword string `json:"old_password"`
+			NewPassword string `json:"new_password"`
+		}
+
+		var changePass changePassword
+
+		uID, _ := r.Cookie("UID")
+
+		id, err := auth.ParseFixedJWT(uID.Value)
+		if err != nil {
+			response.Error(w, r, http.StatusInternalServerError, err)
+		}
+
+		err = json.NewDecoder(r.Body).Decode(&changePass)
+		if err != nil {
+			response.Error(w, r, http.StatusInternalServerError, err)
+			return
+		}
+		defer r.Body.Close()
+
+		err = s.PasswordChange(id.(string), changePass.OldPassword, changePass.NewPassword)
+		if err != nil {
+			response.Error(w, r, http.StatusBadRequest, err)
+			return
+		}
+
+		response.HTMLText(w, r, http.StatusOK, "Password successfully changed.")
+	}
+}
+
 // ValidateEmail saves the user email into the validated list.
 // Once in the validated list, the user is able to log in.
 func ValidateEmail(pendingList, validatedList email.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var validated bool
 		token := chi.URLParam(r, "token")
+
+		var validated bool
 
 		pList, err := pendingList.Read()
 		if err != nil {
@@ -94,6 +128,13 @@ func ValidateEmail(pendingList, validatedList email.Service) http.HandlerFunc {
 					response.Error(w, r, http.StatusInternalServerError, err)
 					return
 				}
+
+				err = pendingList.Remove(k)
+				if err != nil {
+					response.Error(w, r, http.StatusInternalServerError, err)
+					return
+				}
+
 				validated = true
 			}
 		}

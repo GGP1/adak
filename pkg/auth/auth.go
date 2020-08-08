@@ -20,17 +20,19 @@ import (
 // Repository provides access to the auth storage.
 type Repository interface {
 	AlreadyLoggedIn(w http.ResponseWriter, r *http.Request) bool
+	Clean()
 	Login(w http.ResponseWriter, email, password string) error
 	Logout(w http.ResponseWriter, r *http.Request, c *http.Cookie)
-	Clean()
+	PasswordChange(id, oldPass, newPass string) error
 }
 
 // Session provides auth operations.
 type Session interface {
 	AlreadyLoggedIn(w http.ResponseWriter, r *http.Request) bool
+	Clean()
 	Login(w http.ResponseWriter, email, password string) error
 	Logout(w http.ResponseWriter, r *http.Request, c *http.Cookie)
-	Clean()
+	PasswordChange(id, oldPass, newPass string) error
 }
 
 type userInfo struct {
@@ -68,6 +70,7 @@ func (session *session) AlreadyLoggedIn(w http.ResponseWriter, r *http.Request) 
 
 	session.Lock()
 	defer session.Unlock()
+
 	user, ok := session.store[cookie.Value]
 	if ok {
 		user.lastSeen = time.Now()
@@ -77,6 +80,16 @@ func (session *session) AlreadyLoggedIn(w http.ResponseWriter, r *http.Request) 
 	cookie.MaxAge = session.length
 
 	return ok
+}
+
+// Clean deletes all the sessions that have expired.
+func (session *session) Clean() {
+	for key, value := range session.store {
+		if time.Now().Sub(value.lastSeen) > (time.Hour * 24) {
+			delete(session.store, key)
+		}
+	}
+	session.clean = time.Now()
 }
 
 // Login authenticates users and returns a jwt token.
@@ -115,9 +128,9 @@ func (session *session) Login(w http.ResponseWriter, email, password string) err
 	id := strconv.Itoa(int(user.ID))
 	userID, err := GenerateFixedJWT(id)
 	if err != nil {
-		return fmt.Errorf("failed generating a jwt token")
+		return fmt.Errorf("failed generating a jwt token: %w", err)
 	}
-	setCookie(w, "UID", userID, "/", session.length)
+	setCookie(w, "UT", userID, "/", session.length)
 
 	// -CID- used to identify wich cart belongs to each user
 	cartID := user.CartID
@@ -146,14 +159,32 @@ func (session *session) Logout(w http.ResponseWriter, r *http.Request, c *http.C
 	}
 }
 
-// Clean deletes all the sessions that have expired.
-func (session *session) Clean() {
-	for key, value := range session.store {
-		if time.Now().Sub(value.lastSeen) > (time.Hour * 24) {
-			delete(session.store, key)
-		}
+// PasswordChange changes the user password.
+func (session *session) PasswordChange(id, oldPass, newPass string) error {
+	var user model.User
+
+	err := session.DB.Where("id=?", id).First(&user).Error
+	if err != nil {
+		return fmt.Errorf("invalid email")
 	}
-	session.clean = time.Now()
+
+	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(oldPass))
+	if err != nil {
+		return errors.New("invalid old password")
+	}
+
+	newPassHash, err := bcrypt.GenerateFromPassword([]byte(newPass), bcrypt.DefaultCost)
+	if err != nil {
+		return fmt.Errorf("couldn't generate the password hash: %w", err)
+	}
+	user.Password = string(newPassHash)
+
+	err = session.DB.Save(&user).Error
+	if err != nil {
+		return fmt.Errorf("couldn't change the password: %w", err)
+	}
+
+	return nil
 }
 
 func deleteCookie(w http.ResponseWriter, name string) {

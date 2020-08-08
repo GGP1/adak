@@ -61,6 +61,7 @@ func NewRouter(db *gorm.DB) http.Handler {
 	// Auth
 	r.Post("/login", h.Login(session, validatedList))
 	r.Get("/logout", m.RequireLogin(h.Logout(session)))
+	r.Post("/settings/password", m.RequireLogin(h.PasswordChange(session, l)))
 	r.Get("/verification/{token}", h.ValidateEmail(pendingList, validatedList))
 
 	// Creating
