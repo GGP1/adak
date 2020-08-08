@@ -19,6 +19,8 @@ type Shop struct {
 // Location of the shop.
 type Location struct {
 	Country string `json:"country"`
+	State   string `json:"state"`
+	ZipCode string `json:"zip_code"`
 	City    string `json:"city"`
 	Address string `json:"address"`
 	ShopID  uint   `json:"shop_id"`

@@ -29,8 +29,6 @@ func PostgresConnect() (*gorm.DB, func() error, error) {
 		return nil, nil, fmt.Errorf("connection to the database died: %w", err)
 	}
 
-	db.DropTable(&model.User{}, &ordering.Order{}, &ordering.OrderCart{}, &ordering.OrderProduct{})
-
 	err = tableExists(db,
 		&model.Product{}, &model.User{}, &model.Review{}, &model.Shop{}, &model.Location{},
 		&shopping.Cart{}, &shopping.CartProduct{},

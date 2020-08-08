@@ -13,10 +13,10 @@ import (
 // Each user has a unique cart.
 type User struct {
 	gorm.Model
+	CartID   string           `json:"cart_id"`
 	Name     string           `json:"name"`
 	Email    string           `json:"email"`
 	Password string           `json:"password"`
-	CartID   string           `json:"cart_id"`
 	Orders   []ordering.Order `json:"orders" gorm:"foreignkey:UserID"`
 	Reviews  []Review         `json:"reviews" gorm:"foreignkey:UserID"`
 }
