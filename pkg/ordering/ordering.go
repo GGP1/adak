@@ -3,9 +3,11 @@ package ordering
 
 import (
 	"math/rand"
+	"sync"
 	"time"
 
 	"github.com/GGP1/palo/pkg/shopping"
+	"github.com/google/uuid"
 	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
 )
@@ -34,8 +36,9 @@ type OrderCart struct {
 
 // OrderProduct represents the a product place into the cart ordered by the user.
 type OrderProduct struct {
+	ID          string  `json:"id"`
 	OrderID     int     `json:"order_id"`
-	ID          int     `json:"id"`
+	ProductID   int     `json:"product_id"`
 	Quantity    int     `json:"quantity"`
 	Brand       string  `json:"brand"`
 	Category    string  `json:"category"`
@@ -106,28 +109,35 @@ func New(db *gorm.DB, userID string, cart shopping.Cart, deliveryDate time.Time)
 	order.Cart.Subtotal = cart.Subtotal
 	order.Cart.Total = cart.Total
 
+	var wg sync.WaitGroup
+
 	for _, product := range cart.Products {
 		var orderP OrderProduct
+		wg.Add(1)
 
-		orderP.ID = product.ID
-		orderP.Quantity = product.Quantity
-		orderP.Brand = product.Brand
-		orderP.Category = product.Category
-		orderP.Type = product.Type
-		orderP.Description = product.Description
-		orderP.Discount = product.Discount
-		orderP.Weight = product.Weight
-		orderP.Taxes = product.Taxes
-		orderP.Subtotal = product.Subtotal
-		orderP.Total = product.Total
+		go func(orderP OrderProduct, products []OrderProduct, product *shopping.CartProduct) {
+			defer wg.Done()
 
-		err := db.Create(&orderP).Error
-		if err != nil {
-			return nil, err
-		}
+			id := uuid.New()
 
-		order.Products = append(order.Products, orderP)
+			orderP.ID = id.String()
+			orderP.ProductID = product.ID
+			orderP.Quantity = product.Quantity
+			orderP.Brand = product.Brand
+			orderP.Category = product.Category
+			orderP.Type = product.Type
+			orderP.Description = product.Description
+			orderP.Discount = product.Discount
+			orderP.Weight = product.Weight
+			orderP.Taxes = product.Taxes
+			orderP.Subtotal = product.Subtotal
+			orderP.Total = product.Total
+			db.Create(&orderP)
+
+			order.Products = append(order.Products, orderP)
+		}(orderP, order.Products, product)
 	}
+	wg.Wait()
 
 	err := db.Create(&order).Error
 	if err != nil {
