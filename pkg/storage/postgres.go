@@ -46,6 +46,11 @@ func PostgresConnect() (*gorm.DB, func() error, error) {
 		db.Table("validated_list").CreateTable(&email.List{}).AutoMigrate(&email.List{})
 	}
 
+	err = deleteOrdersTrigger(db)
+	if err != nil {
+		return nil, nil, err
+	}
+
 	return db, db.Close, nil
 }
 
@@ -61,5 +66,37 @@ func tableExists(db *gorm.DB, models ...interface{}) error {
 			}
 		}
 	}
+	return nil
+}
+
+// If they don't exist, create a function that deletes every order that is outdated,
+// giving a margin of 2 days, and create a trigger that executes every time we insert
+// new orders.
+func deleteOrdersTrigger(db *gorm.DB) error {
+	function := `
+	IF NOT EXISTS CREATE FUNCTION delete_old_orders() RETURNS trigger
+    	LANGUAGE plpgsql
+		AS $$
+	BEGIN
+		DELETE FROM orders WHERE delivery_date < NOW() - INTERVAL '2 days';
+		RETURN NULL;
+	END;
+	$$;`
+
+	trigger := `
+	IF NOT EXISTS CREATE TRIGGER trigger_delete_old_orders
+		AFTER INSERT ON orders
+		EXECUTE PROCEDURE delete_old_orders();`
+
+	err := db.Raw(function).Error
+	if err != nil {
+		return fmt.Errorf("couldn't create the function: %w", err)
+	}
+
+	err = db.Raw(trigger).Error
+	if err != nil {
+		return fmt.Errorf("couldn't create the trigger: %w", err)
+	}
+
 	return nil
 }
