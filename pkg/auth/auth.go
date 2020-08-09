@@ -130,7 +130,7 @@ func (session *session) Login(w http.ResponseWriter, email, password string) err
 	if err != nil {
 		return fmt.Errorf("failed generating a jwt token: %w", err)
 	}
-	setCookie(w, "UT", userID, "/", session.length)
+	setCookie(w, "UID", userID, "/", session.length)
 
 	// -CID- used to identify wich cart belongs to each user
 	cartID := user.CartID

@@ -25,9 +25,8 @@ func CreatePayment() http.HandlerFunc {
 		r.Body.Close()
 
 		params := &stripe.PaymentIntentParams{
-			Amount:   stripe.Int64(int64(order.Cart.Total)),
+			Amount:   stripe.Int64(10000),
 			Currency: stripe.String(string(stripe.CurrencyUSD)),
-			Customer: stripe.String(order.UserID),
 			PaymentMethodTypes: stripe.StringSlice([]string{
 				"card",
 			}),

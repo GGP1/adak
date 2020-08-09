@@ -21,14 +21,14 @@ export default function CheckoutForm() {
 
   useEffect(() => {
     setEmail(Cookies.get('userEmail'))
-    async function fetchData() {
+    async function postPayment() {
       // Url and data need to be modified according to the user preference. - Later
       await axios.post('http://localhost:4000/payment', JSON.stringify({ items: [{ id: "xl-tshirt" }] }))
         .then(res => {
           setClientSecret(res.data.clientSecret);
         })
     }
-    fetchData();
+    postPayment();
   }, []);
 
   const cardStyle = {

@@ -100,7 +100,7 @@ func NewOrder(db *gorm.DB) http.HandlerFunc {
 			return
 		}
 
-		_, err = http.Post("/payment", "application/json", bytes.NewBuffer(orderJSON))
+		_, err = http.Post("http://127.0.0.1:4000/payment", "application/json", bytes.NewBuffer(orderJSON))
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
