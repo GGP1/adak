@@ -13,7 +13,7 @@ func DeleteHit(t tracking.Tracker) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
 
-		err := t.DeleteHit(id)
+		err := t.Delete(id)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return

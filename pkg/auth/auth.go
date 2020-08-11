@@ -107,11 +107,10 @@ func (session *session) Login(w http.ResponseWriter, email, password string) err
 		return errors.New("invalid password")
 	}
 
-	num := rand.Int()
-	admID := strconv.Itoa(num)
-
 	for _, admin := range adminList {
 		if admin == user.Email {
+			num := rand.Int()
+			admID := strconv.Itoa(num)
 			setCookie(w, "AID", admID, "/", session.length)
 		}
 	}

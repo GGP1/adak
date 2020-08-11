@@ -9,7 +9,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-// inspired on github.com/emvi/pirsch
+// inspired by github.com/emvi/pirsch
 
 // Hitter is the interface that wraps Hit methods.
 type Hitter interface {
@@ -38,8 +38,8 @@ func NewTracker(db *gorm.DB, salt string) *Tracker {
 	}
 }
 
-// DeleteHit takes away the hit with the id specified from the database.
-func (t *Tracker) DeleteHit(id string) error {
+// Delete takes away the hit with the id specified from the database.
+func (t *Tracker) Delete(id string) error {
 	var hit Hit
 	err := t.DB.Delete(&hit, id).Error
 	if err != nil {

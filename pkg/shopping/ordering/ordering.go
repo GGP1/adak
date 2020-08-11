@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/GGP1/palo/pkg/shopping"
-	"github.com/GGP1/palo/pkg/shopping/wallet"
 	"github.com/google/uuid"
 	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
@@ -124,11 +123,6 @@ func NewOrder(db *gorm.DB, userID string, cart shopping.Cart, deliveryDate time.
 	err := db.Create(&order).Error
 	if err != nil {
 		return nil, errors.Wrap(err, "couldn't create the order")
-	}
-
-	_, err = wallet.SubtractFunds(db, cart.ID, float64(order.Cart.Total))
-	if err != nil {
-		return nil, err
 	}
 
 	err = shopping.Reset(db, cart.ID)

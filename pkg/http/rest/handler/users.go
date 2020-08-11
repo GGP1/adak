@@ -13,6 +13,7 @@ import (
 	"github.com/GGP1/palo/pkg/listing"
 	"github.com/GGP1/palo/pkg/model"
 	"github.com/GGP1/palo/pkg/searching"
+	"github.com/GGP1/palo/pkg/shopping"
 	"github.com/GGP1/palo/pkg/updating"
 	"github.com/go-chi/chi"
 
@@ -97,7 +98,7 @@ func (us *Users) Delete(d deleting.Service, s auth.Session, pendingList, validat
 		}
 
 		// Delete user cart
-		err = d.DeleteCart(us.DB, user.CartID)
+		err = shopping.DeleteCart(us.DB, user.CartID)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
