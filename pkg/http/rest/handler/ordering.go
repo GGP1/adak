@@ -10,8 +10,8 @@ import (
 
 	"github.com/GGP1/palo/internal/response"
 	"github.com/GGP1/palo/pkg/auth"
-	"github.com/GGP1/palo/pkg/ordering"
 	"github.com/GGP1/palo/pkg/shopping"
+	"github.com/GGP1/palo/pkg/shopping/ordering"
 	"github.com/go-chi/chi"
 	"github.com/jinzhu/gorm"
 )
@@ -55,27 +55,30 @@ func GetOrder(db *gorm.DB) http.HandlerFunc {
 // NewOrder creates a new order.
 func NewOrder(db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		year := chi.URLParam(r, "year")
-		month := chi.URLParam(r, "month")
-		day := chi.URLParam(r, "day")
-		hour := chi.URLParam(r, "hour")
-		minutes := chi.URLParam(r, "minutes")
-
-		y, _ := strconv.Atoi(year)
-		m, _ := strconv.Atoi(month)
-		d, _ := strconv.Atoi(day)
-		h, _ := strconv.Atoi(hour)
-		min, _ := strconv.Atoi(minutes)
-
-		date := time.Date(y, time.Month(m), d, h, min, 0, 0, time.Local)
-
-		if date.Sub(time.Now()) < 0 {
-			response.Error(w, r, http.StatusBadRequest, errors.New("past dates are not valid"))
-			return
+		type date struct {
+			Year    int `json:"year"`
+			Month   int `json:"month"`
+			Day     int `json:"day"`
+			Hour    int `json:"hour"`
+			Minutes int `json:"minutes"`
 		}
 
 		cID, _ := r.Cookie("CID")
 		uID, _ := r.Cookie("UID")
+
+		var d date
+
+		err := json.NewDecoder(r.Body).Decode(&d)
+		if err != nil {
+			response.Error(w, r, http.StatusInternalServerError, err)
+		}
+
+		deliveryDate := time.Date(d.Year, time.Month(d.Month), d.Day, d.Hour, d.Minutes, 0, 0, time.Local)
+
+		if deliveryDate.Sub(time.Now()) < 0 {
+			response.Error(w, r, http.StatusBadRequest, errors.New("past dates are not valid"))
+			return
+		}
 
 		userID, err := auth.ParseFixedJWT(uID.Value)
 		if err != nil {
@@ -88,7 +91,7 @@ func NewOrder(db *gorm.DB) http.HandlerFunc {
 			return
 		}
 
-		order, err := ordering.New(db, userID.(string), cart, date)
+		order, err := ordering.NewOrder(db, userID.(string), cart, deliveryDate)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
@@ -105,6 +108,8 @@ func NewOrder(db *gorm.DB) http.HandlerFunc {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
+
+		order.State = ordering.PaidState
 
 		response.JSON(w, r, http.StatusOK, order)
 	}
