@@ -8,8 +8,8 @@ import (
 
 	"github.com/GGP1/palo/internal/response"
 	"github.com/GGP1/palo/pkg/shopping"
-	"github.com/go-chi/chi"
 
+	"github.com/go-chi/chi"
 	"github.com/jinzhu/gorm"
 )
 

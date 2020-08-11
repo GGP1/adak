@@ -38,9 +38,9 @@ type CartProduct struct {
 }
 
 // NewCart returns a cart with the default values.
-func NewCart(userID string) *Cart {
+func NewCart(id string) *Cart {
 	return &Cart{
-		ID:       userID,
+		ID:       id,
 		Counter:  0,
 		Weight:   0,
 		Discount: 0,
@@ -107,6 +107,16 @@ func Checkout(db *gorm.DB, cartID string) (float32, error) {
 	total := cart.Total + cart.Taxes - cart.Discount
 
 	return total, nil
+}
+
+// DeleteCart takes a cart from the database and permanently deletes it.
+func DeleteCart(db *gorm.DB, id string) error {
+	var cart Cart
+
+	if err := db.Delete(cart, id).Error; err != nil {
+		return fmt.Errorf("couldn't delete the cart")
+	}
+	return nil
 }
 
 // Get returns the user cart.

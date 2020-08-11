@@ -7,9 +7,23 @@ import (
 	"time"
 
 	"github.com/GGP1/palo/pkg/shopping"
+	"github.com/GGP1/palo/pkg/shopping/wallet"
 	"github.com/google/uuid"
 	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
+)
+
+const (
+	// PendingState is the pending state of an Order
+	PendingState = "pending"
+	// PaidState is the paid state of an Order
+	PaidState = "paid"
+	// ShippingState is the shipping state of an order
+	ShippingState = "shipping"
+	// ShippedState is the shipped state of an Order
+	ShippedState = "shipped"
+	// FailedState is the failed state of an Order
+	FailedState = "failed"
 )
 
 // Order represents the user purchase request.
@@ -18,6 +32,7 @@ type Order struct {
 	UserID       string         `json:"user_id"`
 	OrderedAt    time.Time      `json:"ordered_at"`
 	DeliveryDate time.Time      `json:"delivery_date"`
+	State        string         `json:"state"`
 	CartID       string         `json:"cart_id"`
 	Cart         OrderCart      `json:"cart" gorm:"foreignkey:OrderID"`
 	Products     []OrderProduct `json:"products" gorm:"foreignkey:OrderID"`
@@ -51,42 +66,8 @@ type OrderProduct struct {
 	Total       float32 `json:"total"`
 }
 
-// Delete removes an order.
-func Delete(db *gorm.DB, orderID int) error {
-	var order Order
-	var orderCart OrderCart
-	var orderProduct OrderProduct
-
-	err := db.Delete(&order, orderID).Error
-	if err != nil {
-		return errors.Wrap(err, "couldn't delete the order")
-	}
-
-	err = db.Where("order_id=?", orderID).Delete(&orderCart).Error
-	if err != nil {
-		return errors.Wrap(err, "couldn't delete the order cart")
-	}
-
-	err = db.Where("order_id=?", orderID).Delete(&orderProduct).Error
-	if err != nil {
-		return errors.Wrap(err, "couldn't delete the order products")
-	}
-
-	return nil
-}
-
-// Get removes an order.
-func Get(db *gorm.DB, orders *[]Order) error {
-	err := db.Preload("Cart").Preload("Products").Find(&orders).Error
-	if err != nil {
-		return errors.Wrap(err, "couldn't find the orders")
-	}
-
-	return nil
-}
-
-// New creates an order.
-func New(db *gorm.DB, userID string, cart shopping.Cart, deliveryDate time.Time) (*Order, error) {
+// NewOrder creates an order.
+func NewOrder(db *gorm.DB, userID string, cart shopping.Cart, deliveryDate time.Time) (*Order, error) {
 	var order Order
 
 	if cart.Counter == 0 {
@@ -100,6 +81,7 @@ func New(db *gorm.DB, userID string, cart shopping.Cart, deliveryDate time.Time)
 	order.UserID = userID
 	order.OrderedAt = time.Now()
 	order.DeliveryDate = deliveryDate
+	order.State = PendingState
 
 	order.CartID = cart.ID
 	order.Cart.Counter = cart.Counter
@@ -144,9 +126,49 @@ func New(db *gorm.DB, userID string, cart shopping.Cart, deliveryDate time.Time)
 		return nil, errors.Wrap(err, "couldn't create the order")
 	}
 
+	_, err = wallet.SubtractFunds(db, cart.ID, float64(order.Cart.Total))
+	if err != nil {
+		return nil, err
+	}
+
 	err = shopping.Reset(db, cart.ID)
 	if err != nil {
 		return nil, errors.Wrap(err, "couldn't reset the cart")
 	}
+
 	return &order, nil
+}
+
+// Delete removes an order.
+func Delete(db *gorm.DB, orderID int) error {
+	var order Order
+	var orderCart OrderCart
+	var orderProduct OrderProduct
+
+	err := db.Delete(&order, orderID).Error
+	if err != nil {
+		return errors.Wrap(err, "couldn't delete the order")
+	}
+
+	err = db.Where("order_id=?", orderID).Delete(&orderCart).Error
+	if err != nil {
+		return errors.Wrap(err, "couldn't delete the order cart")
+	}
+
+	err = db.Where("order_id=?", orderID).Delete(&orderProduct).Error
+	if err != nil {
+		return errors.Wrap(err, "couldn't delete the order products")
+	}
+
+	return nil
+}
+
+// Get removes an order.
+func Get(db *gorm.DB, orders *[]Order) error {
+	err := db.Preload("Cart").Preload("Products").Find(&orders).Error
+	if err != nil {
+		return errors.Wrap(err, "couldn't find the orders")
+	}
+
+	return nil
 }

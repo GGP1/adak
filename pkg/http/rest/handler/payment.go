@@ -6,7 +6,7 @@ import (
 
 	"github.com/GGP1/palo/internal/cfg"
 	"github.com/GGP1/palo/internal/response"
-	"github.com/GGP1/palo/pkg/ordering"
+	"github.com/GGP1/palo/pkg/shopping/ordering"
 
 	"github.com/stripe/stripe-go"
 	"github.com/stripe/stripe-go/paymentintent"
@@ -25,7 +25,7 @@ func CreatePayment() http.HandlerFunc {
 		r.Body.Close()
 
 		params := &stripe.PaymentIntentParams{
-			Amount:   stripe.Int64(10000),
+			Amount:   stripe.Int64(int64(order.Cart.Total)),
 			Currency: stripe.String(string(stripe.CurrencyUSD)),
 			PaymentMethodTypes: stripe.StringSlice([]string{
 				"card",

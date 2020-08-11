@@ -8,8 +8,8 @@ import (
 	"github.com/GGP1/palo/internal/cfg"
 	"github.com/GGP1/palo/pkg/auth/email"
 	"github.com/GGP1/palo/pkg/model"
-	"github.com/GGP1/palo/pkg/ordering"
 	"github.com/GGP1/palo/pkg/shopping"
+	"github.com/GGP1/palo/pkg/shopping/ordering"
 	"github.com/GGP1/palo/pkg/tracking"
 
 	"github.com/jinzhu/gorm"

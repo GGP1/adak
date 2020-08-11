@@ -3,9 +3,9 @@ package payment
 import (
 	"fmt"
 
-	"github.com/GGP1/palo/pkg/ordering"
+	"github.com/GGP1/palo/pkg/shopping/ordering"
 
-	"github.com/stripe/stripe-go"
+	stripe "github.com/stripe/stripe-go"
 	"github.com/stripe/stripe-go/paymentintent"
 )
 
