@@ -1,9 +1,12 @@
 package handler
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"image/png"
 	"net/http"
+	"strconv"
 
 	"github.com/GGP1/palo/internal/response"
 	"github.com/GGP1/palo/pkg/auth"
@@ -67,10 +70,10 @@ func (us *Users) Create(c creating.Service, pendingList email.Service) http.Hand
 // Delete removes a user.
 func (us *Users) Delete(d deleting.Service, s auth.Session, pendingList, validatedList email.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var user model.User
-
 		id := chi.URLParam(r, "id")
 		uID, _ := r.Cookie("UID")
+
+		var user model.User
 
 		// Check if it's the same user
 		userID, err := auth.ParseFixedJWT(uID.Value)
@@ -135,9 +138,9 @@ func (us *Users) Get(l listing.Service) http.HandlerFunc {
 // GetByID lists the user with the id requested.
 func (us *Users) GetByID(l listing.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var user model.User
-
 		id := chi.URLParam(r, "id")
+
+		var user model.User
 
 		err := l.GetUserByID(us.DB, &user, id)
 		if err != nil {
@@ -149,10 +152,45 @@ func (us *Users) GetByID(l listing.Service) http.HandlerFunc {
 	}
 }
 
+// QRCode shows the user id in a qrcode format.
+func (us *Users) QRCode(l listing.Service) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		id := chi.URLParam(r, "id")
+
+		var user model.User
+		buffer := new(bytes.Buffer)
+
+		err := l.GetUserByID(us.DB, &user, id)
+		if err != nil {
+			response.Error(w, r, http.StatusInternalServerError, err)
+			return
+		}
+
+		img, err := user.QRCode()
+		if err != nil {
+			response.Error(w, r, http.StatusInternalServerError, err)
+		}
+
+		err = png.Encode(buffer, img)
+		if err != nil {
+			response.Error(w, r, http.StatusInternalServerError, fmt.Errorf("couldn't encode the PNG image"))
+		}
+
+		w.Header().Set("Content-Type", "image/png")
+
+		w.Header().Set("Content-Length", strconv.Itoa(len(buffer.Bytes())))
+
+		if _, err := w.Write(buffer.Bytes()); err != nil {
+			fmt.Println("unable to write image.")
+		}
+	}
+}
+
 // Search looks for the products with the given value.
 func (us *Users) Search(s searching.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		search := chi.URLParam(r, "search")
+
 		var users []model.User
 
 		err := s.SearchUsers(us.DB, &users, search)
@@ -168,10 +206,10 @@ func (us *Users) Search(s searching.Service) http.HandlerFunc {
 // Update updates the user with the given id.
 func (us *Users) Update(u updating.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var user model.User
-
 		id := chi.URLParam(r, "id")
 		uID, _ := r.Cookie("UID")
+
+		var user model.User
 
 		// Check if it's the same user
 		userID, err := auth.ParseFixedJWT(uID.Value)

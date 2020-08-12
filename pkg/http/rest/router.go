@@ -129,6 +129,9 @@ func NewRouter(db *gorm.DB) http.Handler {
 	r.Put("/shops/{id}", m.AdminsOnly(shops.Update(u)))
 	r.Put("/users/{id}", m.RequireLogin(users.Update(u)))
 
+	// Users
+	r.Get("/users/{id}/qrcode", users.QRCode(l))
+
 	http.Handle("/", r)
 
 	return r
