@@ -16,6 +16,25 @@ import (
 	"github.com/jinzhu/gorm"
 )
 
+// orderParams holds the parameters for creating a order
+type orderParams struct {
+	Currency string `json:"currency"`
+	Address  string `json:"address"`
+	City     string `json:"city"`
+	Country  string `json:"country"`
+	State    string `json:"state"`
+	ZipCode  string `json:"zip_code"`
+	Date     date   `json:"date"`
+}
+
+type date struct {
+	Year    int `json:"year"`
+	Month   int `json:"month"`
+	Day     int `json:"day"`
+	Hour    int `json:"hour"`
+	Minutes int `json:"minutes"`
+}
+
 // DeleteOrder deletes an order.
 func DeleteOrder(db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -55,34 +74,26 @@ func GetOrder(db *gorm.DB) http.HandlerFunc {
 // NewOrder creates a new order.
 func NewOrder(db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		type date struct {
-			Year    int `json:"year"`
-			Month   int `json:"month"`
-			Day     int `json:"day"`
-			Hour    int `json:"hour"`
-			Minutes int `json:"minutes"`
-		}
-
 		cID, _ := r.Cookie("CID")
 		uID, _ := r.Cookie("UID")
 
-		var d date
+		var o orderParams
 
-		err := json.NewDecoder(r.Body).Decode(&d)
+		err := json.NewDecoder(r.Body).Decode(&o)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
-		}
-
-		deliveryDate := time.Date(d.Year, time.Month(d.Month), d.Day, d.Hour, d.Minutes, 0, 0, time.Local)
-
-		if deliveryDate.Sub(time.Now()) < 0 {
-			response.Error(w, r, http.StatusBadRequest, errors.New("past dates are not valid"))
-			return
 		}
 
 		userID, err := auth.ParseFixedJWT(uID.Value)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
+		}
+
+		deliveryDate := time.Date(o.Date.Year, time.Month(o.Date.Month), o.Date.Day, o.Date.Hour, o.Date.Minutes, 0, 0, time.Local)
+
+		if deliveryDate.Sub(time.Now()) < 0 {
+			response.Error(w, r, http.StatusBadRequest, errors.New("past dates are not valid"))
+			return
 		}
 
 		cart, err := shopping.Get(db, cID.Value)
@@ -91,7 +102,7 @@ func NewOrder(db *gorm.DB) http.HandlerFunc {
 			return
 		}
 
-		order, err := ordering.NewOrder(db, userID.(string), cart, deliveryDate)
+		order, err := ordering.NewOrder(db, userID.(string), o.Currency, o.Address, o.City, o.Country, o.State, o.ZipCode, deliveryDate, cart)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
@@ -108,8 +119,6 @@ func NewOrder(db *gorm.DB) http.HandlerFunc {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
-
-		order.State = ordering.PaidState
 
 		response.JSON(w, r, http.StatusOK, order)
 	}

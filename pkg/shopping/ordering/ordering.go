@@ -2,7 +2,6 @@
 package ordering
 
 import (
-	"math/rand"
 	"sync"
 	"time"
 
@@ -27,11 +26,17 @@ const (
 
 // Order represents the user purchase request.
 type Order struct {
-	ID           int            `json:"order_id"`
+	ID           string         `json:"order_id"`
 	UserID       string         `json:"user_id"`
+	Currency     string         `json:"currency"`
+	Address      string         `json:"address"`
+	City         string         `json:"city"`
+	State        string         `json:"state"`
+	ZipCode      string         `json:"zip_code"`
+	Country      string         `json:"country"`
+	Status       string         `json:"status"`
 	OrderedAt    time.Time      `json:"ordered_at"`
 	DeliveryDate time.Time      `json:"delivery_date"`
-	State        string         `json:"state"`
 	CartID       string         `json:"cart_id"`
 	Cart         OrderCart      `json:"cart" gorm:"foreignkey:OrderID"`
 	Products     []OrderProduct `json:"products" gorm:"foreignkey:OrderID"`
@@ -39,7 +44,7 @@ type Order struct {
 
 // OrderCart represents the cart ordered by the user.
 type OrderCart struct {
-	OrderID  int     `json:"order_id"`
+	OrderID  string  `json:"order_id"`
 	Counter  int     `json:"counter"`
 	Weight   float32 `json:"weight"`
 	Discount float32 `json:"discount"`
@@ -51,7 +56,7 @@ type OrderCart struct {
 // OrderProduct represents the a product place into the cart ordered by the user.
 type OrderProduct struct {
 	ID          string  `json:"id"`
-	OrderID     int     `json:"order_id"`
+	OrderID     string  `json:"order_id"`
 	ProductID   int     `json:"product_id"`
 	Quantity    int     `json:"quantity"`
 	Brand       string  `json:"brand"`
@@ -66,21 +71,27 @@ type OrderProduct struct {
 }
 
 // NewOrder creates an order.
-func NewOrder(db *gorm.DB, userID string, cart shopping.Cart, deliveryDate time.Time) (*Order, error) {
+func NewOrder(db *gorm.DB, userID, currency, address, city, country, state, zipcode string, deliveryDate time.Time, cart shopping.Cart) (*Order, error) {
 	var order Order
 
 	if cart.Counter == 0 {
 		return nil, errors.New("ordering 0 products is not permitted")
 	}
 
-	id := rand.Intn(2147483647)
+	id := uuid.New()
 
 	// Set fields
-	order.ID = id
+	order.ID = id.String()
 	order.UserID = userID
+	order.Currency = currency
+	order.Address = address
+	order.City = city
+	order.State = state
+	order.ZipCode = zipcode
+	order.Country = country
+	order.Status = PendingState
 	order.OrderedAt = time.Now()
 	order.DeliveryDate = deliveryDate
-	order.State = PendingState
 
 	order.CartID = cart.ID
 	order.Cart.Counter = cart.Counter
