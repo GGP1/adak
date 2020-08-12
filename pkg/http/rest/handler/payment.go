@@ -2,17 +2,18 @@ package handler
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/GGP1/palo/internal/cfg"
 	"github.com/GGP1/palo/internal/response"
 	"github.com/GGP1/palo/pkg/shopping/ordering"
+	"github.com/GGP1/palo/pkg/shopping/payment"
 
 	"github.com/stripe/stripe-go"
-	"github.com/stripe/stripe-go/paymentintent"
 )
 
-// CreatePayment creates a new payment intent
+// CreatePayment creates a new payment intent.
 func CreatePayment() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		stripe.Key = cfg.StripeKey
@@ -24,18 +25,14 @@ func CreatePayment() http.HandlerFunc {
 		}
 		r.Body.Close()
 
-		params := &stripe.PaymentIntentParams{
-			Amount:   stripe.Int64(int64(order.Cart.Total)),
-			Currency: stripe.String(string(stripe.CurrencyUSD)),
-			PaymentMethodTypes: stripe.StringSlice([]string{
-				"card",
-			}),
+		if order.Status == ordering.PaidState ||
+			order.Status == ordering.ShippingState ||
+			order.Status == ordering.ShippedState {
+			response.Error(w, r, http.StatusBadRequest, fmt.Errorf("This order has already been paid"))
+			return
 		}
 
-		params.AddMetadata("ordered_at", order.OrderedAt.Format("15:04:05 02/01/2006"))
-		params.AddMetadata("order_id", string(order.ID))
-
-		pi, err := paymentintent.New(params)
+		clientSecret, err := payment.CreateIntent(&order)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
@@ -44,7 +41,7 @@ func CreatePayment() http.HandlerFunc {
 		response.JSON(w, r, http.StatusOK, struct {
 			ClientSecret string `json:"clientSecret"`
 		}{
-			ClientSecret: pi.ClientSecret,
+			ClientSecret: clientSecret,
 		})
 	}
 }
