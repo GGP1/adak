@@ -3,6 +3,7 @@ package repository
 import (
 	"net/http"
 
+	"github.com/GGP1/palo/pkg/auth/email"
 	"github.com/GGP1/palo/pkg/model"
 	"github.com/jinzhu/gorm"
 )
@@ -44,6 +45,7 @@ type Repo interface {
 	// Auth session
 	AlreadyLoggedIn(w http.ResponseWriter, r *http.Request) bool
 	Clean()
+	EmailChange(id, newEmail, token string, validatedList email.Service) error
 	Login(w http.ResponseWriter, email, password string) error
 	Logout(w http.ResponseWriter, r *http.Request, c *http.Cookie)
 	PasswordChange(id, oldPass, newPass string) error

@@ -83,6 +83,7 @@ func NewOrder(db *gorm.DB) http.HandlerFunc {
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 		}
+		defer r.Body.Close()
 
 		userID, err := auth.ParseFixedJWT(uID.Value)
 		if err != nil {

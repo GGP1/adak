@@ -70,8 +70,8 @@ func (l *List) Read() (map[string]string, error) {
 }
 
 // Remove deletes an email from the list.
-func (l *List) Remove(key string) error {
-	err := l.DB.Table(l.tableName).Delete(l, key).Error
+func (l *List) Remove(email string) error {
+	err := l.DB.Table(l.tableName).Where("email=?", email).Delete(l).Error
 	if err != nil {
 		return fmt.Errorf("couldn't delete the email from the list")
 	}

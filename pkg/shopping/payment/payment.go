@@ -16,7 +16,7 @@ func CreateIntent(order *ordering.Order) (string, error) {
 		Currency: stripe.String(order.Currency),
 		Params: stripe.Params{
 			Metadata: map[string]string{
-				"order_id": string(order.ID),
+				"order_id": order.ID,
 				"cart_id":  order.CartID,
 			},
 		},

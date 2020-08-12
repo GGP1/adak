@@ -43,8 +43,8 @@ func LogFormatter(next http.Handler) http.Handler {
 		start := time.Now()
 
 		// Each request must have a id with it
-		n := rand.Int63()
-		reqID := strconv.Itoa(int(n))
+		n := rand.Int()
+		reqID := strconv.Itoa(n)
 
 		w.Header().Set("X-Request-ID", reqID)
 

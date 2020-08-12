@@ -169,11 +169,13 @@ func (us *Users) QRCode(l listing.Service) http.HandlerFunc {
 		img, err := user.QRCode()
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
+			return
 		}
 
 		err = png.Encode(buffer, img)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, fmt.Errorf("couldn't encode the PNG image"))
+			return
 		}
 
 		w.Header().Set("Content-Type", "image/png")
