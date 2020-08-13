@@ -10,6 +10,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/GGP1/palo/pkg/auth/email"
 	"github.com/GGP1/palo/pkg/model"
 
 	"github.com/google/uuid"
@@ -17,19 +18,11 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// Repository provides access to the auth storage.
-type Repository interface {
-	AlreadyLoggedIn(w http.ResponseWriter, r *http.Request) bool
-	Clean()
-	Login(w http.ResponseWriter, email, password string) error
-	Logout(w http.ResponseWriter, r *http.Request, c *http.Cookie)
-	PasswordChange(id, oldPass, newPass string) error
-}
-
 // Session provides auth operations.
 type Session interface {
 	AlreadyLoggedIn(w http.ResponseWriter, r *http.Request) bool
 	Clean()
+	EmailChange(id, newEmail, token string, validatedList email.Emailer) error
 	Login(w http.ResponseWriter, email, password string) error
 	Logout(w http.ResponseWriter, r *http.Request, c *http.Cookie)
 	PasswordChange(id, oldPass, newPass string) error
@@ -44,20 +37,18 @@ type session struct {
 	DB *gorm.DB
 	sync.RWMutex
 
-	store      map[string]userInfo
-	clean      time.Time
-	length     int
-	repository Repository
+	store  map[string]userInfo
+	clean  time.Time
+	length int
 }
 
 // NewSession creates a new session with the necessary dependencies.
-func NewSession(db *gorm.DB, r Repository) Session {
+func NewSession(db *gorm.DB) Session {
 	return &session{
-		DB:         db,
-		store:      make(map[string]userInfo),
-		clean:      time.Now(),
-		length:     0,
-		repository: r,
+		DB:     db,
+		store:  make(map[string]userInfo),
+		clean:  time.Now(),
+		length: 0,
 	}
 }
 
@@ -90,6 +81,35 @@ func (session *session) Clean() {
 		}
 	}
 	session.clean = time.Now()
+}
+
+// EmailChange changes the user email.
+func (session *session) EmailChange(id, newEmail, token string, validatedList email.Emailer) error {
+	var user model.User
+
+	err := session.DB.Where("id=?", id).First(&user).Error
+	if err != nil {
+		return fmt.Errorf("invalid email")
+	}
+
+	err = validatedList.Remove(user.Email)
+	if err != nil {
+		return err
+	}
+
+	user.Email = newEmail
+
+	err = validatedList.Add(newEmail, token)
+	if err != nil {
+		return err
+	}
+
+	err = session.DB.Save(&user).Error
+	if err != nil {
+		return fmt.Errorf("couldn't change the email: %w", err)
+	}
+
+	return nil
 }
 
 // Login authenticates users and returns a jwt token.

@@ -15,10 +15,12 @@ import (
 	"github.com/pkg/errors"
 )
 
-// Items represents a struct with the values passed to the template.
+// Items represents a struct with the values passed to the templates.
 type Items struct {
-	Name  string
-	Token string
+	ID       uint
+	Name     string
+	Token    string
+	NewEmail string
 }
 
 // SendValidation sends a validation email to the user.
@@ -45,7 +47,63 @@ func SendValidation(user model.User, token string) error {
 		message += fmt.Sprintf("%s: %s\r\n", k, v)
 	}
 
-	t, err := template.ParseFiles("../pkg/auth/email/email.html")
+	t, err := template.ParseFiles("../pkg/auth/email/validation.html")
+	if err != nil {
+		return err
+	}
+
+	buf := new(bytes.Buffer)
+	err = t.Execute(buf, items)
+	if err != nil {
+		return err
+	}
+
+	message += buf.String()
+
+	// =================
+	// Connect to smtp
+	// =================
+	smtpHost := "smtp.gmail.com"
+	smtpPort := "587"
+
+	auth := smtp.PlainAuth("", cfg.EmailSender, cfg.EmailPassword, smtpHost)
+
+	err = smtp.SendMail(smtpHost+":"+smtpPort, auth, from.Address, []string{to.Address}, []byte(message))
+	if err != nil {
+		fmt.Println(err)
+		return errors.Wrap(err, "couldn't send the email")
+	}
+
+	return nil
+}
+
+// SendChangeConfirmation sends a validation email to the user.
+func SendChangeConfirmation(user model.User, token, newEmail string) error {
+	// =================
+	// 	Email content
+	// =================
+	from := mail.Address{Name: "Palo", Address: cfg.EmailSender}
+	to := mail.Address{Name: user.Name, Address: user.Email}
+	subject := "Email change confirmation"
+	items := Items{
+		ID:       user.ID,
+		Name:     user.Name,
+		Token:    token,
+		NewEmail: newEmail,
+	}
+
+	headers := make(map[string]string)
+	headers["From"] = from.String()
+	headers["To"] = to.String()
+	headers["Subject"] = subject
+	headers["Content-Type"] = `text/html; charset="UTF-8"`
+
+	message := ""
+	for k, v := range headers {
+		message += fmt.Sprintf("%s: %s\r\n", k, v)
+	}
+
+	t, err := template.ParseFiles("../pkg/auth/email/changeEmail.html")
 	if err != nil {
 		return err
 	}

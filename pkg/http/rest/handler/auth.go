@@ -11,13 +11,91 @@ import (
 	"github.com/GGP1/palo/pkg/auth/email"
 	"github.com/GGP1/palo/pkg/listing"
 	"github.com/GGP1/palo/pkg/model"
+	"github.com/badoux/checkmail"
 	"github.com/go-chi/chi"
-
-	"github.com/pkg/errors"
+	"github.com/jinzhu/gorm"
 )
 
+type changeEmail struct {
+	Email string `json:"email"`
+}
+
+type changePassword struct {
+	OldPassword string `json:"old_password"`
+	NewPassword string `json:"new_password"`
+}
+
+// EmailChange takes the new email and send an email confirmation.
+func EmailChange(db *gorm.DB, validatedList email.Emailer, l listing.Service) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var new changeEmail
+		var user model.User
+
+		err := json.NewDecoder(r.Body).Decode(&new)
+		if err != nil {
+			response.Error(w, r, http.StatusInternalServerError, err)
+			return
+		}
+		defer r.Body.Close()
+
+		if err := checkmail.ValidateFormat(new.Email); err != nil {
+			response.Error(w, r, http.StatusBadRequest, fmt.Errorf("invalid email"))
+			return
+		}
+
+		exists := validatedList.Exists(new.Email)
+		if exists {
+			response.Error(w, r, http.StatusBadRequest, fmt.Errorf("email is already taken"))
+		}
+
+		uID, _ := r.Cookie("UID")
+		id, err := auth.ParseFixedJWT(uID.Value)
+		if err != nil {
+			response.Error(w, r, http.StatusInternalServerError, err)
+			return
+		}
+
+		err = l.GetUserByID(db, &user, id.(string))
+		if err != nil {
+			response.Error(w, r, http.StatusInternalServerError, err)
+			return
+		}
+
+		token, err := auth.GenerateJWT(user)
+		if err != nil {
+			response.Error(w, r, http.StatusInternalServerError, fmt.Errorf("could not generate the jwt token: %w", err))
+			return
+		}
+
+		err = email.SendChangeConfirmation(user, token, new.Email)
+		if err != nil {
+			response.Error(w, r, http.StatusInternalServerError, fmt.Errorf("failed sending confirmation email: %w", err))
+			return
+		}
+
+		response.HTMLText(w, r, http.StatusOK, "We sent you an email to confirm that it is you.")
+	}
+}
+
+// EmailChangeConfirmation changes the user email to the specified one.
+func EmailChangeConfirmation(s auth.Session, validatedList email.Emailer) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		token := chi.URLParam(r, "token")
+		email := chi.URLParam(r, "email")
+		id := chi.URLParam(r, "id")
+
+		err := s.EmailChange(id, email, token, validatedList)
+		if err != nil {
+			response.Error(w, r, http.StatusInternalServerError, err)
+			return
+		}
+
+		response.HTMLText(w, r, http.StatusOK, "You have successfully changed your email!")
+	}
+}
+
 // Login takes a user credentials and authenticates it.
-func Login(s auth.Session, validatedList email.Service) http.HandlerFunc {
+func Login(s auth.Session, validatedList email.Emailer) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if s.AlreadyLoggedIn(w, r) {
 			http.Redirect(w, r, "/", http.StatusSeeOther)
@@ -76,11 +154,6 @@ func Logout(s auth.Session) http.HandlerFunc {
 // PasswordChange updates the user password.
 func PasswordChange(s auth.Session, l listing.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		type changePassword struct {
-			OldPassword string `json:"old_password"`
-			NewPassword string `json:"new_password"`
-		}
-
 		var changePass changePassword
 
 		uID, _ := r.Cookie("UID")
@@ -103,13 +176,13 @@ func PasswordChange(s auth.Session, l listing.Service) http.HandlerFunc {
 			return
 		}
 
-		response.HTMLText(w, r, http.StatusOK, "Password successfully changed.")
+		response.HTMLText(w, r, http.StatusOK, "Password changed successfully.")
 	}
 }
 
 // ValidateEmail saves the user email into the validated list.
 // Once in the validated list, the user is able to log in.
-func ValidateEmail(pendingList, validatedList email.Service) http.HandlerFunc {
+func ValidateEmail(pendingList, validatedList email.Emailer) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		token := chi.URLParam(r, "token")
 
@@ -140,7 +213,7 @@ func ValidateEmail(pendingList, validatedList email.Service) http.HandlerFunc {
 		}
 
 		if !validated {
-			response.Error(w, r, http.StatusInternalServerError, errors.New("error: email validation failed"))
+			response.Error(w, r, http.StatusInternalServerError, fmt.Errorf("error: email validation failed"))
 			return
 		}
 
