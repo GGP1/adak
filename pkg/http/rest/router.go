@@ -10,7 +10,6 @@ import (
 	"github.com/GGP1/palo/pkg/auth/email"
 	"github.com/GGP1/palo/pkg/creating"
 	"github.com/GGP1/palo/pkg/deleting"
-	"github.com/GGP1/palo/pkg/repository"
 	"github.com/GGP1/palo/pkg/searching"
 	"github.com/GGP1/palo/pkg/tracking"
 
@@ -30,22 +29,27 @@ import (
 func NewRouter(db *gorm.DB) http.Handler {
 	r := chi.NewRouter()
 
-	// Create repository
-	repo := *new(repository.Repo)
+	// Repositories
+	cRepo := *new(creating.Repository)
+	dRepo := *new(deleting.Repository)
+	lRepo := *new(listing.Repository)
+	sRepo := *new(searching.Repository)
+	uRepo := *new(updating.Repository)
 
 	// Services
-	c := creating.NewService(repo)
-	d := deleting.NewService(repo)
-	l := listing.NewService(repo)
-	s := searching.NewService(repo)
-	u := updating.NewService(repo)
+	c := creating.NewService(cRepo)
+	d := deleting.NewService(dRepo)
+	l := listing.NewService(lRepo)
+	s := searching.NewService(sRepo)
+	u := updating.NewService(uRepo)
+
 	// -- Auth session --
-	session := auth.NewSession(db, repo)
+	session := auth.NewSession(db)
 	// -- Email lists --
-	pendingList := email.NewList(db, "pending_list", repo)
-	validatedList := email.NewList(db, "validated_list", repo)
+	pendingList := email.NewList(db, "pending_list")
+	validatedList := email.NewList(db, "validated_list")
 	// -- Tracker --
-	tracker := *tracking.NewTracker(db, "")
+	tracker := tracking.NewTracker(db, "")
 
 	// Create handlers
 	products := h.Products{DB: db}
@@ -61,8 +65,10 @@ func NewRouter(db *gorm.DB) http.Handler {
 	// Auth
 	r.Post("/login", h.Login(session, validatedList))
 	r.Get("/logout", m.RequireLogin(h.Logout(session)))
+	r.Post("/settings/email", m.RequireLogin(h.EmailChange(db, pendingList, l)))
 	r.Post("/settings/password", m.RequireLogin(h.PasswordChange(session, l)))
 	r.Get("/verification/{token}", h.ValidateEmail(pendingList, validatedList))
+	r.Get("/verification/{token}/{email}/{id}", h.EmailChangeConfirmation(session, validatedList))
 
 	// Creating
 	r.Post("/products/create", m.AdminsOnly(products.Create(c)))

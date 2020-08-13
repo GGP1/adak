@@ -11,37 +11,39 @@ import (
 
 // inspired by github.com/emvi/pirsch
 
-// Hitter is the interface that wraps Hit methods.
-type Hitter interface {
-	Hit(r *http.Request) error
-	DeleteHit(id string) error
+// Tracker is the interface that wraps user tracking methods.
+type Tracker interface {
+	Delete(id string) error
 	Get() ([]Hit, error)
+	Hit(r *http.Request) error
+	Searcher
 }
 
-// Searcher is the interface that wraps the basic search method.
+// Searcher is the interface that wraps hits search methods.
 type Searcher interface {
-	Search(value string) ([]interface{}, error)
+	Search(value string) ([]Hit, error)
+	SearchByField(field, value string) ([]Hit, error)
 }
 
-// Tracker provides methods to track requests and store them in a data store.
+// Hitter provides methods to hit requests and store them in a data store.
 // In case of an error it will panic.
-type Tracker struct {
+type Hitter struct {
 	DB   *gorm.DB
 	salt string
 }
 
 // NewTracker returns a new user tracker.
-func NewTracker(db *gorm.DB, salt string) *Tracker {
-	return &Tracker{
+func NewTracker(db *gorm.DB, salt string) Tracker {
+	return &Hitter{
 		DB:   db,
 		salt: salt,
 	}
 }
 
 // Delete takes away the hit with the id specified from the database.
-func (t *Tracker) Delete(id string) error {
+func (h *Hitter) Delete(id string) error {
 	var hit Hit
-	err := t.DB.Delete(&hit, id).Error
+	err := h.DB.Delete(&hit, id).Error
 	if err != nil {
 		return errors.Wrap(err, "couldn't delete the hit")
 	}
@@ -50,10 +52,10 @@ func (t *Tracker) Delete(id string) error {
 }
 
 // Get lists all the hits stored in the database.
-func (t *Tracker) Get() ([]Hit, error) {
+func (h *Hitter) Get() ([]Hit, error) {
 	var hits []Hit
 
-	err := t.DB.Find(&hits).Error
+	err := h.DB.Find(&hits).Error
 	if err != nil {
 		return nil, errors.Wrap(err, "couldn't find the hits")
 	}
@@ -63,11 +65,11 @@ func (t *Tracker) Get() ([]Hit, error) {
 
 // Hit stores the given request.
 // The request might be ignored if it meets certain conditions.
-func (t *Tracker) Hit(r *http.Request) error {
+func (h *Hitter) Hit(r *http.Request) error {
 	if !ignoreHit(r) {
-		hit := HitRequest(r, t.salt)
+		hit := HitRequest(r, h.salt)
 
-		err := t.DB.Create(&hit).Error
+		err := h.DB.Create(&hit).Error
 		if err != nil {
 			return errors.Wrap(err, "couldn't save the hit")
 		}
@@ -77,10 +79,10 @@ func (t *Tracker) Hit(r *http.Request) error {
 }
 
 // Search looks for a value and returns a slice of the hits that contain that value.
-func (t *Tracker) Search(value string) ([]Hit, error) {
+func (h *Hitter) Search(value string) ([]Hit, error) {
 	var hits []Hit
 
-	err := t.DB.
+	err := h.DB.
 		Where(`to_tsvector(id || ' ' || footprint || ' ' || 
 		path || ' ' || url || ' ' || 
 		language || ' ' || referer || ' ' || 
@@ -95,10 +97,10 @@ func (t *Tracker) Search(value string) ([]Hit, error) {
 }
 
 // SearchByField looks for a value and returns a slice of the hits that contain that value.
-func (t *Tracker) SearchByField(field, value string) ([]Hit, error) {
+func (h *Hitter) SearchByField(field, value string) ([]Hit, error) {
 	var hits []Hit
 
-	err := t.DB.Where("CONTAINS(?, '?')", field, value).Error
+	err := h.DB.Where("CONTAINS(?, '?')", field, value).Error
 	if err != nil {
 		return nil, errors.Wrap(err, "no hits found")
 	}

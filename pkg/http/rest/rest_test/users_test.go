@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/GGP1/palo/pkg/http/rest/handler"
-	"github.com/GGP1/palo/pkg/repository"
+	"github.com/GGP1/palo/pkg/listing"
 	"github.com/GGP1/palo/pkg/storage"
 	"github.com/badoux/checkmail"
 )
@@ -19,7 +19,7 @@ func TestUsersHandler(t *testing.T) {
 func list(t *testing.T) {
 	db, _, _ := storage.PostgresConnect()
 
-	repo := *new(repository.Repo)
+	repo := *new(listing.Repository)
 	users := handler.Users{DB: db}
 
 	req := httptest.NewRequest("GET", "localhost:4000/users", nil)

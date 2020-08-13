@@ -29,7 +29,7 @@ type Users struct {
 }
 
 // Create creates a new user and saves it.
-func (us *Users) Create(c creating.Service, pendingList email.Service) http.HandlerFunc {
+func (us *Users) Create(c creating.Service, pendingList email.Emailer) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var user model.User
 
@@ -41,7 +41,7 @@ func (us *Users) Create(c creating.Service, pendingList email.Service) http.Hand
 
 		token, err := auth.GenerateJWT(user)
 		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, fmt.Errorf("could not generate a jwt token: %w", err))
+			response.Error(w, r, http.StatusInternalServerError, fmt.Errorf("could not generate the jwt token: %w", err))
 			return
 		}
 
@@ -68,7 +68,7 @@ func (us *Users) Create(c creating.Service, pendingList email.Service) http.Hand
 }
 
 // Delete removes a user.
-func (us *Users) Delete(d deleting.Service, s auth.Session, pendingList, validatedList email.Service) http.HandlerFunc {
+func (us *Users) Delete(d deleting.Service, s auth.Session, pendingList, validatedList email.Emailer) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
 		uID, _ := r.Cookie("UID")
