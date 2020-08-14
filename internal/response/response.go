@@ -4,8 +4,11 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"image"
+	"image/png"
 	"io"
 	"net/http"
+	"strconv"
 )
 
 // HTMLText is the function used to send html text resposes.
@@ -15,6 +18,25 @@ func HTMLText(w http.ResponseWriter, r *http.Request, status int, text string) {
 	w.WriteHeader(status)
 
 	fmt.Fprintln(w, text)
+}
+
+// PNG is used to respond with a png image.
+func PNG(w http.ResponseWriter, r *http.Request, status int, img image.Image) {
+	var buf bytes.Buffer
+
+	err := png.Encode(&buf, img)
+	if err != nil {
+		http.Error(w, "couldn't encode the PNG image", http.StatusInternalServerError)
+		return
+	}
+
+	w.WriteHeader(status)
+	w.Header().Set("Content-Type", "image/png")
+	w.Header().Set("Content-Length", strconv.Itoa(len(buf.Bytes())))
+
+	if _, err := w.Write(buf.Bytes()); err != nil {
+		http.Error(w, "unable to write image", http.StatusInternalServerError)
+	}
 }
 
 // JSON is the function used to send JSON responses.
