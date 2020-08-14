@@ -2,6 +2,7 @@ package shopping
 
 import (
 	"fmt"
+	"math"
 
 	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
@@ -13,11 +14,11 @@ type Cart struct {
 	ID string `json:"id"`
 	// Counter contains the quantity of products placed in the cart
 	Counter  int            `json:"counter"`
-	Weight   float32        `json:"weight"`
-	Discount float32        `json:"discount"`
-	Taxes    float32        `json:"taxes"`
-	Subtotal float32        `json:"subtotal"`
-	Total    float32        `json:"total"`
+	Weight   float64        `json:"weight"`
+	Discount float64        `json:"discount"`
+	Taxes    float64        `json:"taxes"`
+	Subtotal float64        `json:"subtotal"`
+	Total    float64        `json:"total"`
 	Products []*CartProduct `json:"products" gorm:"foreignkey:CartID"`
 }
 
@@ -30,11 +31,11 @@ type CartProduct struct {
 	Category    string  `json:"category"`
 	Type        string  `json:"type"`
 	Description string  `json:"description"`
-	Weight      float32 `json:"weight"`
-	Taxes       float32 `json:"taxes"`
-	Discount    float32 `json:"discount"`
-	Subtotal    float32 `json:"subtotal"`
-	Total       float32 `json:"total"`
+	Weight      float64 `json:"weight"`
+	Taxes       float64 `json:"taxes"`
+	Discount    float64 `json:"discount"`
+	Subtotal    float64 `json:"subtotal"`
+	Total       float64 `json:"total"`
 }
 
 // NewCart returns a cart with the default values.
@@ -64,13 +65,14 @@ func Add(db *gorm.DB, cartID string, product *CartProduct, quantity int) (*CartP
 	discount := ((product.Subtotal / 100) * product.Discount)
 	product.Total = product.Total + product.Subtotal + taxes - discount
 
+	// math.Ceil(x*100)/100 is used to round float numbers
 	for i := 0; i < quantity; i++ {
 		cart.Counter++
 		product.Quantity++
-		cart.Weight += product.Weight
-		cart.Discount += discount
-		cart.Taxes += taxes
-		cart.Subtotal += product.Subtotal
+		cart.Weight += math.Ceil(product.Weight*100) / 100
+		cart.Discount += math.Ceil(discount*100) / 100
+		cart.Taxes += math.Ceil(taxes*100) / 100
+		cart.Subtotal += math.Ceil(product.Subtotal*100) / 100
 		cart.Total = cart.Total + product.Subtotal + taxes - discount
 	}
 
@@ -97,7 +99,7 @@ func Add(db *gorm.DB, cartID string, product *CartProduct, quantity int) (*CartP
 }
 
 // Checkout takes all the products and returns the total price.
-func Checkout(db *gorm.DB, cartID string) (float32, error) {
+func Checkout(db *gorm.DB, cartID string) (float64, error) {
 	var cart Cart
 
 	if err := db.Where("id=?", cartID).Find(&cart).Error; err != nil {
@@ -187,13 +189,14 @@ func Remove(db *gorm.DB, cartID string, key int, quantity int) error {
 	taxes := (product.Subtotal / 100) * product.Taxes
 	discount := (product.Subtotal / 100) * product.Discount
 
+	// math.Ceil(x*100)/100 is used to round float numbers
 	for i := 0; i < quantity; i++ {
 		cart.Counter--
 		product.Quantity--
-		cart.Weight -= product.Weight
-		cart.Discount -= discount
-		cart.Taxes -= taxes
-		cart.Subtotal -= product.Subtotal
+		cart.Weight -= math.Ceil(product.Weight*100) / 100
+		cart.Discount -= math.Ceil(discount*100) / 100
+		cart.Taxes -= math.Ceil(taxes*100) / 100
+		cart.Subtotal -= math.Ceil(product.Subtotal*100) / 100
 		cart.Total = cart.Total - product.Subtotal - taxes + discount
 	}
 

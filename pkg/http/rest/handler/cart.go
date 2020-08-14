@@ -101,10 +101,10 @@ func CartFilterByDiscount(db *gorm.DB) http.HandlerFunc {
 		max := chi.URLParam(r, "max")
 		c, _ := r.Cookie("CID")
 
-		minDiscount, _ := strconv.ParseFloat(min, 32)
-		maxDiscount, _ := strconv.ParseFloat(max, 32)
+		minDiscount, _ := strconv.ParseFloat(min, 64)
+		maxDiscount, _ := strconv.ParseFloat(max, 64)
 
-		products, err := shopping.FilterByDiscount(db, c.Value, float32(minDiscount), float32(maxDiscount))
+		products, err := shopping.FilterByDiscount(db, c.Value, minDiscount, maxDiscount)
 		if err != nil {
 			response.Error(w, r, http.StatusNotFound, err)
 			return
@@ -121,10 +121,10 @@ func CartFilterBySubtotal(db *gorm.DB) http.HandlerFunc {
 		max := chi.URLParam(r, "max")
 		c, _ := r.Cookie("CID")
 
-		minSubtotal, _ := strconv.ParseFloat(min, 32)
-		maxSubtotal, _ := strconv.ParseFloat(max, 32)
+		minSubtotal, _ := strconv.ParseFloat(min, 64)
+		maxSubtotal, _ := strconv.ParseFloat(max, 64)
 
-		products, err := shopping.FilterBySubtotal(db, c.Value, float32(minSubtotal), float32(maxSubtotal))
+		products, err := shopping.FilterBySubtotal(db, c.Value, minSubtotal, maxSubtotal)
 		if err != nil {
 			response.Error(w, r, http.StatusNotFound, err)
 			return
@@ -141,10 +141,10 @@ func CartFilterByTaxes(db *gorm.DB) http.HandlerFunc {
 		max := chi.URLParam(r, "max")
 		c, _ := r.Cookie("CID")
 
-		minTaxes, _ := strconv.ParseFloat(min, 32)
-		maxTaxes, _ := strconv.ParseFloat(max, 32)
+		minTaxes, _ := strconv.ParseFloat(min, 64)
+		maxTaxes, _ := strconv.ParseFloat(max, 64)
 
-		products, err := shopping.FilterByTaxes(db, c.Value, float32(minTaxes), float32(maxTaxes))
+		products, err := shopping.FilterByTaxes(db, c.Value, minTaxes, maxTaxes)
 		if err != nil {
 			response.Error(w, r, http.StatusNotFound, err)
 			return
@@ -161,10 +161,10 @@ func CartFilterByTotal(db *gorm.DB) http.HandlerFunc {
 		max := chi.URLParam(r, "max")
 		c, _ := r.Cookie("CID")
 
-		minTotal, _ := strconv.ParseFloat(min, 32)
-		maxTotal, _ := strconv.ParseFloat(max, 32)
+		minTotal, _ := strconv.ParseFloat(min, 64)
+		maxTotal, _ := strconv.ParseFloat(max, 64)
 
-		products, err := shopping.FilterByTotal(db, c.Value, float32(minTotal), float32(maxTotal))
+		products, err := shopping.FilterByTotal(db, c.Value, minTotal, maxTotal)
 		if err != nil {
 			response.Error(w, r, http.StatusNotFound, err)
 			return
@@ -197,10 +197,10 @@ func CartFilterByWeight(db *gorm.DB) http.HandlerFunc {
 		max := chi.URLParam(r, "max")
 		c, _ := r.Cookie("CID")
 
-		minWeight, _ := strconv.ParseFloat(min, 32)
-		maxWeight, _ := strconv.ParseFloat(max, 32)
+		minWeight, _ := strconv.ParseFloat(min, 64)
+		maxWeight, _ := strconv.ParseFloat(max, 64)
 
-		products, err := shopping.FilterByWeight(db, c.Value, float32(minWeight), float32(maxWeight))
+		products, err := shopping.FilterByWeight(db, c.Value, minWeight, maxWeight)
 		if err != nil {
 			response.Error(w, r, http.StatusNotFound, err)
 			return

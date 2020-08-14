@@ -46,11 +46,11 @@ type Order struct {
 type OrderCart struct {
 	OrderID  string  `json:"order_id"`
 	Counter  int     `json:"counter"`
-	Weight   float32 `json:"weight"`
-	Discount float32 `json:"discount"`
-	Taxes    float32 `json:"taxes"`
-	Subtotal float32 `json:"subtotal"`
-	Total    float32 `json:"total"`
+	Weight   float64 `json:"weight"`
+	Discount float64 `json:"discount"`
+	Taxes    float64 `json:"taxes"`
+	Subtotal float64 `json:"subtotal"`
+	Total    float64 `json:"total"`
 }
 
 // OrderProduct represents the a product place into the cart ordered by the user.
@@ -63,11 +63,11 @@ type OrderProduct struct {
 	Category    string  `json:"category"`
 	Type        string  `json:"type"`
 	Description string  `json:"description"`
-	Weight      float32 `json:"weight"`
-	Discount    float32 `json:"discount"`
-	Taxes       float32 `json:"taxes"`
-	Subtotal    float32 `json:"subtotal"`
-	Total       float32 `json:"total"`
+	Weight      float64 `json:"weight"`
+	Discount    float64 `json:"discount"`
+	Taxes       float64 `json:"taxes"`
+	Subtotal    float64 `json:"subtotal"`
+	Total       float64 `json:"total"`
 }
 
 // NewOrder creates an order.

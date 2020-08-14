@@ -40,7 +40,7 @@ func FilterByCategory(db *gorm.DB, cartID, category string) ([]CartProduct, erro
 }
 
 // FilterByDiscount looks for products within the percentage of discount range specified.
-func FilterByDiscount(db *gorm.DB, cartID string, min, max float32) ([]CartProduct, error) {
+func FilterByDiscount(db *gorm.DB, cartID string, min, max float64) ([]CartProduct, error) {
 	var products []CartProduct
 
 	if err := db.Where("cart_id = ? AND discount >= ? AND discount <= ?", cartID, min, max).Find(&products).Error; err != nil {
@@ -55,7 +55,7 @@ func FilterByDiscount(db *gorm.DB, cartID string, min, max float32) ([]CartProdu
 }
 
 // FilterBySubtotal looks for products within the subtotal price range specified.
-func FilterBySubtotal(db *gorm.DB, cartID string, min, max float32) ([]CartProduct, error) {
+func FilterBySubtotal(db *gorm.DB, cartID string, min, max float64) ([]CartProduct, error) {
 	var products []CartProduct
 
 	if err := db.Where("cart_id = ? AND subtotal >= ? AND subtotal <= ?", cartID, min, max).Find(&products).Error; err != nil {
@@ -70,7 +70,7 @@ func FilterBySubtotal(db *gorm.DB, cartID string, min, max float32) ([]CartProdu
 }
 
 // FilterByTaxes looks for products within the percentage of taxes range specified.
-func FilterByTaxes(db *gorm.DB, cartID string, min, max float32) ([]CartProduct, error) {
+func FilterByTaxes(db *gorm.DB, cartID string, min, max float64) ([]CartProduct, error) {
 	var products []CartProduct
 
 	if err := db.Where("cart_id = ? AND taxes >= ? AND taxes <= ?", cartID, min, max).Find(&products).Error; err != nil {
@@ -85,7 +85,7 @@ func FilterByTaxes(db *gorm.DB, cartID string, min, max float32) ([]CartProduct,
 }
 
 // FilterByTotal looks for products within the total price range specified.
-func FilterByTotal(db *gorm.DB, cartID string, min, max float32) ([]CartProduct, error) {
+func FilterByTotal(db *gorm.DB, cartID string, min, max float64) ([]CartProduct, error) {
 	var products []CartProduct
 
 	if err := db.Where("cart_id = ? AND total >= ? AND total <= ?", cartID, min, max).Find(&products).Error; err != nil {
@@ -115,7 +115,7 @@ func FilterByType(db *gorm.DB, cartID, pType string) ([]CartProduct, error) {
 }
 
 // FilterByWeight looks for products within the weight range specified.
-func FilterByWeight(db *gorm.DB, cartID string, min, max float32) ([]CartProduct, error) {
+func FilterByWeight(db *gorm.DB, cartID string, min, max float64) ([]CartProduct, error) {
 	var products []CartProduct
 
 	if err := db.Where("cart_id = ? AND weight >= ? AND weight <= ?", cartID, min, max).Find(&products).Error; err != nil {
