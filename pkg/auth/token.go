@@ -39,7 +39,8 @@ func GenerateFixedJWT(id string) (string, error) {
 }
 
 // ParseFixedJWT takes the claims from the token and returns the id value.
-func ParseFixedJWT(tokenString string) (interface{}, error) {
+// This function is used to take the user id value from the cookie UID.
+func ParseFixedJWT(tokenString string) (string, error) {
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
 		if _, isvalid := token.Method.(*jwt.SigningMethodHMAC); !isvalid {
 			return nil, fmt.Errorf("Invalid token %v", token.Header["alg"])
@@ -49,10 +50,10 @@ func ParseFixedJWT(tokenString string) (interface{}, error) {
 	})
 
 	if err != nil {
-		return nil, errors.Wrap(err, "failed parsing the token")
+		return "", errors.Wrap(err, "failed parsing the token")
 	}
 
 	claims := token.Claims.(jwt.MapClaims)
 
-	return claims["id"], nil
+	return claims["id"].(string), nil
 }
