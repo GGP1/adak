@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -103,7 +104,7 @@ func NewOrder(db *gorm.DB) http.HandlerFunc {
 			return
 		}
 
-		order, err := ordering.NewOrder(db, userID.(string), o.Currency, o.Address, o.City, o.Country, o.State, o.ZipCode, deliveryDate, cart)
+		order, err := ordering.NewOrder(db, userID, o.Currency, o.Address, o.City, o.Country, o.State, o.ZipCode, deliveryDate, cart)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
@@ -115,12 +116,17 @@ func NewOrder(db *gorm.DB) http.HandlerFunc {
 			return
 		}
 
-		_, err = http.Post("http://127.0.0.1:4000/payment", "application/json", bytes.NewBuffer(orderJSON))
-		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
-			return
-		}
+		go func() {
+			_, err = http.Post("http://127.0.0.1:4000/payment", "application/json", bytes.NewBuffer(orderJSON))
+			if err != nil {
+				response.Error(w, r, http.StatusInternalServerError, err)
+				return
+			}
+		}()
+
+		respond := fmt.Sprintf("Thanks for your purchase! Your products will be delivered on %v.", order.DeliveryDate)
 
 		response.JSON(w, r, http.StatusOK, order)
+		fmt.Fprintln(w, respond)
 	}
 }

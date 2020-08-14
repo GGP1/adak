@@ -11,7 +11,6 @@ import (
 	"github.com/GGP1/palo/pkg/auth/email"
 	"github.com/GGP1/palo/pkg/listing"
 	"github.com/GGP1/palo/pkg/model"
-	"github.com/badoux/checkmail"
 	"github.com/go-chi/chi"
 	"github.com/jinzhu/gorm"
 )
@@ -38,8 +37,8 @@ func EmailChange(db *gorm.DB, validatedList email.Emailer, l listing.Service) ht
 		}
 		defer r.Body.Close()
 
-		if err := checkmail.ValidateFormat(new.Email); err != nil {
-			response.Error(w, r, http.StatusBadRequest, fmt.Errorf("invalid email"))
+		if err := user.ValidateEmail(user.Email); err != nil {
+			response.Error(w, r, http.StatusBadRequest, err)
 			return
 		}
 
@@ -49,13 +48,13 @@ func EmailChange(db *gorm.DB, validatedList email.Emailer, l listing.Service) ht
 		}
 
 		uID, _ := r.Cookie("UID")
-		id, err := auth.ParseFixedJWT(uID.Value)
+		userID, err := auth.ParseFixedJWT(uID.Value)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
 
-		err = l.GetUserByID(db, &user, id.(string))
+		err = l.GetUserByID(db, &user, userID)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
@@ -67,13 +66,17 @@ func EmailChange(db *gorm.DB, validatedList email.Emailer, l listing.Service) ht
 			return
 		}
 
-		err = email.SendChangeConfirmation(user, token, new.Email)
-		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, fmt.Errorf("failed sending confirmation email: %w", err))
-			return
-		}
+		errCh := make(chan error)
 
-		response.HTMLText(w, r, http.StatusOK, "We sent you an email to confirm that it is you.")
+		go email.SendChangeConfirmation(user, token, new.Email, errCh)
+
+		select {
+		case <-errCh:
+			response.Error(w, r, http.StatusInternalServerError, fmt.Errorf("failed sending confirmation email: %w", <-errCh))
+			return
+		default:
+			response.HTMLText(w, r, http.StatusOK, "We sent you an email to confirm that it is you.")
+		}
 	}
 }
 
@@ -158,7 +161,7 @@ func PasswordChange(s auth.Session, l listing.Service) http.HandlerFunc {
 
 		uID, _ := r.Cookie("UID")
 
-		id, err := auth.ParseFixedJWT(uID.Value)
+		userID, err := auth.ParseFixedJWT(uID.Value)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 		}
@@ -170,7 +173,7 @@ func PasswordChange(s auth.Session, l listing.Service) http.HandlerFunc {
 		}
 		defer r.Body.Close()
 
-		err = s.PasswordChange(id.(string), changePass.OldPassword, changePass.NewPassword)
+		err = s.PasswordChange(userID, changePass.OldPassword, changePass.NewPassword)
 		if err != nil {
 			response.Error(w, r, http.StatusBadRequest, err)
 			return

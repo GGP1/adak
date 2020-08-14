@@ -24,7 +24,7 @@ type Items struct {
 }
 
 // SendValidation sends a validation email to the user.
-func SendValidation(user model.User, token string) error {
+func SendValidation(user model.User, token string, errCh chan error) {
 	// =================
 	// 	Email content
 	// =================
@@ -49,13 +49,13 @@ func SendValidation(user model.User, token string) error {
 
 	t, err := template.ParseFiles("../pkg/auth/email/validation.html")
 	if err != nil {
-		return err
+		errCh <- err
 	}
 
 	buf := new(bytes.Buffer)
 	err = t.Execute(buf, items)
 	if err != nil {
-		return err
+		errCh <- err
 	}
 
 	message += buf.String()
@@ -70,15 +70,12 @@ func SendValidation(user model.User, token string) error {
 
 	err = smtp.SendMail(smtpHost+":"+smtpPort, auth, from.Address, []string{to.Address}, []byte(message))
 	if err != nil {
-		fmt.Println(err)
-		return errors.Wrap(err, "couldn't send the email")
+		errCh <- errors.Wrap(err, "couldn't send the email")
 	}
-
-	return nil
 }
 
 // SendChangeConfirmation sends a validation email to the user.
-func SendChangeConfirmation(user model.User, token, newEmail string) error {
+func SendChangeConfirmation(user model.User, token, newEmail string, errCh chan error) {
 	// =================
 	// 	Email content
 	// =================
@@ -105,13 +102,13 @@ func SendChangeConfirmation(user model.User, token, newEmail string) error {
 
 	t, err := template.ParseFiles("../pkg/auth/email/changeEmail.html")
 	if err != nil {
-		return err
+		errCh <- err
 	}
 
 	buf := new(bytes.Buffer)
 	err = t.Execute(buf, items)
 	if err != nil {
-		return err
+		errCh <- err
 	}
 
 	message += buf.String()
@@ -127,8 +124,6 @@ func SendChangeConfirmation(user model.User, token, newEmail string) error {
 	err = smtp.SendMail(smtpHost+":"+smtpPort, auth, from.Address, []string{to.Address}, []byte(message))
 	if err != nil {
 		fmt.Println(err)
-		return errors.Wrap(err, "couldn't send the email")
+		errCh <- errors.Wrap(err, "couldn't send the email")
 	}
-
-	return nil
 }

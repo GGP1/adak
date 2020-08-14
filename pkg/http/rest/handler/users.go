@@ -1,12 +1,9 @@
 package handler
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
-	"image/png"
 	"net/http"
-	"strconv"
 
 	"github.com/GGP1/palo/internal/response"
 	"github.com/GGP1/palo/pkg/auth"
@@ -18,8 +15,8 @@ import (
 	"github.com/GGP1/palo/pkg/searching"
 	"github.com/GGP1/palo/pkg/shopping"
 	"github.com/GGP1/palo/pkg/updating"
-	"github.com/go-chi/chi"
 
+	"github.com/go-chi/chi"
 	"github.com/jinzhu/gorm"
 )
 
@@ -51,19 +48,23 @@ func (us *Users) Create(c creating.Service, pendingList email.Emailer) http.Hand
 			return
 		}
 
-		err = email.SendValidation(user, token)
-		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, fmt.Errorf("failed sending validation email: %w", err))
-			return
-		}
+		errCh := make(chan error)
 
-		err = c.CreateUser(us.DB, &user)
-		if err != nil {
-			response.Error(w, r, http.StatusBadRequest, err)
-			return
-		}
+		go email.SendValidation(user, token, errCh)
 
-		response.HTMLText(w, r, http.StatusOK, "Your account was successfully created.\nPlease validate your email to start using Palo.")
+		select {
+		case <-errCh:
+			response.Error(w, r, http.StatusInternalServerError, fmt.Errorf("failed sending validation email: %w", <-errCh))
+			return
+		default:
+			err = c.CreateUser(us.DB, &user)
+			if err != nil {
+				response.Error(w, r, http.StatusBadRequest, err)
+				return
+			}
+
+			response.HTMLText(w, r, http.StatusOK, "Your account was successfully created.\nPlease validate your email to start using Palo.")
+		}
 	}
 }
 
@@ -158,7 +159,6 @@ func (us *Users) QRCode(l listing.Service) http.HandlerFunc {
 		id := chi.URLParam(r, "id")
 
 		var user model.User
-		buffer := new(bytes.Buffer)
 
 		err := l.GetUserByID(us.DB, &user, id)
 		if err != nil {
@@ -172,19 +172,7 @@ func (us *Users) QRCode(l listing.Service) http.HandlerFunc {
 			return
 		}
 
-		err = png.Encode(buffer, img)
-		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, fmt.Errorf("couldn't encode the PNG image"))
-			return
-		}
-
-		w.Header().Set("Content-Type", "image/png")
-
-		w.Header().Set("Content-Length", strconv.Itoa(len(buffer.Bytes())))
-
-		if _, err := w.Write(buffer.Bytes()); err != nil {
-			fmt.Println("unable to write image.")
-		}
+		response.PNG(w, r, http.StatusOK, img)
 	}
 }
 
