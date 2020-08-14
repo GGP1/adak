@@ -6,6 +6,7 @@ import (
 	"os"
 	"time"
 
+	"github.com/stripe/stripe-go"
 	"gopkg.in/yaml.v2"
 )
 
@@ -20,6 +21,11 @@ type Config struct {
 			Shutdown time.Duration `yaml:"shutdown"`
 		} `yaml:"timeout"`
 	} `yaml:"server"`
+	Logger struct {
+		Stripe struct {
+			Level stripe.Level `yaml:"level"`
+		} `yaml:"stripe"`
+	} `yaml:"logger"`
 }
 
 // NewConfig returns a new configuration.

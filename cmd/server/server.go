@@ -9,12 +9,26 @@ import (
 	"os/signal"
 	"syscall"
 	"time"
+
+	"github.com/GGP1/palo/internal/cfg"
+	"github.com/stripe/stripe-go"
 )
 
-// Server holds a http server.
+// Server holds a server configurations.
 type Server struct {
 	*http.Server
 	TimeoutShutdown time.Duration
+	Logger
+}
+
+// Logger holds the logger level.
+type Logger struct {
+	Stripe
+}
+
+// Stripe holds stripe configurations.
+type Stripe struct {
+	Level stripe.Level
 }
 
 // New returns a new server.
@@ -28,11 +42,22 @@ func New(c *Config, router http.Handler) *Server {
 			MaxHeaderBytes: 1 << 20,
 		},
 		c.Server.Timeout.Shutdown * time.Second,
+		Logger{
+			Stripe{
+				c.Logger.Stripe.Level,
+			},
+		},
 	}
 }
 
 // Start runs the server listening for errors.
 func (srv *Server) Start() error {
+	stripe.Key = cfg.StripeKey
+
+	stripe.DefaultLeveledLogger = &stripe.LeveledLogger{
+		Level: srv.Logger.Stripe.Level,
+	}
+
 	serverErr := make(chan error, 1)
 
 	go func() {

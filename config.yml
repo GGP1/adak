@@ -1,7 +1,11 @@
 server:
-  host: 127.0.0.1
-  port: 4000
+  host: "127.0.0.1"
+  port: "4000"
   timeout:
     read: 5
     write: 5
     shutdown: 3
+
+logger:
+  stripe:
+    level: 1
