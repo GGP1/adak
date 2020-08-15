@@ -19,18 +19,6 @@ export default function CheckoutForm() {
   const stripe = useStripe();
   const elements = useElements();
 
-  useEffect(() => {
-    setEmail(Cookies.get('userEmail'))
-    async function postPayment() {
-      // Url and data need to be modified according to the user preference. - Later
-      await axios.post('http://localhost:4000/payment', JSON.stringify({ items: [{ id: "xl-tshirt" }] }))
-        .then(res => {
-          setClientSecret(res.data.clientSecret);
-        })
-    }
-    postPayment();
-  }, []);
-
   const cardStyle = {
     style: {
       base: {
@@ -50,9 +38,9 @@ export default function CheckoutForm() {
   };
 
   const formStyle = {
-    alignItems: 'center', 
-    width: '45vw', 
-    margin: 'auto', 
+    alignItems: 'center',
+    width: '45vw',
+    margin: 'auto',
     marginTop: '50px'
   }
 
@@ -63,56 +51,16 @@ export default function CheckoutForm() {
     setError(event.error ? event.error.message : "");
   };
 
+  // On submit, send user card details to the server.
   const handleSubmit = async ev => {
     ev.preventDefault();
     setProcessing(true);
-    const payload = await stripe.confirmCardPayment(clientSecret, {
-      receipt_email: email,
-      payment_method: {
-        card: elements.getElement(CardElement),
-        billing_details: {
-          name: ev.target.name.value
-        }
-      }
-    });
-
-    if (payload.error) {
-      setError(`Payment failed ${payload.error.message}`);
-      setProcessing(false);
-    } else {
-      setError(null);
-      setProcessing(false);
-      setSucceeded(true);
-    }
   };
 
   return (
     <form style={formStyle} id="payment-form" onSubmit={handleSubmit}>
+
       <CardElement id="card-element" options={cardStyle} onChange={handleChange} />
-
-      <button disabled={processing || disabled || succeeded} id="submit">
-
-        <span id="button-text">
-          {processing ? (<div className="spinner" id="spinner"></div>) : ("Pay")}
-        </span>
-
-      </button>
-
-      {/* Show any error that happens when processing the payment */}
-      {error && (
-        <div className="card-error" role="alert">
-          {error}
-        </div>
-      )}
-
-      {/* Show a success message upon completion */}
-      <p className={succeeded ? "result-message" : "result-message hidden"}>
-        Payment succeeded, see the result in your
-        <a href={`https://dashboard.stripe.com/test/payments`}>
-          {" "}
-          Stripe dashboard.
-        </a> Refresh the page to pay again.
-      </p>
 
     </form>
   );

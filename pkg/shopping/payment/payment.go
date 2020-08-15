@@ -3,17 +3,58 @@ package payment
 import (
 	"fmt"
 
+	"github.com/GGP1/palo/pkg/model"
 	"github.com/GGP1/palo/pkg/shopping/ordering"
 
 	stripe "github.com/stripe/stripe-go"
 	"github.com/stripe/stripe-go/paymentintent"
+	"github.com/stripe/stripe-go/paymentmethod"
 )
 
+// CreatePaymentMethod creates a new payment method.
+func CreatePaymentMethod(card model.Card) (string, error) {
+	params := &stripe.PaymentMethodParams{
+		Card: &stripe.PaymentMethodCardParams{
+			Number:   stripe.String(card.Number),
+			ExpMonth: stripe.String(card.ExpMonth),
+			ExpYear:  stripe.String(card.ExpYear),
+			CVC:      stripe.String(card.CVC),
+		},
+		Type: stripe.String("card"),
+	}
+
+	pm, err := paymentmethod.New(params)
+	if err != nil {
+		return "", fmt.Errorf("Invalid card parameters")
+	}
+
+	return pm.ID, nil
+}
+
 // CreateIntent charges the purchase.
-func CreateIntent(order *ordering.Order) (string, error) {
+func CreateIntent(order *ordering.Order, card model.Card) (*stripe.PaymentIntent, error) {
+	pMethodID, err := CreatePaymentMethod(card)
+	if err != nil {
+		return nil, err
+	}
+
+	// Amounts to be provided in a currency’s smallest unit
+	// 100 = 1 USD
+	// minimum: $0.50 / maximum: $999,999.99
+	amount := order.Cart.Total * 100
+
+	if amount < 100 {
+		return nil, fmt.Errorf("the order total should be higher than $1")
+	}
+
 	params := &stripe.PaymentIntentParams{
-		Amount:   stripe.Int64(int64(order.Cart.Total) * 10),
-		Currency: stripe.String(order.Currency),
+		PaymentMethod: stripe.String(pMethodID),
+		Amount:        stripe.Int64(int64(amount)),
+		Currency:      stripe.String(order.Currency),
+		ConfirmationMethod: stripe.String(string(
+			stripe.PaymentIntentConfirmationMethodManual,
+		)),
+		Confirm: stripe.Bool(true),
 		Params: stripe.Params{
 			Metadata: map[string]string{
 				"order_id": order.ID,
@@ -24,14 +65,14 @@ func CreateIntent(order *ordering.Order) (string, error) {
 
 	pi, err := paymentintent.New(params)
 	if err != nil {
-		return "", fmt.Errorf("payments: error creating payment intent: %v", err)
+		return nil, fmt.Errorf("payments: error creating payment intent: %v", err)
 	}
 
 	if pi.Status == stripe.PaymentIntentStatusCanceled {
-		return "", fmt.Errorf("Invalid PaymentIntent status: %s", pi.Status)
+		return nil, fmt.Errorf("Invalid PaymentIntent status: %s", pi.Status)
 	}
 
-	return pi.ClientSecret, nil
+	return pi, nil
 }
 
 // RetrieveIntent retires the purchase.

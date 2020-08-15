@@ -3,14 +3,14 @@ package model
 import (
 	"fmt"
 	"image"
+	"regexp"
 	"strings"
 
 	"github.com/GGP1/palo/pkg/shopping/ordering"
 
-	"github.com/badoux/checkmail"
 	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
-	"github.com/skip2/go-qrcode"
+	qrcode "github.com/skip2/go-qrcode"
 )
 
 // User represents platform customers.
@@ -23,6 +23,14 @@ type User struct {
 	Password string           `json:"password"`
 	Orders   []ordering.Order `json:"orders" gorm:"foreignkey:UserID"`
 	Reviews  []Review         `json:"reviews" gorm:"foreignkey:UserID"`
+}
+
+// Card respresents a user card.
+type Card struct {
+	Number   string `json:"number"`
+	ExpMonth string `json:"exp_month"`
+	ExpYear  string `json:"exp_year"`
+	CVC      string `json:"cvc"`
 }
 
 // QRCode creates a QRCode with the link to the user profile.
@@ -49,8 +57,8 @@ func (u *User) Validate(action string) error {
 			return errors.New("email is required")
 		}
 
-		if err := checkmail.ValidateFormat(u.Email); err != nil {
-			return errors.New("invalid email")
+		if err := u.ValidateEmail(u.Email); err != nil {
+			return err
 		}
 
 	case "login":
@@ -58,8 +66,8 @@ func (u *User) Validate(action string) error {
 			return errors.New("email is required")
 		}
 
-		if err := checkmail.ValidateFormat(u.Email); err != nil {
-			return errors.New("invalid email")
+		if err := u.ValidateEmail(u.Email); err != nil {
+			return err
 		}
 
 		if u.Password == "" {
@@ -79,10 +87,20 @@ func (u *User) Validate(action string) error {
 			return errors.New("email is required")
 		}
 
-		if err := checkmail.ValidateFormat(u.Email); err != nil {
-			return errors.New("invalid email")
+		if err := u.ValidateEmail(u.Email); err != nil {
+			return err
 		}
 	}
 
+	return nil
+}
+
+// ValidateEmail checks if the email is valid.
+func (u *User) ValidateEmail(email string) error {
+	emailRegexp := regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
+
+	if !emailRegexp.MatchString(email) {
+		return errors.New("invalid email")
+	}
 	return nil
 }
