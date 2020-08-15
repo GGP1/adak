@@ -1,10 +1,8 @@
 package handler
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -13,6 +11,7 @@ import (
 	"github.com/GGP1/palo/pkg/auth"
 	"github.com/GGP1/palo/pkg/shopping"
 	"github.com/GGP1/palo/pkg/shopping/ordering"
+	"github.com/GGP1/palo/pkg/storage/cache"
 	"github.com/go-chi/chi"
 	"github.com/jinzhu/gorm"
 )
@@ -73,7 +72,7 @@ func GetOrder(db *gorm.DB) http.HandlerFunc {
 }
 
 // NewOrder creates a new order.
-func NewOrder(db *gorm.DB) http.HandlerFunc {
+func NewOrder(db *gorm.DB, cache *cache.Cache) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		cID, _ := r.Cookie("CID")
 		uID, _ := r.Cookie("UID")
@@ -110,23 +109,9 @@ func NewOrder(db *gorm.DB) http.HandlerFunc {
 			return
 		}
 
-		orderJSON, err := json.Marshal(order)
-		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
-			return
-		}
-
-		go func() {
-			_, err = http.Post("http://127.0.0.1:4000/payment", "application/json", bytes.NewBuffer(orderJSON))
-			if err != nil {
-				response.Error(w, r, http.StatusInternalServerError, err)
-				return
-			}
-		}()
-
-		respond := fmt.Sprintf("Thanks for your purchase! Your products will be delivered on %v.", order.DeliveryDate)
+		// Set the order in the cache to pass it to the payment stage
+		cache.Set("order", *order, 5*time.Minute)
 
 		response.JSON(w, r, http.StatusOK, order)
-		fmt.Fprintln(w, respond)
 	}
 }
