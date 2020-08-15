@@ -1,14 +1,15 @@
 package rest_test
 
 import (
+	"errors"
 	"net/http"
 	"net/http/httptest"
+	"regexp"
 	"testing"
 
 	"github.com/GGP1/palo/pkg/http/rest/handler"
 	"github.com/GGP1/palo/pkg/listing"
 	"github.com/GGP1/palo/pkg/storage"
-	"github.com/badoux/checkmail"
 )
 
 func TestUsersHandler(t *testing.T) {
@@ -73,7 +74,7 @@ func add(t *testing.T) {
 				}
 				t.Logf("\t%s\tShould enter Email", succeed)
 
-				if err := checkmail.ValidateFormat(user.email); err != nil {
+				if err := validateEmail(user.email); err != nil {
 					t.Errorf("\t%s\tShould be a valid Email", failed)
 				}
 				t.Logf("\t%s\tShould be a valid Email", succeed)
@@ -85,4 +86,13 @@ func add(t *testing.T) {
 			}
 		}
 	}
+}
+
+func validateEmail(email string) error {
+	emailRegexp := regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
+
+	if !emailRegexp.MatchString(email) {
+		return errors.New("invalid email")
+	}
+	return nil
 }
