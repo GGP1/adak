@@ -2,29 +2,31 @@ package handler
 
 import (
 	"encoding/json"
-	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
 
 	"github.com/GGP1/palo/internal/response"
 	"github.com/GGP1/palo/pkg/auth"
+	"github.com/GGP1/palo/pkg/model"
 	"github.com/GGP1/palo/pkg/shopping"
 	"github.com/GGP1/palo/pkg/shopping/ordering"
-	"github.com/GGP1/palo/pkg/storage/cache"
+	"github.com/GGP1/palo/pkg/shopping/payment"
 	"github.com/go-chi/chi"
 	"github.com/jinzhu/gorm"
 )
 
 // orderParams holds the parameters for creating a order
 type orderParams struct {
-	Currency string `json:"currency"`
-	Address  string `json:"address"`
-	City     string `json:"city"`
-	Country  string `json:"country"`
-	State    string `json:"state"`
-	ZipCode  string `json:"zip_code"`
-	Date     date   `json:"date"`
+	Currency string     `json:"currency"`
+	Address  string     `json:"address"`
+	City     string     `json:"city"`
+	Country  string     `json:"country"`
+	State    string     `json:"state"`
+	ZipCode  string     `json:"zip_code"`
+	Date     date       `json:"date"`
+	Card     model.Card `json:"card"`
 }
 
 type date struct {
@@ -72,7 +74,7 @@ func GetOrder(db *gorm.DB) http.HandlerFunc {
 }
 
 // NewOrder creates a new order.
-func NewOrder(db *gorm.DB, cache *cache.Cache) http.HandlerFunc {
+func NewOrder(db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		cID, _ := r.Cookie("CID")
 		uID, _ := r.Cookie("UID")
@@ -81,7 +83,7 @@ func NewOrder(db *gorm.DB, cache *cache.Cache) http.HandlerFunc {
 
 		err := json.NewDecoder(r.Body).Decode(&o)
 		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
+			response.Error(w, r, http.StatusBadRequest, err)
 		}
 		defer r.Body.Close()
 
@@ -93,7 +95,7 @@ func NewOrder(db *gorm.DB, cache *cache.Cache) http.HandlerFunc {
 		deliveryDate := time.Date(o.Date.Year, time.Month(o.Date.Month), o.Date.Day, o.Date.Hour, o.Date.Minutes, 0, 0, time.Local)
 
 		if deliveryDate.Sub(time.Now()) < 0 {
-			response.Error(w, r, http.StatusBadRequest, errors.New("past dates are not valid"))
+			response.Error(w, r, http.StatusBadRequest, fmt.Errorf("past dates are not valid"))
 			return
 		}
 
@@ -109,9 +111,21 @@ func NewOrder(db *gorm.DB, cache *cache.Cache) http.HandlerFunc {
 			return
 		}
 
-		// Set the order in the cache to pass it to the payment stage
-		cache.Set("order", *order, 5*time.Minute)
+		_, err = payment.CreateIntent(order, o.Card)
+		if err != nil {
+			response.Error(w, r, http.StatusInternalServerError, err)
+			return
+		}
 
-		response.JSON(w, r, http.StatusOK, order)
+		order.Status = ordering.PaidState
+
+		err = db.Model(&order).Where("id=?", order.ID).UpdateColumn("status", order.Status).Error
+		if err != nil {
+			response.Error(w, r, http.StatusInternalServerError, err)
+			return
+		}
+
+		respond := fmt.Sprintf("Thanks for your purchase! Your products will be delivered on %v.", order.DeliveryDate)
+		response.HTMLText(w, r, http.StatusOK, respond)
 	}
 }

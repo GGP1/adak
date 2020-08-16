@@ -5,14 +5,12 @@ package rest
 
 import (
 	"net/http"
-	"time"
 
 	"github.com/GGP1/palo/pkg/auth"
 	"github.com/GGP1/palo/pkg/auth/email"
 	"github.com/GGP1/palo/pkg/creating"
 	"github.com/GGP1/palo/pkg/deleting"
 	"github.com/GGP1/palo/pkg/searching"
-	"github.com/GGP1/palo/pkg/storage/cache"
 	"github.com/GGP1/palo/pkg/tracking"
 
 	// h -> handler
@@ -59,8 +57,6 @@ func NewRouter(db *gorm.DB) http.Handler {
 	shops := h.Shops{DB: db}
 	users := h.Users{DB: db}
 
-	cache := cache.New(5 * time.Minute)
-
 	// Middlewares
 	r.Use(m.AllowCrossOrigin)
 	r.Use(m.LimitRate)
@@ -102,10 +98,7 @@ func NewRouter(db *gorm.DB) http.Handler {
 	// Ordering
 	r.Get("/orders", m.AdminsOnly(h.GetOrder(db)))
 	r.Delete("/order/{id}", m.AdminsOnly(h.DeleteOrder(db)))
-	r.Post("/order/new", m.RequireLogin(h.NewOrder(db, cache)))
-
-	// Payment
-	r.Post("/payment", h.CreatePayment(db, cache))
+	r.Post("/order/new", m.RequireLogin(h.NewOrder(db)))
 
 	// Searching
 	r.Get("/products/search/{search}", products.Search(s))
