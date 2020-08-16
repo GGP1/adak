@@ -12,7 +12,7 @@ import (
 	"github.com/GGP1/palo/pkg/model"
 	"github.com/GGP1/palo/pkg/shopping"
 	"github.com/GGP1/palo/pkg/shopping/ordering"
-	"github.com/GGP1/palo/pkg/shopping/payment"
+	"github.com/GGP1/palo/pkg/shopping/payment/stripe"
 	"github.com/go-chi/chi"
 	"github.com/jinzhu/gorm"
 )
@@ -111,7 +111,7 @@ func NewOrder(db *gorm.DB) http.HandlerFunc {
 			return
 		}
 
-		_, err = payment.CreateIntent(order, o.Card)
+		_, err = stripe.CreateIntent(order, o.Card)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
