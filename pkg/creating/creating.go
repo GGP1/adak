@@ -6,10 +6,10 @@ package creating
 import (
 	"fmt"
 
+	"github.com/GGP1/palo/internal/uuid"
 	"github.com/GGP1/palo/pkg/model"
 	"github.com/GGP1/palo/pkg/shopping"
 
-	"github.com/google/uuid"
 	"github.com/jinzhu/gorm"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -100,8 +100,8 @@ func (s *service) CreateUser(db *gorm.DB, user *model.User) error {
 	user.Password = string(hash)
 
 	// Create a cart for each user
-	id := uuid.New()
-	user.CartID = id.String()
+	id := uuid.GenerateRandRunes(24)
+	user.CartID = id
 
 	cart := shopping.NewCart(user.CartID)
 

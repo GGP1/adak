@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/google/uuid"
+	"github.com/GGP1/palo/internal/uuid"
 )
 
 // Hit represents a single data point/page visit.
@@ -29,11 +29,11 @@ func (hit *Hit) String() string {
 
 // HitRequest generates a hit for each request
 func HitRequest(r *http.Request, salt string) *Hit {
-	id := uuid.New()
+	id := uuid.GenerateRandRunes(27)
 	date := time.Now()
 
 	return &Hit{
-		ID:        id.String(),
+		ID:        id,
 		Footprint: Footprint(r, salt),
 		Path:      r.URL.Path,
 		URL:       r.URL.String(),

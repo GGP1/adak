@@ -4,16 +4,14 @@ package auth
 import (
 	"errors"
 	"fmt"
-	"math/rand"
 	"net/http"
-	"strconv"
 	"sync"
 	"time"
 
+	"github.com/GGP1/palo/internal/uuid"
 	"github.com/GGP1/palo/pkg/auth/email"
 	"github.com/GGP1/palo/pkg/model"
 
-	"github.com/google/uuid"
 	"github.com/jinzhu/gorm"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -129,26 +127,21 @@ func (session *session) Login(w http.ResponseWriter, email, password string) err
 
 	for _, admin := range adminList {
 		if admin == user.Email {
-			num := rand.Int()
-			admID := strconv.Itoa(num)
+			admID := uuid.GenerateRandRunes(8)
 			setCookie(w, "AID", admID, "/", session.length)
 		}
 	}
 
 	// -SID- used to add the user to the session map
-	sID := uuid.New()
-	setCookie(w, "SID", sID.String(), "/", session.length)
+	sID := uuid.GenerateRandRunes(27)
+	setCookie(w, "SID", sID, "/", session.length)
 
 	session.Lock()
-	session.store[sID.String()] = userInfo{user.Email, time.Now()}
+	session.store[sID] = userInfo{user.Email, time.Now()}
 	session.Unlock()
 
 	// -UID- used to deny users from making requests to other accounts
-	id := strconv.Itoa(int(user.ID))
-	userID, err := GenerateFixedJWT(id)
-	if err != nil {
-		return fmt.Errorf("failed generating a jwt token: %w", err)
-	}
+	userID := uuid.GenerateRandRunes(24)
 	setCookie(w, "UID", userID, "/", session.length)
 
 	// -CID- used to identify wich cart belongs to each user

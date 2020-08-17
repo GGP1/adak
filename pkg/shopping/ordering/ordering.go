@@ -5,8 +5,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/GGP1/palo/internal/uuid"
 	"github.com/GGP1/palo/pkg/shopping"
-	"github.com/google/uuid"
 	"github.com/jinzhu/gorm"
 	"github.com/pkg/errors"
 )
@@ -78,10 +78,10 @@ func NewOrder(db *gorm.DB, userID, currency, address, city, country, state, zipc
 		return nil, errors.New("ordering 0 products is not permitted")
 	}
 
-	id := uuid.New()
+	id := uuid.GenerateRandRunes(24)
 
 	// Set fields
-	order.ID = id.String()
+	order.ID = id
 	order.UserID = userID
 	order.Currency = currency
 	order.Address = address
@@ -110,9 +110,9 @@ func NewOrder(db *gorm.DB, userID, currency, address, city, country, state, zipc
 		go func(orderP OrderProduct, products []OrderProduct, product *shopping.CartProduct) {
 			defer wg.Done()
 
-			id := uuid.New()
+			id := uuid.GenerateRandRunes(20)
 
-			orderP.ID = id.String()
+			orderP.ID = id
 			orderP.ProductID = product.ID
 			orderP.Quantity = product.Quantity
 			orderP.Brand = product.Brand

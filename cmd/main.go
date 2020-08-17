@@ -2,6 +2,8 @@ package main
 
 import (
 	"log"
+	"math/rand"
+	"time"
 
 	"github.com/GGP1/palo/cmd/server"
 	"github.com/GGP1/palo/pkg/http/rest"
@@ -11,6 +13,8 @@ import (
 )
 
 func main() {
+	rand.Seed(time.Now().UnixNano())
+
 	db, close, err := storage.PostgresConnect()
 	if err != nil {
 		log.Fatal(err)
