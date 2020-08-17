@@ -52,7 +52,7 @@ func NewService(r Repository) Service {
 func (s *service) GetProducts(db *gorm.DB, product *[]model.Product) error {
 	err := db.Preload("Reviews").Find(product).Error
 	if err != nil {
-		return fmt.Errorf("products not found")
+		return fmt.Errorf("products not found: %v", err)
 	}
 	return nil
 }
@@ -61,7 +61,7 @@ func (s *service) GetProducts(db *gorm.DB, product *[]model.Product) error {
 func (s *service) GetProductByID(db *gorm.DB, product *model.Product, id string) error {
 	err := db.Preload("Reviews").First(product, id).Error
 	if err != nil {
-		return fmt.Errorf("product not found")
+		return fmt.Errorf("product not found: %v", err)
 	}
 	return nil
 }
@@ -70,7 +70,7 @@ func (s *service) GetProductByID(db *gorm.DB, product *model.Product, id string)
 func (s *service) GetReviews(db *gorm.DB, review *[]model.Review) error {
 	err := db.Find(review).Error
 	if err != nil {
-		return fmt.Errorf("reviews not found")
+		return fmt.Errorf("reviews not found: %v", err)
 	}
 	return nil
 }
@@ -79,7 +79,7 @@ func (s *service) GetReviews(db *gorm.DB, review *[]model.Review) error {
 func (s *service) GetReviewByID(db *gorm.DB, review *model.Review, id string) error {
 	err := db.First(review, id).Error
 	if err != nil {
-		return fmt.Errorf("review not found")
+		return fmt.Errorf("review not found: %v", err)
 	}
 	return nil
 }
@@ -88,7 +88,7 @@ func (s *service) GetReviewByID(db *gorm.DB, review *model.Review, id string) er
 func (s *service) GetShops(db *gorm.DB, shop *[]model.Shop) error {
 	err := db.Preload("Location").Preload("Reviews").Preload("Products").Find(shop).Error
 	if err != nil {
-		return fmt.Errorf("shops not found")
+		return fmt.Errorf("shops not found: %v", err)
 	}
 	return nil
 }
@@ -97,7 +97,7 @@ func (s *service) GetShops(db *gorm.DB, shop *[]model.Shop) error {
 func (s *service) GetShopByID(db *gorm.DB, shop *model.Shop, id string) error {
 	err := db.Preload("Location").Preload("Reviews").Preload("Products").First(shop, id).Error
 	if err != nil {
-		return fmt.Errorf("shop not found")
+		return fmt.Errorf("shop not found: %v", err)
 	}
 	return nil
 }
@@ -106,7 +106,7 @@ func (s *service) GetShopByID(db *gorm.DB, shop *model.Shop, id string) error {
 func (s *service) GetUsers(db *gorm.DB, user *[]model.User) error {
 	err := db.Preload("Orders").Preload("Reviews").Find(user).Error
 	if err != nil {
-		return fmt.Errorf("users not found")
+		return fmt.Errorf("users not found: %v", err)
 	}
 	return nil
 }
@@ -115,7 +115,7 @@ func (s *service) GetUsers(db *gorm.DB, user *[]model.User) error {
 func (s *service) GetUserByID(db *gorm.DB, user *model.User, id string) error {
 	err := db.Preload("Orders").Preload("Reviews").First(user, id).Error
 	if err != nil {
-		return fmt.Errorf("user not found")
+		return fmt.Errorf("user not found: %v", err)
 	}
 	return nil
 }

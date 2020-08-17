@@ -1,12 +1,13 @@
 package shopping
 
 import (
+	"fmt"
+
 	"github.com/jinzhu/gorm"
-	"github.com/pkg/errors"
 )
 
 var (
-	errProductNotFound = errors.New("no products found")
+	errProductNotFound = fmt.Errorf("no products found")
 )
 
 // FilterByBrand looks for products with the specified brand.
@@ -14,7 +15,7 @@ func FilterByBrand(db *gorm.DB, cartID, brand string) ([]CartProduct, error) {
 	var products []CartProduct
 
 	if err := db.Where("cart_id = ? AND brand = ?", cartID, brand).Find(&products).Error; err != nil {
-		return nil, errors.Wrap(err, "couldn't find the products")
+		return nil, fmt.Errorf("couldn't find the products: %v", err)
 	}
 
 	if len(products) == 0 {
@@ -29,7 +30,7 @@ func FilterByCategory(db *gorm.DB, cartID, category string) ([]CartProduct, erro
 	var products []CartProduct
 
 	if err := db.Where("cart_id = ? AND category = ?", cartID, category).Find(&products).Error; err != nil {
-		return nil, errors.Wrap(err, "couldn't find the products")
+		return nil, fmt.Errorf("couldn't find the products: %v", err)
 	}
 
 	if len(products) == 0 {
@@ -44,7 +45,7 @@ func FilterByDiscount(db *gorm.DB, cartID string, min, max float64) ([]CartProdu
 	var products []CartProduct
 
 	if err := db.Where("cart_id = ? AND discount >= ? AND discount <= ?", cartID, min, max).Find(&products).Error; err != nil {
-		return nil, errors.Wrap(err, "couldn't find the products")
+		return nil, fmt.Errorf("couldn't find the products: %v", err)
 	}
 
 	if len(products) == 0 {
@@ -59,7 +60,7 @@ func FilterBySubtotal(db *gorm.DB, cartID string, min, max float64) ([]CartProdu
 	var products []CartProduct
 
 	if err := db.Where("cart_id = ? AND subtotal >= ? AND subtotal <= ?", cartID, min, max).Find(&products).Error; err != nil {
-		return nil, errors.Wrap(err, "couldn't find the products")
+		return nil, fmt.Errorf("couldn't find the products: %v", err)
 	}
 
 	if len(products) == 0 {
@@ -74,7 +75,7 @@ func FilterByTaxes(db *gorm.DB, cartID string, min, max float64) ([]CartProduct,
 	var products []CartProduct
 
 	if err := db.Where("cart_id = ? AND taxes >= ? AND taxes <= ?", cartID, min, max).Find(&products).Error; err != nil {
-		return nil, errors.Wrap(err, "couldn't find the products")
+		return nil, fmt.Errorf("couldn't find the products: %v", err)
 	}
 
 	if len(products) == 0 {
@@ -89,7 +90,7 @@ func FilterByTotal(db *gorm.DB, cartID string, min, max float64) ([]CartProduct,
 	var products []CartProduct
 
 	if err := db.Where("cart_id = ? AND total >= ? AND total <= ?", cartID, min, max).Find(&products).Error; err != nil {
-		return nil, errors.Wrap(err, "couldn't find the products")
+		return nil, fmt.Errorf("couldn't find the products: %v", err)
 	}
 
 	if len(products) == 0 {
@@ -104,7 +105,7 @@ func FilterByType(db *gorm.DB, cartID, pType string) ([]CartProduct, error) {
 	var products []CartProduct
 
 	if err := db.Where("cart_id = ? AND type = ?", cartID, pType).Find(&products).Error; err != nil {
-		return nil, errors.Wrap(err, "couldn't find the products")
+		return nil, fmt.Errorf("couldn't find the products: %v", err)
 	}
 
 	if len(products) == 0 {
@@ -119,7 +120,7 @@ func FilterByWeight(db *gorm.DB, cartID string, min, max float64) ([]CartProduct
 	var products []CartProduct
 
 	if err := db.Where("cart_id = ? AND weight >= ? AND weight <= ?", cartID, min, max).Find(&products).Error; err != nil {
-		return nil, errors.Wrap(err, "couldn't find the products")
+		return nil, fmt.Errorf("couldn't find the products: %v", err)
 	}
 
 	if len(products) == 0 {

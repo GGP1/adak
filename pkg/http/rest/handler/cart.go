@@ -19,6 +19,7 @@ func CartAdd(db *gorm.DB) http.HandlerFunc {
 		var product shopping.CartProduct
 
 		q := chi.URLParam(r, "quantity")
+
 		quantity, err := strconv.Atoi(q)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
@@ -52,6 +53,7 @@ func CartAdd(db *gorm.DB) http.HandlerFunc {
 func CartCheckout(db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		c, _ := r.Cookie("CID")
+
 		checkout, err := shopping.Checkout(db, c.Value)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
@@ -217,7 +219,7 @@ func CartGet(db *gorm.DB) http.HandlerFunc {
 
 		cart, err := shopping.Get(db, c.Value)
 		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
+			response.Error(w, r, http.StatusNotFound, err)
 			return
 		}
 
@@ -229,6 +231,7 @@ func CartGet(db *gorm.DB) http.HandlerFunc {
 func CartItems(db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		c, _ := r.Cookie("CID")
+
 		items, err := shopping.Items(db, c.Value)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)

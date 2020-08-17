@@ -2,13 +2,13 @@
 package ordering
 
 import (
+	"fmt"
 	"sync"
 	"time"
 
 	"github.com/GGP1/palo/internal/uuid"
 	"github.com/GGP1/palo/pkg/shopping"
 	"github.com/jinzhu/gorm"
-	"github.com/pkg/errors"
 )
 
 const (
@@ -75,7 +75,7 @@ func NewOrder(db *gorm.DB, userID, currency, address, city, country, state, zipc
 	var order Order
 
 	if cart.Counter == 0 {
-		return nil, errors.New("ordering 0 products is not permitted")
+		return nil, fmt.Errorf("ordering 0 products is not permitted")
 	}
 
 	id := uuid.GenerateRandRunes(24)
@@ -133,12 +133,12 @@ func NewOrder(db *gorm.DB, userID, currency, address, city, country, state, zipc
 
 	err := db.Create(&order).Error
 	if err != nil {
-		return nil, errors.Wrap(err, "couldn't create the order")
+		return nil, fmt.Errorf("couldn't create the order: %v", err)
 	}
 
 	err = shopping.Reset(db, cart.ID)
 	if err != nil {
-		return nil, errors.Wrap(err, "couldn't reset the cart")
+		return nil, fmt.Errorf("couldn't reset the cart: %v", err)
 	}
 
 	return &order, nil
@@ -152,17 +152,17 @@ func Delete(db *gorm.DB, orderID int) error {
 
 	err := db.Delete(&order, orderID).Error
 	if err != nil {
-		return errors.Wrap(err, "couldn't delete the order")
+		return fmt.Errorf("couldn't delete the order: %v", err)
 	}
 
 	err = db.Where("order_id=?", orderID).Delete(&orderCart).Error
 	if err != nil {
-		return errors.Wrap(err, "couldn't delete the order cart")
+		return fmt.Errorf("couldn't delete the order cart: %v", err)
 	}
 
 	err = db.Where("order_id=?", orderID).Delete(&orderProduct).Error
 	if err != nil {
-		return errors.Wrap(err, "couldn't delete the order products")
+		return fmt.Errorf("couldn't delete the order products: %v", err)
 	}
 
 	return nil
@@ -172,7 +172,7 @@ func Delete(db *gorm.DB, orderID int) error {
 func Get(db *gorm.DB, orders *[]Order) error {
 	err := db.Preload("Cart").Preload("Products").Find(&orders).Error
 	if err != nil {
-		return errors.Wrap(err, "couldn't find the orders")
+		return fmt.Errorf("couldn't find the orders: %v", err)
 	}
 
 	return nil

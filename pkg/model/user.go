@@ -1,6 +1,7 @@
 package model
 
 import (
+	"errors"
 	"fmt"
 	"image"
 	"regexp"
@@ -9,7 +10,6 @@ import (
 	"github.com/GGP1/palo/pkg/shopping/ordering"
 
 	"github.com/jinzhu/gorm"
-	"github.com/pkg/errors"
 	qrcode "github.com/skip2/go-qrcode"
 )
 
@@ -37,7 +37,7 @@ type Card struct {
 func (u *User) QRCode() (image.Image, error) {
 	qr, err := qrcode.New(fmt.Sprintf("http://127.0.0.1/users/%d", u.ID), qrcode.Medium)
 	if err != nil {
-		return nil, errors.Wrap(err, "couldn't create the qrcode")
+		return nil, fmt.Errorf("couldn't create the qrcode: %v", err)
 	}
 
 	img := qr.Image(256)
@@ -102,5 +102,6 @@ func (u *User) ValidateEmail(email string) error {
 	if !emailRegexp.MatchString(email) {
 		return errors.New("invalid email")
 	}
+
 	return nil
 }

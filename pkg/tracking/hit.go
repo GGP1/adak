@@ -2,6 +2,7 @@ package tracking
 
 import (
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strings"
 	"time"
@@ -22,26 +23,35 @@ type Hit struct {
 }
 
 // String returns a string of the hit struct
-func (hit *Hit) String() string {
-	out, _ := json.Marshal(hit)
-	return string(out)
+func (hit *Hit) String() (string, error) {
+	out, err := json.Marshal(hit)
+	if err != nil {
+		return "", errors.New("couldn't marshal the hit")
+	}
+
+	return string(out), nil
 }
 
 // HitRequest generates a hit for each request
-func HitRequest(r *http.Request, salt string) *Hit {
+func HitRequest(r *http.Request, salt string) (*Hit, error) {
 	id := uuid.GenerateRandRunes(27)
 	date := time.Now()
 
+	footprint, err := Footprint(r, salt)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Hit{
 		ID:        id,
-		Footprint: Footprint(r, salt),
+		Footprint: footprint,
 		Path:      r.URL.Path,
 		URL:       r.URL.String(),
 		Language:  getLanguage(r),
 		UserAgent: r.UserAgent(),
 		Referer:   r.Header.Get("Referer"),
 		Date:      date,
-	}
+	}, nil
 }
 
 // Get the user language

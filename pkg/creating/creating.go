@@ -51,7 +51,7 @@ func (s *service) CreateProduct(db *gorm.DB, product *model.Product) error {
 	product.Total = product.Subtotal + taxes - discount
 
 	if err := db.Create(product).Error; err != nil {
-		return fmt.Errorf("couldn't create the product")
+		return fmt.Errorf("couldn't create the product: %v", err)
 	}
 
 	return nil
@@ -60,7 +60,7 @@ func (s *service) CreateProduct(db *gorm.DB, product *model.Product) error {
 // CreateReview takes a new review and saves it into the database.
 func (s *service) CreateReview(db *gorm.DB, review *model.Review) error {
 	if err := db.Create(review).Error; err != nil {
-		return fmt.Errorf("couldn't create the review")
+		return fmt.Errorf("couldn't create the review: %v", err)
 	}
 
 	return nil
@@ -74,7 +74,7 @@ func (s *service) CreateShop(db *gorm.DB, shop *model.Shop) error {
 	}
 
 	if err := db.Create(shop).Error; err != nil {
-		return fmt.Errorf("couldn't create the shop")
+		return fmt.Errorf("couldn't create the shop: %v", err)
 	}
 
 	return nil
@@ -106,11 +106,11 @@ func (s *service) CreateUser(db *gorm.DB, user *model.User) error {
 	cart := shopping.NewCart(user.CartID)
 
 	if err := db.Create(cart).Error; err != nil {
-		return fmt.Errorf("couldn't create the cart")
+		return fmt.Errorf("couldn't create the cart: %v", err)
 	}
 
 	if err := db.Create(user).Error; err != nil {
-		return fmt.Errorf("couldn't create the user")
+		return fmt.Errorf("couldn't create the user: %v", err)
 	}
 
 	return nil

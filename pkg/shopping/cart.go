@@ -5,7 +5,6 @@ import (
 	"math"
 
 	"github.com/jinzhu/gorm"
-	"github.com/pkg/errors"
 )
 
 // Cart represents a temporary record of items that the customer
@@ -57,7 +56,7 @@ func Add(db *gorm.DB, cartID string, product *CartProduct, quantity int) (*CartP
 	var cart Cart
 
 	if err := db.Where("id=?", cartID).Find(&cart).Error; err != nil {
-		return nil, errors.Wrap(err, "couldn't find the cart")
+		return nil, fmt.Errorf("couldn't find the cart: %v", err)
 	}
 
 	product.CartID = cartID
@@ -81,18 +80,18 @@ func Add(db *gorm.DB, cartID string, product *CartProduct, quantity int) (*CartP
 		product.Quantity++
 		err := db.Save(&product).Error
 		if err != nil {
-			return nil, errors.Wrap(err, "couldn't update the product")
+			return nil, fmt.Errorf("couldn't update the product: %v", err)
 		}
 	} else {
 		err := db.Create(&product).Error
 		if err != nil {
-			return nil, errors.Wrap(err, "couldn't create the product")
+			return nil, fmt.Errorf("couldn't create the product: %v", err)
 		}
 	}
 
 	err := db.Save(&cart).Error
 	if err != nil {
-		return nil, errors.Wrap(err, "couldn't update the cart")
+		return nil, fmt.Errorf("couldn't update the cart: %v", err)
 	}
 
 	return product, nil
@@ -103,7 +102,7 @@ func Checkout(db *gorm.DB, cartID string) (float64, error) {
 	var cart Cart
 
 	if err := db.Where("id=?", cartID).Find(&cart).Error; err != nil {
-		return 0, errors.Wrap(err, "couldn't find the cart")
+		return 0, fmt.Errorf("couldn't find the cart: %v", err)
 	}
 
 	total := cart.Total + cart.Taxes - cart.Discount
@@ -126,7 +125,7 @@ func Get(db *gorm.DB, cartID string) (Cart, error) {
 	var cart Cart
 
 	if err := db.Preload("Products").First(&cart, "id=?", cartID).Error; err != nil {
-		return Cart{}, errors.Wrap(err, "couldn't find the cart")
+		return Cart{}, fmt.Errorf("couldn't find the cart: %v", err)
 	}
 
 	return cart, nil
@@ -138,7 +137,7 @@ func Items(db *gorm.DB, cartID string) ([]CartProduct, error) {
 	var list []CartProduct
 
 	if err := db.Where("id=?", cartID).Find(&cart).Error; err != nil {
-		return nil, errors.Wrap(err, "couldn't find the cart")
+		return nil, fmt.Errorf("couldn't find the cart: %v", err)
 	}
 
 	for _, v := range cart.Products {
@@ -148,7 +147,7 @@ func Items(db *gorm.DB, cartID string) ([]CartProduct, error) {
 	}
 
 	if len(list) == 0 {
-		return nil, errors.New("cart is empty")
+		return nil, fmt.Errorf("cart is empty")
 	}
 
 	return list, nil
@@ -160,11 +159,11 @@ func Remove(db *gorm.DB, cartID string, key int, quantity int) error {
 	var product CartProduct
 
 	if err := db.Where("id=?", cartID).Find(&cart).Error; err != nil {
-		return errors.Wrap(err, "couldn't find the cart")
+		return fmt.Errorf("couldn't find the cart: %v", err)
 	}
 
 	if err := db.Where("cart_id = ? AND id = ?", cartID, key).Find(&product).Error; err != nil {
-		return errors.New("product not found")
+		return fmt.Errorf("product not found")
 	}
 
 	if quantity > product.Quantity {
@@ -174,7 +173,7 @@ func Remove(db *gorm.DB, cartID string, key int, quantity int) error {
 	if quantity == product.Quantity {
 		err := db.Where("cart_id=?", cartID).Delete(&product, "id=?", key).Error
 		if err != nil {
-			return errors.Wrap(err, "couldn't delete the product")
+			return fmt.Errorf("couldn't delete the product: %v", err)
 		}
 	}
 
@@ -201,7 +200,7 @@ func Remove(db *gorm.DB, cartID string, key int, quantity int) error {
 	}
 
 	if err := db.Save(&cart).Error; err != nil {
-		return errors.Wrap(err, "couldn't update the cart")
+		return fmt.Errorf("couldn't update the cart: %v", err)
 	}
 
 	return nil
@@ -213,11 +212,11 @@ func Reset(db *gorm.DB, cartID string) error {
 	var product CartProduct
 
 	if err := db.Where("id=?", cartID).Find(&cart).Error; err != nil {
-		return errors.Wrap(err, "couldn't find the cart")
+		return fmt.Errorf("couldn't find the cart: %v", err)
 	}
 
 	if err := db.Where("cart_id=?", cartID).Delete(&product).Error; err != nil {
-		return errors.Wrap(err, "couldn't delete the product")
+		return fmt.Errorf("couldn't delete the product: %v", err)
 	}
 
 	cart.Counter = 0
@@ -229,7 +228,7 @@ func Reset(db *gorm.DB, cartID string) error {
 
 	err := db.Save(&cart).Error
 	if err != nil {
-		return errors.Wrap(err, "couldn't update the cart")
+		return fmt.Errorf("couldn't update the cart: %v", err)
 	}
 
 	return nil
@@ -240,7 +239,7 @@ func Size(db *gorm.DB, cartID string) (int, error) {
 	var cart Cart
 
 	if err := db.Where("id=?", cartID).Find(&cart).Error; err != nil {
-		return 0, errors.Wrap(err, "couldn't find the cart")
+		return 0, fmt.Errorf("couldn't find the cart: %v", err)
 	}
 
 	return cart.Counter, nil
@@ -251,7 +250,7 @@ func String(db *gorm.DB, cartID string) (string, error) {
 	var cart Cart
 
 	if err := db.Where("id=?", cartID).Find(&cart).Error; err != nil {
-		return "", errors.Wrap(err, "couldn't find the cart")
+		return "", fmt.Errorf("couldn't find the cart: %v", err)
 	}
 
 	return fmt.Sprintf(

@@ -32,7 +32,7 @@ func EmailChange(db *gorm.DB, validatedList email.Emailer, l listing.Service) ht
 
 		err := json.NewDecoder(r.Body).Decode(&new)
 		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
+			response.Error(w, r, http.StatusBadRequest, err)
 			return
 		}
 		defer r.Body.Close()
@@ -109,7 +109,7 @@ func Login(s auth.Session, validatedList email.Emailer) http.HandlerFunc {
 
 		err := json.NewDecoder(r.Body).Decode(&user)
 		if err != nil {
-			response.Error(w, r, http.StatusUnauthorized, err)
+			response.Error(w, r, http.StatusBadRequest, err)
 			return
 		}
 		defer r.Body.Close()
@@ -168,7 +168,7 @@ func PasswordChange(s auth.Session, l listing.Service) http.HandlerFunc {
 
 		err = json.NewDecoder(r.Body).Decode(&changePass)
 		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
+			response.Error(w, r, http.StatusBadRequest, err)
 			return
 		}
 		defer r.Body.Close()

@@ -2,7 +2,6 @@
 package auth
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 	"sync"
@@ -87,7 +86,7 @@ func (session *session) EmailChange(id, newEmail, token string, validatedList em
 
 	err := session.DB.Where("id=?", id).First(&user).Error
 	if err != nil {
-		return fmt.Errorf("invalid email")
+		return fmt.Errorf("invalid email: %v", err)
 	}
 
 	err = validatedList.Remove(user.Email)
@@ -104,7 +103,7 @@ func (session *session) EmailChange(id, newEmail, token string, validatedList em
 
 	err = session.DB.Save(&user).Error
 	if err != nil {
-		return fmt.Errorf("couldn't change the email: %w", err)
+		return fmt.Errorf("couldn't change the email: %v", err)
 	}
 
 	return nil
@@ -117,12 +116,12 @@ func (session *session) Login(w http.ResponseWriter, email, password string) err
 
 	err := session.DB.Where("email = ?", email).Take(&user).Error
 	if err != nil {
-		return errors.New("invalid email")
+		return fmt.Errorf("invalid email: %v", err)
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
 	if err != nil {
-		return errors.New("invalid password")
+		return fmt.Errorf("invalid password: %v", err)
 	}
 
 	for _, admin := range adminList {
@@ -177,23 +176,23 @@ func (session *session) PasswordChange(id, oldPass, newPass string) error {
 
 	err := session.DB.Where("id=?", id).First(&user).Error
 	if err != nil {
-		return fmt.Errorf("invalid email")
+		return fmt.Errorf("invalid email: %v", err)
 	}
 
 	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(oldPass))
 	if err != nil {
-		return errors.New("invalid old password")
+		return fmt.Errorf("invalid old password: %v", err)
 	}
 
 	newPassHash, err := bcrypt.GenerateFromPassword([]byte(newPass), bcrypt.DefaultCost)
 	if err != nil {
-		return fmt.Errorf("couldn't generate the password hash: %w", err)
+		return fmt.Errorf("couldn't generate the password hash: %v", err)
 	}
 	user.Password = string(newPassHash)
 
 	err = session.DB.Save(&user).Error
 	if err != nil {
-		return fmt.Errorf("couldn't change the password: %w", err)
+		return fmt.Errorf("couldn't change the password: %v", err)
 	}
 
 	return nil

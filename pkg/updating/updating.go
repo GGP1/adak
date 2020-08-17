@@ -46,7 +46,7 @@ func (s *service) UpdateProduct(db *gorm.DB, product *model.Product, id string) 
 		"total", product.Total).
 		Error
 	if err != nil {
-		return fmt.Errorf("couldn't update the product")
+		return fmt.Errorf("couldn't update the product: %v", err)
 	}
 
 	return nil
@@ -61,7 +61,7 @@ func (s *service) UpdateShop(db *gorm.DB, shop *model.Shop, id string) error {
 		"address", shop.Location.Address).
 		Error
 	if err != nil {
-		return fmt.Errorf("couldn't update the shop")
+		return fmt.Errorf("couldn't update the shop: %v", err)
 	}
 
 	return nil
@@ -74,7 +74,7 @@ func (s *service) UpdateUser(db *gorm.DB, user *model.User, id string) error {
 		"email", user.Email).
 		Error
 	if err != nil {
-		return fmt.Errorf("couldn't update the user")
+		return fmt.Errorf("couldn't update the user: %v", err)
 	}
 
 	return nil

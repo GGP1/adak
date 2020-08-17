@@ -12,7 +12,6 @@ import (
 
 	"github.com/GGP1/palo/internal/cfg"
 	"github.com/GGP1/palo/pkg/model"
-	"github.com/pkg/errors"
 )
 
 // Items represents a struct with the values passed to the templates.
@@ -70,7 +69,7 @@ func SendValidation(user model.User, token string, errCh chan error) {
 
 	err = smtp.SendMail(smtpHost+":"+smtpPort, auth, from.Address, []string{to.Address}, []byte(message))
 	if err != nil {
-		errCh <- errors.Wrap(err, "couldn't send the email")
+		errCh <- fmt.Errorf("couldn't send the email: %v", err)
 	}
 }
 
@@ -123,7 +122,6 @@ func SendChangeConfirmation(user model.User, token, newEmail string, errCh chan 
 
 	err = smtp.SendMail(smtpHost+":"+smtpPort, auth, from.Address, []string{to.Address}, []byte(message))
 	if err != nil {
-		fmt.Println(err)
-		errCh <- errors.Wrap(err, "couldn't send the email")
+		errCh <- fmt.Errorf("couldn't send the email: %v", err)
 	}
 }

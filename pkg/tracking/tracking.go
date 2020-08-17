@@ -2,11 +2,11 @@
 package tracking
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 
 	"github.com/jinzhu/gorm"
-	"github.com/pkg/errors"
 )
 
 // inspired by github.com/emvi/pirsch
@@ -45,7 +45,7 @@ func (h *Hitter) Delete(id string) error {
 	var hit Hit
 	err := h.DB.Delete(&hit, id).Error
 	if err != nil {
-		return errors.Wrap(err, "couldn't delete the hit")
+		return fmt.Errorf("couldn't delete the hit: %v", err)
 	}
 
 	return nil
@@ -57,7 +57,7 @@ func (h *Hitter) Get() ([]Hit, error) {
 
 	err := h.DB.Find(&hits).Error
 	if err != nil {
-		return nil, errors.Wrap(err, "couldn't find the hits")
+		return nil, fmt.Errorf("couldn't find the hits: %v", err)
 	}
 
 	return hits, nil
@@ -67,11 +67,14 @@ func (h *Hitter) Get() ([]Hit, error) {
 // The request might be ignored if it meets certain conditions.
 func (h *Hitter) Hit(r *http.Request) error {
 	if !ignoreHit(r) {
-		hit := HitRequest(r, h.salt)
-
-		err := h.DB.Create(&hit).Error
+		hit, err := HitRequest(r, h.salt)
 		if err != nil {
-			return errors.Wrap(err, "couldn't save the hit")
+			return err
+		}
+
+		err = h.DB.Create(&hit).Error
+		if err != nil {
+			return fmt.Errorf("couldn't save the hit: %v", err)
 		}
 	}
 
@@ -90,9 +93,8 @@ func (h *Hitter) Search(value string) ([]Hit, error) {
 		Find(&hits).
 		Error
 	if err != nil {
-		return nil, errors.Wrap(err, "no hits found")
+		return nil, fmt.Errorf("no hits found")
 	}
-
 	return hits, nil
 }
 
@@ -102,9 +104,8 @@ func (h *Hitter) SearchByField(field, value string) ([]Hit, error) {
 
 	err := h.DB.Where("CONTAINS(?, '?')", field, value).Error
 	if err != nil {
-		return nil, errors.Wrap(err, "no hits found")
+		return nil, fmt.Errorf("no hits found")
 	}
-
 	return hits, nil
 }
 

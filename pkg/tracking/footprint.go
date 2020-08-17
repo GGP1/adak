@@ -12,42 +12,46 @@ import (
 
 // Footprint returns a hash for given request and salt.
 // The hash is unique for the visitor, not for the page.
-func Footprint(r *http.Request, salt string) string {
+func Footprint(r *http.Request, salt string) (string, error) {
 	var sb strings.Builder
 
+	ip, err := getUserIP(r)
+	if err != nil {
+		return "", err
+	}
+
 	sb.WriteString(r.Header.Get("User-Agent"))
-	sb.WriteString(getUserIP(r))
+	sb.WriteString(ip)
 	sb.WriteString(string(time.Now().UnixNano()))
 	sb.WriteString(salt)
 	hash := md5.New()
 
 	if _, err := io.WriteString(hash, sb.String()); err != nil {
-		return ""
+		return "", err
 	}
 
-	return hex.EncodeToString(hash.Sum(nil))
+	return hex.EncodeToString(hash.Sum(nil)), nil
 }
 
-func getUserIP(r *http.Request) string {
+func getUserIP(r *http.Request) (string, error) {
 	forwarded := r.Header.Get("X-Forwarded-For")
 
 	if forwarded != "" {
 		ips := strings.Split(forwarded, ",")
-		return strings.TrimSpace(ips[0])
+		return strings.TrimSpace(ips[0]), nil
 	}
 
-	// alternative header
 	forwarded = r.Header.Get("Forwarded")
 	if forwarded != "" {
 		ips := strings.Split(forwarded, ",")
 		f := strings.Split(ips[0], ";")
-		return strings.TrimSpace(f[0])
+		return strings.TrimSpace(f[0]), nil
 	}
 
 	ip, _, err := net.SplitHostPort(r.RemoteAddr)
 	if err != nil {
-		return ""
+		return "", err
 	}
 
-	return ip
+	return ip, nil
 }

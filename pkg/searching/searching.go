@@ -3,10 +3,11 @@
 package searching
 
 import (
+	"fmt"
+
 	"github.com/GGP1/palo/pkg/model"
 
 	"github.com/jinzhu/gorm"
-	"github.com/pkg/errors"
 )
 
 // Repository provides access to the storage.
@@ -38,7 +39,7 @@ func (s *service) SearchProducts(db *gorm.DB, products *[]model.Product, search 
 		Where("deleted_at IS NULL AND to_tsvector(brand || ' ' || type || ' ' || category || ' ' || description) @@ to_tsquery(?)", search).
 		Find(&products).Error
 	if err != nil {
-		return errors.Wrap(err, "couldn't find products")
+		return fmt.Errorf("couldn't find products: %v", err)
 	}
 
 	return nil
@@ -50,7 +51,7 @@ func (s *service) SearchShops(db *gorm.DB, shops *[]model.Shop, search string) e
 	err := db.Preload("Location").Preload("Products").Preload("Reviews").
 		Where("deleted_at IS NULL AND to_tsvector(name) @@ to_tsquery(?)", search).Find(&shops).Error
 	if err != nil {
-		return errors.Wrap(err, "couldn't find shops")
+		return fmt.Errorf("couldn't find shops: %v", err)
 	}
 
 	return nil
@@ -62,7 +63,7 @@ func (s *service) SearchUsers(db *gorm.DB, users *[]model.User, search string) e
 		Where("deleted_at IS NULL AND to_tsvector(firstname || ' ' || lastname || ' ' || email) @@ to_tsquery(?)", search).
 		Find(&users).Error
 	if err != nil {
-		return errors.Wrap(err, "couldn't find users")
+		return fmt.Errorf("couldn't find users: %v", err)
 	}
 
 	return nil

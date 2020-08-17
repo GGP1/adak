@@ -6,7 +6,6 @@ import (
 
 	"github.com/GGP1/palo/internal/cfg"
 	"github.com/GGP1/palo/pkg/model"
-	"github.com/pkg/errors"
 
 	"github.com/dgrijalva/jwt-go"
 )
@@ -50,7 +49,7 @@ func ParseFixedJWT(tokenString string) (string, error) {
 	})
 
 	if err != nil {
-		return "", errors.Wrap(err, "failed parsing the token")
+		return "", fmt.Errorf("failed parsing the token: %v", err)
 	}
 
 	claims := token.Claims.(jwt.MapClaims)

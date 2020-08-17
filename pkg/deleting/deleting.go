@@ -39,7 +39,7 @@ func (s *service) DeleteProduct(db *gorm.DB, id string) error {
 	var product model.Product
 
 	if err := db.Delete(product, id).Error; err != nil {
-		return fmt.Errorf("couldn't delete the product")
+		return fmt.Errorf("couldn't delete the product: %v", err)
 	}
 	return nil
 }
@@ -49,7 +49,7 @@ func (s *service) DeleteReview(db *gorm.DB, id string) error {
 	var review model.Review
 
 	if err := db.Delete(review, id).Error; err != nil {
-		return fmt.Errorf("couldn't delete the review")
+		return fmt.Errorf("couldn't delete the review: %v", err)
 	}
 	return nil
 }
@@ -59,7 +59,7 @@ func (s *service) DeleteShop(db *gorm.DB, id string) error {
 	var shop model.Shop
 
 	if err := db.Delete(shop, id).Error; err != nil {
-		return fmt.Errorf("couldn't delete the shop")
+		return fmt.Errorf("couldn't delete the shop: %v", err)
 	}
 	return nil
 }
@@ -68,7 +68,7 @@ func (s *service) DeleteShop(db *gorm.DB, id string) error {
 func (s *service) DeleteUser(db *gorm.DB, id string) error {
 	var user model.User
 	if err := db.Delete(user, id).Error; err != nil {
-		return fmt.Errorf("couldn't delete the user")
+		return fmt.Errorf("couldn't delete the user: %v", err)
 	}
 
 	return nil
