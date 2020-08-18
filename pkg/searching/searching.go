@@ -35,10 +35,9 @@ func NewService(r Repository) Service {
 
 // SearchProducts looks for the products that contain the value specified. (Only text fields)
 func (s *service) SearchProducts(db *gorm.DB, products *[]model.Product, search string) error {
-	err := db.Preload("Reviews").
+	if err := db.Preload("Reviews").
 		Where("deleted_at IS NULL AND to_tsvector(brand || ' ' || type || ' ' || category || ' ' || description) @@ to_tsquery(?)", search).
-		Find(&products).Error
-	if err != nil {
+		Find(&products).Error; err != nil {
 		return fmt.Errorf("couldn't find products: %v", err)
 	}
 
@@ -47,10 +46,9 @@ func (s *service) SearchProducts(db *gorm.DB, products *[]model.Product, search 
 
 // SearchShops looks for the shops that contain the value specified. (Only text fields)
 func (s *service) SearchShops(db *gorm.DB, shops *[]model.Shop, search string) error {
-
-	err := db.Preload("Location").Preload("Products").Preload("Reviews").
-		Where("deleted_at IS NULL AND to_tsvector(name) @@ to_tsquery(?)", search).Find(&shops).Error
-	if err != nil {
+	if err := db.Preload("Location").Preload("Products").Preload("Reviews").
+		Where("deleted_at IS NULL AND to_tsvector(name) @@ to_tsquery(?)", search).
+		Find(&shops).Error; err != nil {
 		return fmt.Errorf("couldn't find shops: %v", err)
 	}
 
@@ -59,10 +57,9 @@ func (s *service) SearchShops(db *gorm.DB, shops *[]model.Shop, search string) e
 
 // SearchUsers looks for the users that contain the value specified. (Only text fields)
 func (s *service) SearchUsers(db *gorm.DB, users *[]model.User, search string) error {
-	err := db.Preload("Reviews").
+	if err := db.Preload("Reviews").
 		Where("deleted_at IS NULL AND to_tsvector(firstname || ' ' || lastname || ' ' || email) @@ to_tsquery(?)", search).
-		Find(&users).Error
-	if err != nil {
+		Find(&users).Error; err != nil {
 		return fmt.Errorf("couldn't find users: %v", err)
 	}
 

@@ -3,7 +3,7 @@ package stripe
 import (
 	"fmt"
 
-	"github.com/stripe/stripe-go"
+	stripe "github.com/stripe/stripe-go"
 	"github.com/stripe/stripe-go/balance"
 	"github.com/stripe/stripe-go/balancetransaction"
 )
@@ -13,7 +13,7 @@ import (
 func GetBalance() (*stripe.Balance, error) {
 	b, err := balance.Get(nil)
 	if err != nil {
-		return nil, fmt.Errorf("couldn't retrieve the account balance: %v", err)
+		return nil, fmt.Errorf("stripe: account balance: %v", err)
 	}
 
 	return b, nil
@@ -23,7 +23,7 @@ func GetBalance() (*stripe.Balance, error) {
 func GetTxBalance(txID string) (*stripe.BalanceTransaction, error) {
 	txBalance, err := balancetransaction.Get(txID, nil)
 	if err != nil {
-		return nil, fmt.Errorf("couldn't retrieve the transaction balance: %v", err)
+		return nil, fmt.Errorf("stripe: transaction balance: %v", err)
 	}
 
 	return txBalance, nil

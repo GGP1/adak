@@ -50,72 +50,72 @@ func NewService(r Repository) Service {
 
 // GetProducts lists all the products stored in the database.
 func (s *service) GetProducts(db *gorm.DB, product *[]model.Product) error {
-	err := db.Preload("Reviews").Find(product).Error
-	if err != nil {
+	if err := db.Preload("Reviews").Find(product).Error; err != nil {
 		return fmt.Errorf("products not found: %v", err)
 	}
+
 	return nil
 }
 
 // GetProductByID lists the product requested from the database.
 func (s *service) GetProductByID(db *gorm.DB, product *model.Product, id string) error {
-	err := db.Preload("Reviews").First(product, id).Error
-	if err != nil {
+	if err := db.Preload("Reviews").First(product, id).Error; err != nil {
 		return fmt.Errorf("product not found: %v", err)
 	}
+
 	return nil
 }
 
 // GetReviews lists all the reviews stored in the database.
 func (s *service) GetReviews(db *gorm.DB, review *[]model.Review) error {
-	err := db.Find(review).Error
-	if err != nil {
+	if err := db.Find(review).Error; err != nil {
 		return fmt.Errorf("reviews not found: %v", err)
 	}
+
 	return nil
 }
 
 // GetReviewByID lists the review requested from the database.
 func (s *service) GetReviewByID(db *gorm.DB, review *model.Review, id string) error {
-	err := db.First(review, id).Error
-	if err != nil {
+	if err := db.First(review, id).Error; err != nil {
 		return fmt.Errorf("review not found: %v", err)
 	}
+
 	return nil
 }
 
 // GetShops lists all the shops stored in the database.
 func (s *service) GetShops(db *gorm.DB, shop *[]model.Shop) error {
-	err := db.Preload("Location").Preload("Reviews").Preload("Products").Find(shop).Error
-	if err != nil {
+	if err := db.Preload("Location").Preload("Reviews").Preload("Products").Find(shop).Error; err != nil {
 		return fmt.Errorf("shops not found: %v", err)
 	}
+
 	return nil
 }
 
 // GetShopByID lists the shop requested from the database.
 func (s *service) GetShopByID(db *gorm.DB, shop *model.Shop, id string) error {
-	err := db.Preload("Location").Preload("Reviews").Preload("Products").First(shop, id).Error
-	if err != nil {
+	if err := db.Preload("Location").Preload("Reviews").Preload("Products").First(shop, id).Error; err != nil {
 		return fmt.Errorf("shop not found: %v", err)
 	}
+
 	return nil
 }
 
 // GetUsers lists all the users stored in the database.
 func (s *service) GetUsers(db *gorm.DB, user *[]model.User) error {
-	err := db.Preload("Orders").Preload("Reviews").Find(user).Error
-	if err != nil {
+	if err := db.Preload("Orders").Preload("Reviews").Find(user).Error; err != nil {
 		return fmt.Errorf("users not found: %v", err)
 	}
+
 	return nil
 }
 
 // GetUserByID lists the user requested from the database.
 func (s *service) GetUserByID(db *gorm.DB, user *model.User, id string) error {
-	err := db.Preload("Orders").Preload("Reviews").First(user, id).Error
-	if err != nil {
+	if err := db.Preload("Orders").Preload("Reviews").First(user, id).Error; err != nil {
 		return fmt.Errorf("user not found: %v", err)
 	}
+
 	return nil
 }

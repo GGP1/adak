@@ -3,7 +3,7 @@ package stripe
 import (
 	"fmt"
 
-	"github.com/stripe/stripe-go"
+	stripe "github.com/stripe/stripe-go"
 	"github.com/stripe/stripe-go/event"
 )
 
@@ -11,7 +11,7 @@ import (
 func GetEvent(eventID string) (*stripe.Event, error) {
 	event, err := event.Get(eventID, nil)
 	if err != nil {
-		return nil, fmt.Errorf("couldn't retrieve the event: %v", err)
+		return nil, fmt.Errorf("stripe: event: %v", err)
 	}
 
 	return event, nil

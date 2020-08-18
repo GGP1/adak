@@ -11,8 +11,7 @@ import (
 // Home gives users a welcome and takes non-invasive information from them.
 func Home(t tracking.Tracker) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		err := t.Hit(r)
-		if err != nil {
+		if err := t.Hit(r); err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}

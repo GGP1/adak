@@ -35,7 +35,7 @@ func SendValidation(user model.User, token string, errCh chan error) {
 		Token: token,
 	}
 
-	headers := make(map[string]string)
+	headers := make(map[string]string, 4)
 	headers["From"] = from.String()
 	headers["To"] = to.String()
 	headers["Subject"] = subject
@@ -52,8 +52,7 @@ func SendValidation(user model.User, token string, errCh chan error) {
 	}
 
 	buf := new(bytes.Buffer)
-	err = t.Execute(buf, items)
-	if err != nil {
+	if err = t.Execute(buf, items); err != nil {
 		errCh <- err
 	}
 
@@ -67,8 +66,7 @@ func SendValidation(user model.User, token string, errCh chan error) {
 
 	auth := smtp.PlainAuth("", cfg.EmailSender, cfg.EmailPassword, smtpHost)
 
-	err = smtp.SendMail(smtpHost+":"+smtpPort, auth, from.Address, []string{to.Address}, []byte(message))
-	if err != nil {
+	if err = smtp.SendMail(smtpHost+":"+smtpPort, auth, from.Address, []string{to.Address}, []byte(message)); err != nil {
 		errCh <- fmt.Errorf("couldn't send the email: %v", err)
 	}
 }
@@ -88,7 +86,7 @@ func SendChangeConfirmation(user model.User, token, newEmail string, errCh chan 
 		NewEmail: newEmail,
 	}
 
-	headers := make(map[string]string)
+	headers := make(map[string]string, 4)
 	headers["From"] = from.String()
 	headers["To"] = to.String()
 	headers["Subject"] = subject
@@ -105,8 +103,7 @@ func SendChangeConfirmation(user model.User, token, newEmail string, errCh chan 
 	}
 
 	buf := new(bytes.Buffer)
-	err = t.Execute(buf, items)
-	if err != nil {
+	if err := t.Execute(buf, items); err != nil {
 		errCh <- err
 	}
 
@@ -120,8 +117,7 @@ func SendChangeConfirmation(user model.User, token, newEmail string, errCh chan 
 
 	auth := smtp.PlainAuth("", cfg.EmailSender, cfg.EmailPassword, smtpHost)
 
-	err = smtp.SendMail(smtpHost+":"+smtpPort, auth, from.Address, []string{to.Address}, []byte(message))
-	if err != nil {
+	if err := smtp.SendMail(smtpHost+":"+smtpPort, auth, from.Address, []string{to.Address}, []byte(message)); err != nil {
 		errCh <- fmt.Errorf("couldn't send the email: %v", err)
 	}
 }

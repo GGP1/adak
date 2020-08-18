@@ -30,8 +30,7 @@ func CartAdd(db *gorm.DB) http.HandlerFunc {
 			return
 		}
 
-		err = json.NewDecoder(r.Body).Decode(&product)
-		if err != nil {
+		if err = json.NewDecoder(r.Body).Decode(&product); err != nil {
 			response.Error(w, r, http.StatusBadRequest, err)
 			return
 		}
@@ -261,8 +260,7 @@ func CartRemove(db *gorm.DB) http.HandlerFunc {
 			return
 		}
 
-		err = shopping.Remove(db, c.Value, key, quantity)
-		if err != nil {
+		if err = shopping.Remove(db, c.Value, key, quantity); err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
@@ -276,8 +274,7 @@ func CartReset(db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		c, _ := r.Cookie("CID")
 
-		err := shopping.Reset(db, c.Value)
-		if err != nil {
+		if err := shopping.Reset(db, c.Value); err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}

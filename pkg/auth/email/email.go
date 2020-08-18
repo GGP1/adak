@@ -1,7 +1,7 @@
 package email
 
 import (
-	"fmt"
+	"errors"
 
 	"github.com/jinzhu/gorm"
 )
@@ -40,9 +40,8 @@ func (l *List) Add(email, token string) error {
 	l.Email = email
 	l.Token = token
 
-	err := l.DB.Table(l.tableName).Create(l).Error
-	if err != nil {
-		return fmt.Errorf("couldn't create the pending list")
+	if err := l.DB.Table(l.tableName).Create(l).Error; err != nil {
+		return errors.New("couldn't create the pending list")
 	}
 
 	return nil
@@ -60,9 +59,8 @@ func (l *List) Exists(email string) bool {
 
 // Read returns a map with the email list or an error.
 func (l *List) Read() (map[string]string, error) {
-	err := l.DB.Table(l.tableName).Find(l).Error
-	if err != nil {
-		return nil, fmt.Errorf("list not found")
+	if err := l.DB.Table(l.tableName).Find(l).Error; err != nil {
+		return nil, errors.New("list not found")
 	}
 
 	emailList := make(map[string]string)
@@ -73,9 +71,8 @@ func (l *List) Read() (map[string]string, error) {
 
 // Remove deletes an email from the list.
 func (l *List) Remove(email string) error {
-	err := l.DB.Table(l.tableName).Where("email=?", email).Delete(l).Error
-	if err != nil {
-		return fmt.Errorf("couldn't delete the email from the list")
+	if err := l.DB.Table(l.tableName).Where("email=?", email).Delete(l).Error; err != nil {
+		return errors.New("couldn't delete the email from the list")
 	}
 
 	return nil
@@ -83,9 +80,8 @@ func (l *List) Remove(email string) error {
 
 // Seek looks for the specified email in the list.
 func (l *List) Seek(email string) error {
-	err := l.DB.Table(l.tableName).First(l, "email = ?", email).Error
-	if err != nil {
-		return fmt.Errorf("email not found")
+	if err := l.DB.Table(l.tableName).First(l, "email = ?", email).Error; err != nil {
+		return errors.New("email not found")
 	}
 
 	return nil

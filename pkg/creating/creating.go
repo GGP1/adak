@@ -4,6 +4,7 @@ Package creating includes database creating operations
 package creating
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/GGP1/palo/internal/uuid"
@@ -41,9 +42,8 @@ func NewService(r Repository) Service {
 
 // CreateProduct validates a product and saves it into the database.
 func (s *service) CreateProduct(db *gorm.DB, product *model.Product) error {
-	err := product.Validate()
-	if err != nil {
-		return fmt.Errorf("%w", err)
+	if err := product.Validate(); err != nil {
+		return err
 	}
 
 	taxes := ((product.Subtotal / 100) * product.Taxes)
@@ -68,9 +68,8 @@ func (s *service) CreateReview(db *gorm.DB, review *model.Review) error {
 
 // CreateShop validates a shop and saves it into the database.
 func (s *service) CreateShop(db *gorm.DB, shop *model.Shop) error {
-	err := shop.Validate()
-	if err != nil {
-		return fmt.Errorf("%w", err)
+	if err := shop.Validate(); err != nil {
+		return err
 	}
 
 	if err := db.Create(shop).Error; err != nil {
@@ -83,14 +82,13 @@ func (s *service) CreateShop(db *gorm.DB, shop *model.Shop) error {
 // CreateUser validates a user, hashes its password, sends
 // a verification email and saves it into the database.
 func (s *service) CreateUser(db *gorm.DB, user *model.User) error {
-	err := user.Validate("")
-	if err != nil {
-		return fmt.Errorf("%w", err)
+	if err := user.Validate(""); err != nil {
+		return err
 	}
 
 	rowsAffected := db.Where("email = ?", user.Email).First(&user).RowsAffected
 	if rowsAffected != 0 {
-		return fmt.Errorf("email is already taken")
+		return errors.New("email is already taken")
 	}
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)

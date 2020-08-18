@@ -13,6 +13,7 @@ import (
 	"github.com/GGP1/palo/pkg/shopping"
 	"github.com/GGP1/palo/pkg/shopping/ordering"
 	"github.com/GGP1/palo/pkg/shopping/payment/stripe"
+
 	"github.com/go-chi/chi"
 	"github.com/jinzhu/gorm"
 )
@@ -48,8 +49,7 @@ func DeleteOrder(db *gorm.DB) http.HandlerFunc {
 			return
 		}
 
-		err = ordering.Delete(db, orderID)
-		if err != nil {
+		if err := ordering.Delete(db, orderID); err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
@@ -63,8 +63,7 @@ func GetOrder(db *gorm.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var orders []ordering.Order
 
-		err := ordering.Get(db, &orders)
-		if err != nil {
+		if err := ordering.Get(db, &orders); err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
@@ -81,8 +80,7 @@ func NewOrder(db *gorm.DB) http.HandlerFunc {
 
 		var o orderParams
 
-		err := json.NewDecoder(r.Body).Decode(&o)
-		if err != nil {
+		if err := json.NewDecoder(r.Body).Decode(&o); err != nil {
 			response.Error(w, r, http.StatusBadRequest, err)
 		}
 		defer r.Body.Close()
@@ -119,8 +117,7 @@ func NewOrder(db *gorm.DB) http.HandlerFunc {
 
 		order.Status = ordering.PaidState
 
-		err = db.Model(&order).Where("id=?", order.ID).UpdateColumn("status", order.Status).Error
-		if err != nil {
+		if err := db.Model(&order).Where("id=?", order.ID).UpdateColumn("status", order.Status).Error; err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}

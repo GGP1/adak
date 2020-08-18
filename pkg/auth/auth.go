@@ -31,9 +31,9 @@ type userInfo struct {
 }
 
 type session struct {
-	DB *gorm.DB
 	sync.RWMutex
 
+	DB     *gorm.DB
 	store  map[string]userInfo
 	clean  time.Time
 	length int
@@ -84,25 +84,21 @@ func (session *session) Clean() {
 func (session *session) EmailChange(id, newEmail, token string, validatedList email.Emailer) error {
 	var user model.User
 
-	err := session.DB.Where("id=?", id).First(&user).Error
-	if err != nil {
+	if err := session.DB.Where("id=?", id).First(&user).Error; err != nil {
 		return fmt.Errorf("invalid email: %v", err)
 	}
 
-	err = validatedList.Remove(user.Email)
-	if err != nil {
+	if err := validatedList.Remove(user.Email); err != nil {
 		return err
 	}
 
 	user.Email = newEmail
 
-	err = validatedList.Add(newEmail, token)
-	if err != nil {
+	if err := validatedList.Add(newEmail, token); err != nil {
 		return err
 	}
 
-	err = session.DB.Save(&user).Error
-	if err != nil {
+	if err := session.DB.Save(&user).Error; err != nil {
 		return fmt.Errorf("couldn't change the email: %v", err)
 	}
 
@@ -114,13 +110,11 @@ func (session *session) EmailChange(id, newEmail, token string, validatedList em
 func (session *session) Login(w http.ResponseWriter, email, password string) error {
 	var user model.User
 
-	err := session.DB.Where("email = ?", email).Take(&user).Error
-	if err != nil {
+	if err := session.DB.Where("email = ?", email).Take(&user).Error; err != nil {
 		return fmt.Errorf("invalid email: %v", err)
 	}
 
-	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password))
-	if err != nil {
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
 		return fmt.Errorf("invalid password: %v", err)
 	}
 
@@ -174,13 +168,11 @@ func (session *session) Logout(w http.ResponseWriter, r *http.Request, c *http.C
 func (session *session) PasswordChange(id, oldPass, newPass string) error {
 	var user model.User
 
-	err := session.DB.Where("id=?", id).First(&user).Error
-	if err != nil {
+	if err := session.DB.Where("id=?", id).First(&user).Error; err != nil {
 		return fmt.Errorf("invalid email: %v", err)
 	}
 
-	err = bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(oldPass))
-	if err != nil {
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(oldPass)); err != nil {
 		return fmt.Errorf("invalid old password: %v", err)
 	}
 
@@ -190,8 +182,7 @@ func (session *session) PasswordChange(id, oldPass, newPass string) error {
 	}
 	user.Password = string(newPassHash)
 
-	err = session.DB.Save(&user).Error
-	if err != nil {
+	if err := session.DB.Save(&user).Error; err != nil {
 		return fmt.Errorf("couldn't change the password: %v", err)
 	}
 

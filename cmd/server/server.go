@@ -17,8 +17,9 @@ import (
 // Server holds a server configurations.
 type Server struct {
 	*http.Server
-	TimeoutShutdown time.Duration
 	Logger
+
+	TimeoutShutdown time.Duration
 }
 
 // Logger holds the logger level.
@@ -41,12 +42,12 @@ func New(c *Config, router http.Handler) *Server {
 			WriteTimeout:   c.Server.Timeout.Write * time.Second,
 			MaxHeaderBytes: 1 << 20,
 		},
-		c.Server.Timeout.Shutdown * time.Second,
 		Logger{
 			Stripe{
 				c.Logger.Stripe.Level,
 			},
 		},
+		c.Server.Timeout.Shutdown * time.Second,
 	}
 }
 

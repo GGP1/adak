@@ -2,6 +2,7 @@
 package ordering
 
 import (
+	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -72,72 +73,71 @@ type OrderProduct struct {
 
 // NewOrder creates an order.
 func NewOrder(db *gorm.DB, userID, currency, address, city, country, state, zipcode string, deliveryDate time.Time, cart shopping.Cart) (*Order, error) {
-	var order Order
-
 	if cart.Counter == 0 {
-		return nil, fmt.Errorf("ordering 0 products is not permitted")
+		return nil, errors.New("ordering 0 products is not permitted")
 	}
 
 	id := uuid.GenerateRandRunes(24)
 
-	// Set fields
-	order.ID = id
-	order.UserID = userID
-	order.Currency = currency
-	order.Address = address
-	order.City = city
-	order.State = state
-	order.ZipCode = zipcode
-	order.Country = country
-	order.Status = PendingState
-	order.OrderedAt = time.Now()
-	order.DeliveryDate = deliveryDate
-
-	order.CartID = cart.ID
-	order.Cart.Counter = cart.Counter
-	order.Cart.Weight = cart.Weight
-	order.Cart.Discount = cart.Discount
-	order.Cart.Taxes = cart.Taxes
-	order.Cart.Subtotal = cart.Subtotal
-	order.Cart.Total = cart.Total
+	order := Order{
+		ID:           id,
+		UserID:       userID,
+		Currency:     currency,
+		Address:      address,
+		City:         city,
+		State:        state,
+		ZipCode:      zipcode,
+		Status:       PendingState,
+		OrderedAt:    time.Now(),
+		DeliveryDate: deliveryDate,
+		CartID:       cart.ID,
+		Cart: OrderCart{
+			Counter:  cart.Counter,
+			Weight:   cart.Weight,
+			Discount: cart.Discount,
+			Taxes:    cart.Taxes,
+			Subtotal: cart.Subtotal,
+			Total:    cart.Total,
+		},
+	}
 
 	var wg sync.WaitGroup
 
 	for _, product := range cart.Products {
-		var orderP OrderProduct
 		wg.Add(1)
 
-		go func(orderP OrderProduct, products []OrderProduct, product *shopping.CartProduct) {
+		go func(products []OrderProduct, product *shopping.CartProduct) {
 			defer wg.Done()
 
 			id := uuid.GenerateRandRunes(20)
 
-			orderP.ID = id
-			orderP.ProductID = product.ID
-			orderP.Quantity = product.Quantity
-			orderP.Brand = product.Brand
-			orderP.Category = product.Category
-			orderP.Type = product.Type
-			orderP.Description = product.Description
-			orderP.Discount = product.Discount
-			orderP.Weight = product.Weight
-			orderP.Taxes = product.Taxes
-			orderP.Subtotal = product.Subtotal
-			orderP.Total = product.Total
+			orderP := OrderProduct{
+				ID:          id,
+				ProductID:   product.ID,
+				Quantity:    product.Quantity,
+				Brand:       product.Brand,
+				Category:    product.Category,
+				Type:        product.Type,
+				Description: product.Description,
+				Weight:      product.Weight,
+				Discount:    product.Discount,
+				Taxes:       product.Taxes,
+				Subtotal:    product.Subtotal,
+				Total:       product.Total,
+			}
+
 			db.Create(&orderP)
 
 			order.Products = append(order.Products, orderP)
-		}(orderP, order.Products, product)
+		}(order.Products, product)
 	}
 	wg.Wait()
 
-	err := db.Create(&order).Error
-	if err != nil {
+	if err := db.Create(&order).Error; err != nil {
 		return nil, fmt.Errorf("couldn't create the order: %v", err)
 	}
 
-	err = shopping.Reset(db, cart.ID)
-	if err != nil {
+	if err := shopping.Reset(db, cart.ID); err != nil {
 		return nil, fmt.Errorf("couldn't reset the cart: %v", err)
 	}
 
@@ -146,22 +146,21 @@ func NewOrder(db *gorm.DB, userID, currency, address, city, country, state, zipc
 
 // Delete removes an order.
 func Delete(db *gorm.DB, orderID int) error {
-	var order Order
-	var orderCart OrderCart
-	var orderProduct OrderProduct
+	var (
+		order        Order
+		orderCart    OrderCart
+		orderProduct OrderProduct
+	)
 
-	err := db.Delete(&order, orderID).Error
-	if err != nil {
+	if err := db.Delete(&order, orderID).Error; err != nil {
 		return fmt.Errorf("couldn't delete the order: %v", err)
 	}
 
-	err = db.Where("order_id=?", orderID).Delete(&orderCart).Error
-	if err != nil {
+	if err := db.Where("order_id=?", orderID).Delete(&orderCart).Error; err != nil {
 		return fmt.Errorf("couldn't delete the order cart: %v", err)
 	}
 
-	err = db.Where("order_id=?", orderID).Delete(&orderProduct).Error
-	if err != nil {
+	if err := db.Where("order_id=?", orderID).Delete(&orderProduct).Error; err != nil {
 		return fmt.Errorf("couldn't delete the order products: %v", err)
 	}
 
@@ -170,8 +169,7 @@ func Delete(db *gorm.DB, orderID int) error {
 
 // Get removes an order.
 func Get(db *gorm.DB, orders *[]Order) error {
-	err := db.Preload("Cart").Preload("Products").Find(&orders).Error
-	if err != nil {
+	if err := db.Preload("Cart").Preload("Products").Find(&orders).Error; err != nil {
 		return fmt.Errorf("couldn't find the orders: %v", err)
 	}
 

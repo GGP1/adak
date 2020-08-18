@@ -35,8 +35,7 @@ func main() {
 
 	srv := server.New(srvConfig, router)
 
-	err = srv.Start()
-	if err != nil {
+	if err := srv.Start(); err != nil {
 		log.Fatal(err)
 	}
 }

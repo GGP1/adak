@@ -9,8 +9,8 @@ import (
 	"github.com/GGP1/palo/pkg/deleting"
 	"github.com/GGP1/palo/pkg/listing"
 	"github.com/GGP1/palo/pkg/model"
-	"github.com/go-chi/chi"
 
+	"github.com/go-chi/chi"
 	"github.com/jinzhu/gorm"
 )
 
@@ -30,8 +30,7 @@ func (rev *Reviews) Create(c creating.Service) http.HandlerFunc {
 		}
 		defer r.Body.Close()
 
-		err := c.CreateReview(rev.DB, &review)
-		if err != nil {
+		if err := c.CreateReview(rev.DB, &review); err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
@@ -45,8 +44,7 @@ func (rev *Reviews) Delete(d deleting.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
 
-		err := d.DeleteReview(rev.DB, id)
-		if err != nil {
+		if err := d.DeleteReview(rev.DB, id); err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
@@ -60,8 +58,7 @@ func (rev *Reviews) Get(l listing.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var review []model.Review
 
-		err := l.GetReviews(rev.DB, &review)
-		if err != nil {
+		if err := l.GetReviews(rev.DB, &review); err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
@@ -73,12 +70,11 @@ func (rev *Reviews) Get(l listing.Service) http.HandlerFunc {
 // GetByID lists the review with the id requested.
 func (rev *Reviews) GetByID(l listing.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var review model.Review
-
 		id := chi.URLParam(r, "id")
 
-		err := l.GetReviewByID(rev.DB, &review, id)
-		if err != nil {
+		var review model.Review
+
+		if err := l.GetReviewByID(rev.DB, &review, id); err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}

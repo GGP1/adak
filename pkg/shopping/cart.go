@@ -1,6 +1,7 @@
 package shopping
 
 import (
+	"errors"
 	"fmt"
 	"math"
 
@@ -78,19 +79,16 @@ func Add(db *gorm.DB, cartID string, product *CartProduct, quantity int) (*CartP
 	alreadyExists := db.Where("id=?", product.ID).First(&product).RowsAffected
 	if alreadyExists != 0 {
 		product.Quantity++
-		err := db.Save(&product).Error
-		if err != nil {
+		if err := db.Save(&product).Error; err != nil {
 			return nil, fmt.Errorf("couldn't update the product: %v", err)
 		}
 	} else {
-		err := db.Create(&product).Error
-		if err != nil {
+		if err := db.Create(&product).Error; err != nil {
 			return nil, fmt.Errorf("couldn't create the product: %v", err)
 		}
 	}
 
-	err := db.Save(&cart).Error
-	if err != nil {
+	if err := db.Save(&cart).Error; err != nil {
 		return nil, fmt.Errorf("couldn't update the cart: %v", err)
 	}
 
@@ -115,8 +113,9 @@ func DeleteCart(db *gorm.DB, id string) error {
 	var cart Cart
 
 	if err := db.Delete(cart, id).Error; err != nil {
-		return fmt.Errorf("couldn't delete the cart")
+		return errors.New("couldn't delete the cart")
 	}
+
 	return nil
 }
 
@@ -133,8 +132,10 @@ func Get(db *gorm.DB, cartID string) (Cart, error) {
 
 // Items prints cart products.
 func Items(db *gorm.DB, cartID string) ([]CartProduct, error) {
-	var cart Cart
-	var list []CartProduct
+	var (
+		cart Cart
+		list []CartProduct
+	)
 
 	if err := db.Where("id=?", cartID).Find(&cart).Error; err != nil {
 		return nil, fmt.Errorf("couldn't find the cart: %v", err)
@@ -147,7 +148,7 @@ func Items(db *gorm.DB, cartID string) ([]CartProduct, error) {
 	}
 
 	if len(list) == 0 {
-		return nil, fmt.Errorf("cart is empty")
+		return nil, errors.New("cart is empty")
 	}
 
 	return list, nil
@@ -155,31 +156,31 @@ func Items(db *gorm.DB, cartID string) ([]CartProduct, error) {
 
 // Remove takes away the specified quantity of products from the cart.
 func Remove(db *gorm.DB, cartID string, key int, quantity int) error {
-	var cart Cart
-	var product CartProduct
+	var (
+		cart    Cart
+		product CartProduct
+	)
 
 	if err := db.Where("id=?", cartID).Find(&cart).Error; err != nil {
 		return fmt.Errorf("couldn't find the cart: %v", err)
 	}
 
 	if err := db.Where("cart_id = ? AND id = ?", cartID, key).Find(&product).Error; err != nil {
-		return fmt.Errorf("product not found")
+		return errors.New("product not found")
 	}
 
 	if quantity > product.Quantity {
-		return fmt.Errorf("quantity inserted: %d\nis higher than the stock of products %d", quantity, product.Quantity)
+		return fmt.Errorf("quantity inserted (%d) is higher than the stock of products (%d)", quantity, product.Quantity)
 	}
 
 	if quantity == product.Quantity {
-		err := db.Where("cart_id=?", cartID).Delete(&product, "id=?", key).Error
-		if err != nil {
+		if err := db.Where("cart_id=?", cartID).Delete(&product, "id=?", key).Error; err != nil {
 			return fmt.Errorf("couldn't delete the product: %v", err)
 		}
 	}
 
 	if cart.Counter == 1 {
-		err := Reset(db, cartID)
-		if err != nil {
+		if err := Reset(db, cartID); err != nil {
 			return err
 		}
 		return nil
@@ -208,8 +209,10 @@ func Remove(db *gorm.DB, cartID string, key int, quantity int) error {
 
 // Reset sets the cart to its default values.
 func Reset(db *gorm.DB, cartID string) error {
-	var cart Cart
-	var product CartProduct
+	var (
+		cart    Cart
+		product CartProduct
+	)
 
 	if err := db.Where("id=?", cartID).Find(&cart).Error; err != nil {
 		return fmt.Errorf("couldn't find the cart: %v", err)
@@ -226,8 +229,7 @@ func Reset(db *gorm.DB, cartID string) error {
 	cart.Subtotal = 0
 	cart.Total = 0
 
-	err := db.Save(&cart).Error
-	if err != nil {
+	if err := db.Save(&cart).Error; err != nil {
 		return fmt.Errorf("couldn't update the cart: %v", err)
 	}
 
@@ -253,7 +255,7 @@ func String(db *gorm.DB, cartID string) (string, error) {
 		return "", fmt.Errorf("couldn't find the cart: %v", err)
 	}
 
-	return fmt.Sprintf(
-		"The cart has %d products, a weight of %2.fkg, $%2.f of discounts, $%2.f of taxes and a total of $%2.f",
-		cart.Counter, cart.Weight, cart.Discount, cart.Taxes, cart.Total), nil
+	const details = "The cart has %d products, a weight of %2.fkg, $%2.f of discounts, $%2.f of taxes and a total of $%2.f"
+
+	return fmt.Sprintf(details, cart.Counter, cart.Weight, cart.Discount, cart.Taxes, cart.Total), nil
 }

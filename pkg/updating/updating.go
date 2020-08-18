@@ -33,7 +33,7 @@ func NewService(r Repository) Service {
 
 // UpdateProduct updates a product, returns an error.
 func (s *service) UpdateProduct(db *gorm.DB, product *model.Product, id string) error {
-	err := db.Model(&product).Where("id=?", id).Update(
+	if err := db.Model(&product).Where("id=?", id).Update(
 		"stock", product.Stock,
 		"brand", product.Brand,
 		"category", product.Category,
@@ -43,9 +43,7 @@ func (s *service) UpdateProduct(db *gorm.DB, product *model.Product, id string) 
 		"discount", product.Discount,
 		"taxes", product.Taxes,
 		"subtotal", product.Subtotal,
-		"total", product.Total).
-		Error
-	if err != nil {
+		"total", product.Total).Error; err != nil {
 		return fmt.Errorf("couldn't update the product: %v", err)
 	}
 
@@ -54,13 +52,11 @@ func (s *service) UpdateProduct(db *gorm.DB, product *model.Product, id string) 
 
 // UpdateShop updates a shop, returns an error.
 func (s *service) UpdateShop(db *gorm.DB, shop *model.Shop, id string) error {
-	err := db.Model(&shop).Where("id=?", id).Update(
+	if err := db.Model(&shop).Where("id=?", id).Update(
 		"name", shop.Name,
 		"country", shop.Location.Country,
 		"city", shop.Location.City,
-		"address", shop.Location.Address).
-		Error
-	if err != nil {
+		"address", shop.Location.Address).Error; err != nil {
 		return fmt.Errorf("couldn't update the shop: %v", err)
 	}
 
@@ -69,11 +65,9 @@ func (s *service) UpdateShop(db *gorm.DB, shop *model.Shop, id string) error {
 
 // UpdateUser returns updates a user, returns an error.
 func (s *service) UpdateUser(db *gorm.DB, user *model.User, id string) error {
-	err := db.Model(&user).Where("id=?", id).Update(
+	if err := db.Model(&user).Where("id=?", id).Update(
 		"name", user.Name,
-		"email", user.Email).
-		Error
-	if err != nil {
+		"email", user.Email).Error; err != nil {
 		return fmt.Errorf("couldn't update the user: %v", err)
 	}
 

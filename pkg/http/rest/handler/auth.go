@@ -3,6 +3,7 @@ package handler
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -11,6 +12,7 @@ import (
 	"github.com/GGP1/palo/pkg/auth/email"
 	"github.com/GGP1/palo/pkg/listing"
 	"github.com/GGP1/palo/pkg/model"
+
 	"github.com/go-chi/chi"
 	"github.com/jinzhu/gorm"
 )
@@ -24,14 +26,15 @@ type changePassword struct {
 	NewPassword string `json:"new_password"`
 }
 
-// EmailChange takes the new email and send an email confirmation.
+// EmailChange takes the new email and sends an email confirmation.
 func EmailChange(db *gorm.DB, validatedList email.Emailer, l listing.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var new changeEmail
-		var user model.User
+		var (
+			new  changeEmail
+			user model.User
+		)
 
-		err := json.NewDecoder(r.Body).Decode(&new)
-		if err != nil {
+		if err := json.NewDecoder(r.Body).Decode(&new); err != nil {
 			response.Error(w, r, http.StatusBadRequest, err)
 			return
 		}
@@ -44,7 +47,7 @@ func EmailChange(db *gorm.DB, validatedList email.Emailer, l listing.Service) ht
 
 		exists := validatedList.Exists(new.Email)
 		if exists {
-			response.Error(w, r, http.StatusBadRequest, fmt.Errorf("email is already taken"))
+			response.Error(w, r, http.StatusBadRequest, errors.New("email is already taken"))
 		}
 
 		uID, _ := r.Cookie("UID")
@@ -54,8 +57,7 @@ func EmailChange(db *gorm.DB, validatedList email.Emailer, l listing.Service) ht
 			return
 		}
 
-		err = l.GetUserByID(db, &user, userID)
-		if err != nil {
+		if err = l.GetUserByID(db, &user, userID); err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
@@ -87,8 +89,7 @@ func EmailChangeConfirmation(s auth.Session, validatedList email.Emailer) http.H
 		email := chi.URLParam(r, "email")
 		id := chi.URLParam(r, "id")
 
-		err := s.EmailChange(id, email, token, validatedList)
-		if err != nil {
+		if err := s.EmailChange(id, email, token, validatedList); err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
@@ -107,28 +108,24 @@ func Login(s auth.Session, validatedList email.Emailer) http.HandlerFunc {
 
 		var user model.User
 
-		err := json.NewDecoder(r.Body).Decode(&user)
-		if err != nil {
+		if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
 			response.Error(w, r, http.StatusBadRequest, err)
 			return
 		}
 		defer r.Body.Close()
 
-		err = user.Validate("login")
-		if err != nil {
+		if err := user.Validate("login"); err != nil {
 			response.Error(w, r, http.StatusBadRequest, err)
 			return
 		}
 
 		// Check if the email is validated
-		err = validatedList.Seek(user.Email)
-		if err != nil {
+		if err := validatedList.Seek(user.Email); err != nil {
 			response.Error(w, r, http.StatusUnauthorized, fmt.Errorf("please verify your email before logging in: %w", err))
 			return
 		}
 
-		err = s.Login(w, user.Email, user.Password)
-		if err != nil {
+		if err := s.Login(w, user.Email, user.Password); err != nil {
 			response.Error(w, r, http.StatusUnauthorized, err)
 			return
 		}
@@ -143,7 +140,7 @@ func Logout(s auth.Session) http.HandlerFunc {
 		c, _ := r.Cookie("SID")
 
 		if c == nil {
-			response.Error(w, r, http.StatusBadRequest, fmt.Errorf("error: you cannot log out without a session"))
+			response.Error(w, r, http.StatusBadRequest, errors.New("error: you cannot log out without a session"))
 			return
 		}
 
@@ -166,15 +163,13 @@ func PasswordChange(s auth.Session, l listing.Service) http.HandlerFunc {
 			response.Error(w, r, http.StatusInternalServerError, err)
 		}
 
-		err = json.NewDecoder(r.Body).Decode(&changePass)
-		if err != nil {
+		if err := json.NewDecoder(r.Body).Decode(&changePass); err != nil {
 			response.Error(w, r, http.StatusBadRequest, err)
 			return
 		}
 		defer r.Body.Close()
 
-		err = s.PasswordChange(userID, changePass.OldPassword, changePass.NewPassword)
-		if err != nil {
+		if err := s.PasswordChange(userID, changePass.OldPassword, changePass.NewPassword); err != nil {
 			response.Error(w, r, http.StatusBadRequest, err)
 			return
 		}
@@ -199,14 +194,12 @@ func ValidateEmail(pendingList, validatedList email.Emailer) http.HandlerFunc {
 
 		for k, v := range pList {
 			if v == token {
-				err := validatedList.Add(k, v)
-				if err != nil {
+				if err := validatedList.Add(k, v); err != nil {
 					response.Error(w, r, http.StatusInternalServerError, err)
 					return
 				}
 
-				err = pendingList.Remove(k)
-				if err != nil {
+				if err := pendingList.Remove(k); err != nil {
 					response.Error(w, r, http.StatusInternalServerError, err)
 					return
 				}
@@ -216,7 +209,7 @@ func ValidateEmail(pendingList, validatedList email.Emailer) http.HandlerFunc {
 		}
 
 		if !validated {
-			response.Error(w, r, http.StatusInternalServerError, fmt.Errorf("error: email validation failed"))
+			response.Error(w, r, http.StatusInternalServerError, errors.New("error: email validation failed"))
 			return
 		}
 

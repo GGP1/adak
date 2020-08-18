@@ -1,6 +1,7 @@
 package auth
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -41,18 +42,21 @@ func GenerateFixedJWT(id string) (string, error) {
 // This function is used to take the user id value from the cookie UID.
 func ParseFixedJWT(tokenString string) (string, error) {
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-		if _, isvalid := token.Method.(*jwt.SigningMethodHMAC); !isvalid {
+		_, ok := token.Method.(*jwt.SigningMethodHMAC)
+		if !ok {
 			return nil, fmt.Errorf("Invalid token %v", token.Header["alg"])
 		}
 
 		return []byte(cfg.SecretKey), nil
 	})
-
 	if err != nil {
 		return "", fmt.Errorf("failed parsing the token: %v", err)
 	}
 
-	claims := token.Claims.(jwt.MapClaims)
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		return "", errors.New("jwt: claim type assertion failed")
+	}
 
 	return claims["id"].(string), nil
 }

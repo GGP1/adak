@@ -37,7 +37,7 @@ type Card struct {
 func (u *User) QRCode() (image.Image, error) {
 	qr, err := qrcode.New(fmt.Sprintf("http://127.0.0.1/users/%d", u.ID), qrcode.Medium)
 	if err != nil {
-		return nil, fmt.Errorf("couldn't create the qrcode: %v", err)
+		return nil, fmt.Errorf("qrcode: %v", err)
 	}
 
 	img := qr.Image(256)

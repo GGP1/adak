@@ -21,9 +21,11 @@ type visitor struct {
 	lastSeen time.Time
 }
 
-// visitors map holds the values of the visitors
-var visitors = make(map[string]*visitor)
-var mutex sync.RWMutex
+var (
+	mu sync.RWMutex
+	// visitors map holds the values of the visitors
+	visitors = make(map[string]*visitor)
+)
 
 func init() {
 	go cleanupVisitors()
@@ -53,8 +55,8 @@ func LimitRate(next http.Handler) http.Handler {
 // Checks if the visitors map exists and creates a new one
 // if not, update last visit and return the visitor limiter.
 func getVisitor(ip string, r rate.Limit, b int) *rate.Limiter {
-	mutex.RLock()
-	defer mutex.RUnlock()
+	mu.RLock()
+	defer mu.RUnlock()
 
 	v, exists := visitors[ip]
 	if !exists {
@@ -77,12 +79,14 @@ func cleanupVisitors() {
 	for {
 		time.Sleep(time.Minute)
 
-		mutex.RLock()
+		mu.RLock()
 		for ip, v := range visitors {
-			if time.Since(v.lastSeen) > 10*time.Minute {
-				delete(visitors, ip)
-			}
+			go func(v *visitor, ip string) {
+				if time.Since(v.lastSeen) > 10*time.Minute {
+					delete(visitors, ip)
+				}
+			}(v, ip)
 		}
-		mutex.RUnlock()
+		mu.RUnlock()
 	}
 }

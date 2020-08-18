@@ -3,7 +3,7 @@ package stripe
 import (
 	"fmt"
 
-	"github.com/stripe/stripe-go"
+	stripe "github.com/stripe/stripe-go"
 	"github.com/stripe/stripe-go/refund"
 )
 
@@ -17,7 +17,7 @@ func CreateRefund(intentID string) (*stripe.Refund, error) {
 
 	r, err := refund.New(params)
 	if err != nil {
-		return nil, fmt.Errorf("couldn't create the refund: %v", err)
+		return nil, fmt.Errorf("stripe: Refund: %v", err)
 	}
 
 	return r, nil
@@ -27,7 +27,7 @@ func CreateRefund(intentID string) (*stripe.Refund, error) {
 func GetRefund(refundID string) (*stripe.Refund, error) {
 	r, err := refund.Get(refundID, nil)
 	if err != nil {
-		return nil, fmt.Errorf("couldn't retrieve the refund: %v", err)
+		return nil, fmt.Errorf("stripe: Refund: %v", err)
 	}
 
 	return r, nil
@@ -52,7 +52,7 @@ func ListRefunds() []*stripe.Refund {
 func UpdateRefund(refundID string) (*stripe.Refund, error) {
 	r, err := refund.Update(refundID, nil)
 	if err != nil {
-		return nil, fmt.Errorf("couldn't update the refund: %v", err)
+		return nil, fmt.Errorf("stripe: Refund: %v", err)
 	}
 
 	return r, nil

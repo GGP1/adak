@@ -11,6 +11,7 @@ import (
 	"github.com/GGP1/palo/pkg/model"
 	"github.com/GGP1/palo/pkg/searching"
 	"github.com/GGP1/palo/pkg/updating"
+
 	"github.com/go-chi/chi"
 	"github.com/jinzhu/gorm"
 )
@@ -31,8 +32,7 @@ func (p *Products) Create(c creating.Service) http.HandlerFunc {
 		}
 		defer r.Body.Close()
 
-		err := c.CreateProduct(p.DB, &product)
-		if err != nil {
+		if err := c.CreateProduct(p.DB, &product); err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
@@ -46,8 +46,7 @@ func (p *Products) Delete(d deleting.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
 
-		err := d.DeleteProduct(p.DB, id)
-		if err != nil {
+		if err := d.DeleteProduct(p.DB, id); err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
@@ -61,8 +60,7 @@ func (p *Products) Get(l listing.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var products []model.Product
 
-		err := l.GetProducts(p.DB, &products)
-		if err != nil {
+		if err := l.GetProducts(p.DB, &products); err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
@@ -74,12 +72,11 @@ func (p *Products) Get(l listing.Service) http.HandlerFunc {
 // GetByID lists the product with the id requested.
 func (p *Products) GetByID(l listing.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var product model.Product
-
 		id := chi.URLParam(r, "id")
 
-		err := l.GetProductByID(p.DB, &product, id)
-		if err != nil {
+		var product model.Product
+
+		if err := l.GetProductByID(p.DB, &product, id); err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
@@ -92,10 +89,10 @@ func (p *Products) GetByID(l listing.Service) http.HandlerFunc {
 func (p *Products) Search(s searching.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		search := chi.URLParam(r, "search")
+
 		var products []model.Product
 
-		err := s.SearchProducts(p.DB, &products, search)
-		if err != nil {
+		if err := s.SearchProducts(p.DB, &products, search); err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
@@ -107,9 +104,9 @@ func (p *Products) Search(s searching.Service) http.HandlerFunc {
 // Update updates the product with the given id.
 func (p *Products) Update(u updating.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var product model.Product
-
 		id := chi.URLParam(r, "id")
+
+		var product model.Product
 
 		if err := json.NewDecoder(r.Body).Decode(&product); err != nil {
 			response.Error(w, r, http.StatusBadRequest, err)
@@ -117,8 +114,7 @@ func (p *Products) Update(u updating.Service) http.HandlerFunc {
 		}
 		defer r.Body.Close()
 
-		err := u.UpdateProduct(p.DB, &product, id)
-		if err != nil {
+		if err := u.UpdateProduct(p.DB, &product, id); err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}

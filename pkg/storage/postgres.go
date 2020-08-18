@@ -24,17 +24,15 @@ func PostgresConnect() (*gorm.DB, func() error, error) {
 		return nil, nil, fmt.Errorf("couldn't open the database: %w", err)
 	}
 
-	err = db.DB().Ping()
-	if err != nil {
-		return nil, nil, fmt.Errorf("connection to the database died: %w", err)
+	if err := db.DB().Ping(); err != nil {
+		return nil, nil, fmt.Errorf("database connection died: %w", err)
 	}
 
-	err = tableExists(db,
+	if err := tableExists(db,
 		&model.Product{}, &model.User{}, &model.Review{}, &model.Shop{}, &model.Location{},
 		&shopping.Cart{}, &shopping.CartProduct{},
 		&tracking.Hit{},
-		&ordering.Order{}, &ordering.OrderCart{}, &ordering.OrderProduct{})
-	if err != nil {
+		&ordering.Order{}, &ordering.OrderCart{}, &ordering.OrderProduct{}); err != nil {
 		return nil, nil, err
 	}
 
@@ -46,8 +44,7 @@ func PostgresConnect() (*gorm.DB, func() error, error) {
 		db.Table("validated_list").CreateTable(&email.List{}).AutoMigrate(&email.List{})
 	}
 
-	err = deleteOrdersTrigger(db)
-	if err != nil {
+	if err := deleteOrdersTrigger(db); err != nil {
 		return nil, nil, err
 	}
 
@@ -62,7 +59,7 @@ func tableExists(db *gorm.DB, models ...interface{}) error {
 		if db.HasTable(model) != true {
 			err := db.CreateTable(model).Error
 			if err != nil {
-				return fmt.Errorf("couldn't create the %v table: %w", model, err)
+				return fmt.Errorf("couldn't create %v table: %w", model, err)
 			}
 		}
 	}
@@ -88,14 +85,12 @@ func deleteOrdersTrigger(db *gorm.DB) error {
 		AFTER INSERT ON orders
 		EXECUTE PROCEDURE delete_old_orders();`
 
-	err := db.Raw(function).Error
-	if err != nil {
-		return fmt.Errorf("couldn't create the function: %w", err)
+	if err := db.Raw(function).Error; err != nil {
+		return fmt.Errorf("database function: %w", err)
 	}
 
-	err = db.Raw(trigger).Error
-	if err != nil {
-		return fmt.Errorf("couldn't create the trigger: %w", err)
+	if err := db.Raw(trigger).Error; err != nil {
+		return fmt.Errorf("database trigger: %w", err)
 	}
 
 	return nil

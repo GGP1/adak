@@ -2,6 +2,7 @@
 package tracking
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -43,8 +44,8 @@ func NewTracker(db *gorm.DB, salt string) Tracker {
 // Delete takes away the hit with the id specified from the database.
 func (h *Hitter) Delete(id string) error {
 	var hit Hit
-	err := h.DB.Delete(&hit, id).Error
-	if err != nil {
+
+	if err := h.DB.Delete(&hit, id).Error; err != nil {
 		return fmt.Errorf("couldn't delete the hit: %v", err)
 	}
 
@@ -55,8 +56,7 @@ func (h *Hitter) Delete(id string) error {
 func (h *Hitter) Get() ([]Hit, error) {
 	var hits []Hit
 
-	err := h.DB.Find(&hits).Error
-	if err != nil {
+	if err := h.DB.Find(&hits).Error; err != nil {
 		return nil, fmt.Errorf("couldn't find the hits: %v", err)
 	}
 
@@ -72,8 +72,7 @@ func (h *Hitter) Hit(r *http.Request) error {
 			return err
 		}
 
-		err = h.DB.Create(&hit).Error
-		if err != nil {
+		if err = h.DB.Create(&hit).Error; err != nil {
 			return fmt.Errorf("couldn't save the hit: %v", err)
 		}
 	}
@@ -85,16 +84,15 @@ func (h *Hitter) Hit(r *http.Request) error {
 func (h *Hitter) Search(value string) ([]Hit, error) {
 	var hits []Hit
 
-	err := h.DB.
+	if err := h.DB.
 		Where(`to_tsvector(id || ' ' || footprint || ' ' || 
 		path || ' ' || url || ' ' || 
 		language || ' ' || referer || ' ' || 
 		user_agent || ' ' || date) @@ to_tsquery(?)`, value).
-		Find(&hits).
-		Error
-	if err != nil {
-		return nil, fmt.Errorf("no hits found")
+		Find(&hits).Error; err != nil {
+		return nil, errors.New("no hits found")
 	}
+
 	return hits, nil
 }
 
@@ -102,10 +100,10 @@ func (h *Hitter) Search(value string) ([]Hit, error) {
 func (h *Hitter) SearchByField(field, value string) ([]Hit, error) {
 	var hits []Hit
 
-	err := h.DB.Where("CONTAINS(?, '?')", field, value).Error
-	if err != nil {
-		return nil, fmt.Errorf("no hits found")
+	if err := h.DB.Where("CONTAINS(?, '?')", field, value).Error; err != nil {
+		return nil, errors.New("no hits found")
 	}
+
 	return hits, nil
 }
 

@@ -22,6 +22,7 @@ const (
 // LoggingResponseWriter helps us intercept the response status code.
 type loggingResponseWriter struct {
 	http.ResponseWriter
+
 	statusCode int
 }
 

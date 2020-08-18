@@ -24,8 +24,7 @@ func HTMLText(w http.ResponseWriter, r *http.Request, status int, text string) {
 func PNG(w http.ResponseWriter, r *http.Request, status int, img image.Image) {
 	var buf bytes.Buffer
 
-	err := png.Encode(&buf, img)
-	if err != nil {
+	if err := png.Encode(&buf, img); err != nil {
 		http.Error(w, "couldn't encode the PNG image", http.StatusInternalServerError)
 		return
 	}

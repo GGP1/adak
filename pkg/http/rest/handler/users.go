@@ -42,8 +42,7 @@ func (us *Users) Create(c creating.Service, pendingList email.Emailer) http.Hand
 			return
 		}
 
-		err = pendingList.Add(user.Email, token)
-		if err != nil {
+		if err := pendingList.Add(user.Email, token); err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
@@ -57,8 +56,7 @@ func (us *Users) Create(c creating.Service, pendingList email.Emailer) http.Hand
 			response.Error(w, r, http.StatusInternalServerError, fmt.Errorf("failed sending validation email: %w", <-errCh))
 			return
 		default:
-			err = c.CreateUser(us.DB, &user)
-			if err != nil {
+			if err = c.CreateUser(us.DB, &user); err != nil {
 				response.Error(w, r, http.StatusBadRequest, err)
 				return
 			}
@@ -89,27 +87,23 @@ func (us *Users) Delete(d deleting.Service, s auth.Session, pendingList, validat
 		}
 
 		// Remove user from email lists
-		err = pendingList.Remove(user.Email)
-		if err != nil {
+		if err := pendingList.Remove(user.Email); err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
 
-		err = validatedList.Remove(user.Email)
-		if err != nil {
+		if err := validatedList.Remove(user.Email); err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
 
 		// Delete user cart
-		err = shopping.DeleteCart(us.DB, user.CartID)
-		if err != nil {
+		if err := shopping.DeleteCart(us.DB, user.CartID); err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
 
-		err = d.DeleteUser(us.DB, id)
-		if err != nil {
+		if err := d.DeleteUser(us.DB, id); err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
@@ -126,8 +120,7 @@ func (us *Users) Get(l listing.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var user []model.User
 
-		err := l.GetUsers(us.DB, &user)
-		if err != nil {
+		if err := l.GetUsers(us.DB, &user); err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
@@ -143,8 +136,7 @@ func (us *Users) GetByID(l listing.Service) http.HandlerFunc {
 
 		var user model.User
 
-		err := l.GetUserByID(us.DB, &user, id)
-		if err != nil {
+		if err := l.GetUserByID(us.DB, &user, id); err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
@@ -160,8 +152,7 @@ func (us *Users) QRCode(l listing.Service) http.HandlerFunc {
 
 		var user model.User
 
-		err := l.GetUserByID(us.DB, &user, id)
-		if err != nil {
+		if err := l.GetUserByID(us.DB, &user, id); err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
@@ -183,8 +174,7 @@ func (us *Users) Search(s searching.Service) http.HandlerFunc {
 
 		var users []model.User
 
-		err := s.SearchUsers(us.DB, &users, search)
-		if err != nil {
+		if err := s.SearchUsers(us.DB, &users, search); err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
@@ -219,8 +209,7 @@ func (us *Users) Update(u updating.Service) http.HandlerFunc {
 		}
 		defer r.Body.Close()
 
-		err = u.UpdateUser(us.DB, &user, id)
-		if err != nil {
+		if err := u.UpdateUser(us.DB, &user, id); err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
