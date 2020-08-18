@@ -55,6 +55,7 @@ func DetachMethod(methodID string) (*stripe.PaymentMethod, error) {
 // ListMethods returns a list of PaymentMethods for a given Customer.
 func ListMethods(customerID string) []*stripe.PaymentMethod {
 	var list []*stripe.PaymentMethod
+
 	params := &stripe.PaymentMethodListParams{
 		Customer: stripe.String(customerID),
 		Type:     stripe.String("card"),

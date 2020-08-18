@@ -121,6 +121,13 @@ func NewRouter(db *gorm.DB) http.Handler {
 	r.Get("/cart/type/{type}", m.RequireLogin(h.CartFilterByType(db)))
 	r.Get("/cart/weight/{min}/{max}", m.RequireLogin(h.CartFilterByWeight(db)))
 
+	// Stripe
+	r.Get("/stripe/balance", m.AdminsOnly(h.StripeGetBalance()))
+	r.Get("/stripe/event/{event}", m.AdminsOnly(h.StripeGetEvent()))
+	r.Get("/stripe/transactions/{txID}", m.AdminsOnly(h.StripeGetTxBalance()))
+	r.Get("/stripe/events", m.AdminsOnly(h.StripeListEvents()))
+	r.Get("/stripe/transactions", m.AdminsOnly(h.StripeListTxs()))
+
 	// Tracking
 	r.Get("/tracker", m.AdminsOnly(h.GetHits(tracker)))
 	r.Delete("/tracker/{id}", m.AdminsOnly(h.DeleteHit(tracker)))
