@@ -3,31 +3,32 @@ package model
 
 import (
 	"errors"
-
-	"github.com/jinzhu/gorm"
+	"time"
 )
 
 // Product represents a market commodity.
 // It contains its properties, reviews and belongs to one shop.
 type Product struct {
-	gorm.Model
-	ShopID      uint     `json:"shop_id"`
-	Stock       uint     `json:"stock"`
-	Brand       string   `json:"brand"`
-	Category    string   `json:"category"`
-	Type        string   `json:"type"`
-	Description string   `json:"description"`
-	Weight      float32  `json:"weight"`
-	Taxes       float32  `json:"taxes"`
-	Discount    float32  `json:"discount"`
-	Subtotal    float32  `json:"subtotal"`
-	Total       float32  `json:"total"`
-	Reviews     []Review `json:"reviews" gorm:"foreignkey:ProductID"`
+	ID          string    `json:"id"`
+	ShopID      string    `json:"shop_id" db:"shop_id"`
+	Stock       uint      `json:"stock"`
+	Brand       string    `json:"brand"`
+	Category    string    `json:"category"`
+	Type        string    `json:"type"`
+	Description string    `json:"description"`
+	Weight      float32   `json:"weight"`
+	Discount    float32   `json:"discount"`
+	Taxes       float32   `json:"taxes"`
+	Subtotal    float32   `json:"subtotal"`
+	Total       float32   `json:"total"`
+	Reviews     []Review  `json:"reviews"`
+	CreatedAt   time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at" db:"updated_at"`
 }
 
 // Validate checks that there is no missing fields.
 func (p *Product) Validate() error {
-	if p.ShopID == 0 {
+	if p.ShopID == "" {
 		return errors.New("shop id is required")
 	}
 

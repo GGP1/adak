@@ -6,29 +6,30 @@ package creating
 import (
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/GGP1/palo/internal/uuid"
 	"github.com/GGP1/palo/pkg/model"
 	"github.com/GGP1/palo/pkg/shopping"
 
-	"github.com/jinzhu/gorm"
+	"github.com/jmoiron/sqlx"
 	"golang.org/x/crypto/bcrypt"
 )
 
 // Repository provides access to the storage.
 type Repository interface {
-	CreateProduct(db *gorm.DB, product *model.Product) error
-	CreateReview(db *gorm.DB, review *model.Review) error
-	CreateShop(db *gorm.DB, shop *model.Shop) error
-	CreateUser(db *gorm.DB, user *model.User) error
+	CreateProduct(db *sqlx.DB, product *model.Product) error
+	CreateReview(db *sqlx.DB, review *model.Review) error
+	CreateShop(db *sqlx.DB, shop *model.Shop) error
+	CreateUser(db *sqlx.DB, user *model.User) error
 }
 
 // Service provides models adding operations.
 type Service interface {
-	CreateProduct(db *gorm.DB, product *model.Product) error
-	CreateReview(db *gorm.DB, review *model.Review) error
-	CreateShop(db *gorm.DB, shop *model.Shop) error
-	CreateUser(db *gorm.DB, user *model.User) error
+	CreateProduct(db *sqlx.DB, product *model.Product) error
+	CreateReview(db *sqlx.DB, review *model.Review) error
+	CreateShop(db *sqlx.DB, shop *model.Shop) error
+	CreateUser(db *sqlx.DB, user *model.User) error
 }
 
 type service struct {
@@ -41,16 +42,24 @@ func NewService(r Repository) Service {
 }
 
 // CreateProduct validates a product and saves it into the database.
-func (s *service) CreateProduct(db *gorm.DB, product *model.Product) error {
-	if err := product.Validate(); err != nil {
+func (s *service) CreateProduct(db *sqlx.DB, p *model.Product) error {
+	query := `INSERT INTO products 
+	(id, shop_id, stock, brand, category, type, description, weight, discount, taxes, subtotal, total, created_at, updated_at)
+	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`
+
+	if err := p.Validate(); err != nil {
 		return err
 	}
 
-	taxes := ((product.Subtotal / 100) * product.Taxes)
-	discount := ((product.Subtotal / 100) * product.Discount)
-	product.Total = product.Subtotal + taxes - discount
+	id := uuid.GenerateRandRunes(35)
+	p.CreatedAt = time.Now()
 
-	if err := db.Create(product).Error; err != nil {
+	taxes := ((p.Subtotal / 100) * p.Taxes)
+	discount := ((p.Subtotal / 100) * p.Discount)
+	p.Total = p.Subtotal + taxes - discount
+
+	_, err := db.Exec(query, id, p.ShopID, p.Stock, p.Brand, p.Category, p.Type, p.Description, p.Weight, p.Discount, p.Taxes, p.Subtotal, p.Total, p.CreatedAt, p.UpdatedAt)
+	if err != nil {
 		return fmt.Errorf("couldn't create the product: %v", err)
 	}
 
@@ -58,8 +67,16 @@ func (s *service) CreateProduct(db *gorm.DB, product *model.Product) error {
 }
 
 // CreateReview takes a new review and saves it into the database.
-func (s *service) CreateReview(db *gorm.DB, review *model.Review) error {
-	if err := db.Create(review).Error; err != nil {
+func (s *service) CreateReview(db *sqlx.DB, r *model.Review) error {
+	query := `INSERT INTO reviews
+	(id, stars, comment, user_id, product_id, shop_id, created_at, updated_at)
+	VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`
+
+	id := uuid.GenerateRandRunes(30)
+	r.CreatedAt = time.Now()
+
+	_, err := db.Exec(query, id, r.Stars, r.Comment, r.UserID, r.ProductID, r.ShopID, r.CreatedAt, r.UpdatedAt)
+	if err != nil {
 		return fmt.Errorf("couldn't create the review: %v", err)
 	}
 
@@ -67,12 +84,30 @@ func (s *service) CreateReview(db *gorm.DB, review *model.Review) error {
 }
 
 // CreateShop validates a shop and saves it into the database.
-func (s *service) CreateShop(db *gorm.DB, shop *model.Shop) error {
+func (s *service) CreateShop(db *sqlx.DB, shop *model.Shop) error {
+	sQuery := `INSERT INTO shops
+	(id, name, created_at, updated_at)
+	VALUES ($1, $2, $3, $4)`
+
+	lQuery := `INSERT INTO locations
+	(shop_id, country, state, zip_code, city, address)
+	VALUES ($1, $2, $3, $4, $5, $6)`
+
 	if err := shop.Validate(); err != nil {
 		return err
 	}
 
-	if err := db.Create(shop).Error; err != nil {
+	id := uuid.GenerateRandRunes(30)
+	shop.CreatedAt = time.Now()
+
+	_, err := db.Exec(sQuery, id, shop.Name, shop.CreatedAt, shop.UpdatedAt)
+	if err != nil {
+		return fmt.Errorf("couldn't create the shop: %v", err)
+	}
+
+	_, err = db.Exec(lQuery, id, shop.Location.Country, shop.Location.State,
+		shop.Location.ZipCode, shop.Location.City, shop.Location.Address)
+	if err != nil {
 		return fmt.Errorf("couldn't create the shop: %v", err)
 	}
 
@@ -81,13 +116,21 @@ func (s *service) CreateShop(db *gorm.DB, shop *model.Shop) error {
 
 // CreateUser validates a user, hashes its password, sends
 // a verification email and saves it into the database.
-func (s *service) CreateUser(db *gorm.DB, user *model.User) error {
+func (s *service) CreateUser(db *sqlx.DB, user *model.User) error {
+	cartQuery := `INSERT INTO carts
+	(id, counter, weight, discount, taxes, subtotal, total)
+	VALUES ($1, $2, $3, $4, $5, $6, $7)`
+
+	userQuery := `INSERT INTO users
+	(id, cart_id, name, email, password, created_at, updated_at)
+	VALUES ($1, $2, $3, $4, $5, $6, $7)`
+
 	if err := user.Validate(""); err != nil {
 		return err
 	}
 
-	rowsAffected := db.Where("email = ?", user.Email).First(&user).RowsAffected
-	if rowsAffected != 0 {
+	err := db.Get(&user, "SELECT email FROM users WHERE email=$1", user.Email)
+	if err == nil {
 		return errors.New("email is already taken")
 	}
 
@@ -98,16 +141,21 @@ func (s *service) CreateUser(db *gorm.DB, user *model.User) error {
 	user.Password = string(hash)
 
 	// Create a cart for each user
-	id := uuid.GenerateRandRunes(24)
-	user.CartID = id
+	cartID := uuid.GenerateRandRunes(30)
+	user.CartID = cartID
 
 	cart := shopping.NewCart(user.CartID)
 
-	if err := db.Create(cart).Error; err != nil {
+	_, err = db.Exec(cartQuery, cart.ID, cart.Counter, cart.Weight, cart.Discount, cart.Taxes, cart.Subtotal, cart.Total)
+	if err != nil {
 		return fmt.Errorf("couldn't create the cart: %v", err)
 	}
 
-	if err := db.Create(user).Error; err != nil {
+	userID := uuid.GenerateRandRunes(30)
+	user.CreatedAt = time.Now()
+
+	_, err = db.Exec(userQuery, userID, cart.ID, user.Name, user.Email, user.Password, user.CreatedAt, user.UpdatedAt)
+	if err != nil {
 		return fmt.Errorf("couldn't create the user: %v", err)
 	}
 

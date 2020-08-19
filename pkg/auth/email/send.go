@@ -16,7 +16,7 @@ import (
 
 // Items represents a struct with the values passed to the templates.
 type Items struct {
-	ID       uint
+	ID       string
 	Name     string
 	Token    string
 	NewEmail string

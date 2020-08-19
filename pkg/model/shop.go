@@ -2,26 +2,27 @@ package model
 
 import (
 	"errors"
-
-	"github.com/jinzhu/gorm"
+	"time"
 )
 
 // Shop represents a market with its name and location.
 // Each shop has multiple reviews and products.
 type Shop struct {
-	gorm.Model
-	Name     string    `json:"name"`
-	Location Location  `json:"location"`
-	Reviews  []Review  `json:"reviews" gorm:"foreignkey:ShopID"`
-	Products []Product `json:"products" gorm:"foreignkey:ShopID"`
+	ID        string    `json:"id"`
+	Name      string    `json:"name"`
+	Location  Location  `json:"location"`
+	Reviews   []Review  `json:"reviews"`
+	Products  []Product `json:"products"`
+	CreatedAt time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`
 }
 
 // Location of the shop.
 type Location struct {
-	ShopID  uint   `json:"shop_id"`
+	ShopID  string `json:"shop_id" db:"shop_id"`
 	Country string `json:"country"`
 	State   string `json:"state"`
-	ZipCode string `json:"zip_code"`
+	ZipCode string `json:"zip_code" db:"zip_code"`
 	City    string `json:"city"`
 	Address string `json:"address"`
 }
@@ -42,10 +43,6 @@ func (s *Shop) Validate() error {
 
 	if s.Location.Address == "" {
 		return errors.New("address is required")
-	}
-
-	if s.Location.ShopID == 0 {
-		return errors.New("shop id is required")
 	}
 
 	return nil

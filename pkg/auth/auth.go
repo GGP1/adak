@@ -10,8 +10,8 @@ import (
 	"github.com/GGP1/palo/internal/uuid"
 	"github.com/GGP1/palo/pkg/auth/email"
 	"github.com/GGP1/palo/pkg/model"
+	"github.com/jmoiron/sqlx"
 
-	"github.com/jinzhu/gorm"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -33,14 +33,14 @@ type userInfo struct {
 type session struct {
 	sync.RWMutex
 
-	DB     *gorm.DB
+	DB     *sqlx.DB
 	store  map[string]userInfo
 	clean  time.Time
 	length int
 }
 
 // NewSession creates a new session with the necessary dependencies.
-func NewSession(db *gorm.DB) Session {
+func NewSession(db *sqlx.DB) Session {
 	return &session{
 		DB:     db,
 		store:  make(map[string]userInfo),
@@ -84,7 +84,7 @@ func (session *session) Clean() {
 func (session *session) EmailChange(id, newEmail, token string, validatedList email.Emailer) error {
 	var user model.User
 
-	if err := session.DB.Where("id=?", id).First(&user).Error; err != nil {
+	if err := session.DB.Select(&user, "SELECT * FROM users WHERE id=?", id); err != nil {
 		return fmt.Errorf("invalid email: %v", err)
 	}
 
@@ -98,7 +98,8 @@ func (session *session) EmailChange(id, newEmail, token string, validatedList em
 		return err
 	}
 
-	if err := session.DB.Save(&user).Error; err != nil {
+	_, err := session.DB.Exec("UPDATE users set email=$2 WHERE id=$1", id, newEmail)
+	if err != nil {
 		return fmt.Errorf("couldn't change the email: %v", err)
 	}
 
@@ -110,7 +111,7 @@ func (session *session) EmailChange(id, newEmail, token string, validatedList em
 func (session *session) Login(w http.ResponseWriter, email, password string) error {
 	var user model.User
 
-	if err := session.DB.Where("email = ?", email).Take(&user).Error; err != nil {
+	if err := session.DB.Get(&user, "SELECT * FROM users WHERE email=$1", email); err != nil {
 		return fmt.Errorf("invalid email: %v", err)
 	}
 
@@ -168,7 +169,7 @@ func (session *session) Logout(w http.ResponseWriter, r *http.Request, c *http.C
 func (session *session) PasswordChange(id, oldPass, newPass string) error {
 	var user model.User
 
-	if err := session.DB.Where("id=?", id).First(&user).Error; err != nil {
+	if err := session.DB.Get(&user, "SELECT password FROM users WHERE id=$1", id); err != nil {
 		return fmt.Errorf("invalid email: %v", err)
 	}
 
@@ -182,7 +183,8 @@ func (session *session) PasswordChange(id, oldPass, newPass string) error {
 	}
 	user.Password = string(newPassHash)
 
-	if err := session.DB.Save(&user).Error; err != nil {
+	_, err = session.DB.Exec("UPDATE users SET password=$1", user.Password)
+	if err != nil {
 		return fmt.Errorf("couldn't change the password: %v", err)
 	}
 

@@ -6,23 +6,25 @@ import (
 	"image"
 	"regexp"
 	"strings"
+	"time"
 
 	"github.com/GGP1/palo/pkg/shopping/ordering"
 
-	"github.com/jinzhu/gorm"
 	qrcode "github.com/skip2/go-qrcode"
 )
 
 // User represents platform customers.
 // Each user has a unique cart.
 type User struct {
-	gorm.Model
-	CartID   string           `json:"cart_id"`
-	Name     string           `json:"name"`
-	Email    string           `json:"email"`
-	Password string           `json:"password"`
-	Orders   []ordering.Order `json:"orders" gorm:"foreignkey:UserID"`
-	Reviews  []Review         `json:"reviews" gorm:"foreignkey:UserID"`
+	ID        string           `json:"id"`
+	CartID    string           `json:"cart_id" db:"cart_id"`
+	Name      string           `json:"name"`
+	Email     string           `json:"email"`
+	Password  string           `json:"password"`
+	Orders    []ordering.Order `json:"orders"`
+	Reviews   []Review         `json:"reviews"`
+	CreatedAt time.Time        `json:"created_at" db:"created_at"`
+	UpdatedAt time.Time        `json:"updated_at" db:"updated_at"`
 }
 
 // Card respresents a user card.
@@ -35,7 +37,7 @@ type Card struct {
 
 // QRCode creates a QRCode with the link to the user profile.
 func (u *User) QRCode() (image.Image, error) {
-	qr, err := qrcode.New(fmt.Sprintf("http://127.0.0.1/users/%d", u.ID), qrcode.Medium)
+	qr, err := qrcode.New(fmt.Sprintf("http://127.0.0.1/users/%s", u.ID), qrcode.Medium)
 	if err != nil {
 		return nil, fmt.Errorf("qrcode: %v", err)
 	}
@@ -57,7 +59,7 @@ func (u *User) Validate(action string) error {
 			return errors.New("email is required")
 		}
 
-		if err := u.ValidateEmail(u.Email); err != nil {
+		if err := ValidateEmail(u.Email); err != nil {
 			return err
 		}
 
@@ -66,7 +68,7 @@ func (u *User) Validate(action string) error {
 			return errors.New("email is required")
 		}
 
-		if err := u.ValidateEmail(u.Email); err != nil {
+		if err := ValidateEmail(u.Email); err != nil {
 			return err
 		}
 
@@ -87,7 +89,7 @@ func (u *User) Validate(action string) error {
 			return errors.New("email is required")
 		}
 
-		if err := u.ValidateEmail(u.Email); err != nil {
+		if err := ValidateEmail(u.Email); err != nil {
 			return err
 		}
 	}
@@ -96,7 +98,7 @@ func (u *User) Validate(action string) error {
 }
 
 // ValidateEmail checks if the email is valid.
-func (u *User) ValidateEmail(email string) error {
+func ValidateEmail(email string) error {
 	emailRegexp := regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
 
 	if !emailRegexp.MatchString(email) {

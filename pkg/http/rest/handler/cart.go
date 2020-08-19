@@ -8,13 +8,13 @@ import (
 
 	"github.com/GGP1/palo/internal/response"
 	"github.com/GGP1/palo/pkg/shopping"
+	"github.com/jmoiron/sqlx"
 
 	"github.com/go-chi/chi"
-	"github.com/jinzhu/gorm"
 )
 
 // CartAdd appends a product to the cart
-func CartAdd(db *gorm.DB) http.HandlerFunc {
+func CartAdd(db *sqlx.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var product shopping.CartProduct
 
@@ -36,9 +36,9 @@ func CartAdd(db *gorm.DB) http.HandlerFunc {
 		}
 		defer r.Body.Close()
 
-		c, _ := r.Cookie("CID")
+		cartID, _ := r.Cookie("CID")
 
-		cart, err := shopping.Add(db, c.Value, &product, quantity)
+		cart, err := shopping.Add(db, cartID.Value, &product, quantity)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
@@ -49,7 +49,7 @@ func CartAdd(db *gorm.DB) http.HandlerFunc {
 }
 
 // CartCheckout returns the final purchase
-func CartCheckout(db *gorm.DB) http.HandlerFunc {
+func CartCheckout(db *sqlx.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		c, _ := r.Cookie("CID")
 
@@ -64,7 +64,7 @@ func CartCheckout(db *gorm.DB) http.HandlerFunc {
 }
 
 // CartFilterByBrand returns the products filtered by brand
-func CartFilterByBrand(db *gorm.DB) http.HandlerFunc {
+func CartFilterByBrand(db *sqlx.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		brand := chi.URLParam(r, "brand")
 		c, _ := r.Cookie("CID")
@@ -80,7 +80,7 @@ func CartFilterByBrand(db *gorm.DB) http.HandlerFunc {
 }
 
 // CartFilterByCategory returns the products filtered by category
-func CartFilterByCategory(db *gorm.DB) http.HandlerFunc {
+func CartFilterByCategory(db *sqlx.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		category := chi.URLParam(r, "category")
 		c, _ := r.Cookie("CID")
@@ -96,7 +96,7 @@ func CartFilterByCategory(db *gorm.DB) http.HandlerFunc {
 }
 
 // CartFilterByDiscount returns the products filtered by discount
-func CartFilterByDiscount(db *gorm.DB) http.HandlerFunc {
+func CartFilterByDiscount(db *sqlx.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		min := chi.URLParam(r, "min")
 		max := chi.URLParam(r, "max")
@@ -116,7 +116,7 @@ func CartFilterByDiscount(db *gorm.DB) http.HandlerFunc {
 }
 
 // CartFilterBySubtotal returns the products filtered by subtotal
-func CartFilterBySubtotal(db *gorm.DB) http.HandlerFunc {
+func CartFilterBySubtotal(db *sqlx.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		min := chi.URLParam(r, "min")
 		max := chi.URLParam(r, "max")
@@ -136,7 +136,7 @@ func CartFilterBySubtotal(db *gorm.DB) http.HandlerFunc {
 }
 
 // CartFilterByTaxes returns the products filtered by taxes
-func CartFilterByTaxes(db *gorm.DB) http.HandlerFunc {
+func CartFilterByTaxes(db *sqlx.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		min := chi.URLParam(r, "min")
 		max := chi.URLParam(r, "max")
@@ -156,7 +156,7 @@ func CartFilterByTaxes(db *gorm.DB) http.HandlerFunc {
 }
 
 // CartFilterByTotal returns the products filtered by total
-func CartFilterByTotal(db *gorm.DB) http.HandlerFunc {
+func CartFilterByTotal(db *sqlx.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		min := chi.URLParam(r, "min")
 		max := chi.URLParam(r, "max")
@@ -176,7 +176,7 @@ func CartFilterByTotal(db *gorm.DB) http.HandlerFunc {
 }
 
 // CartFilterByType returns the products filtered by type
-func CartFilterByType(db *gorm.DB) http.HandlerFunc {
+func CartFilterByType(db *sqlx.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		productType := chi.URLParam(r, "type")
 		c, _ := r.Cookie("CID")
@@ -192,7 +192,7 @@ func CartFilterByType(db *gorm.DB) http.HandlerFunc {
 }
 
 // CartFilterByWeight returns the products filtered by weight
-func CartFilterByWeight(db *gorm.DB) http.HandlerFunc {
+func CartFilterByWeight(db *sqlx.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		min := chi.URLParam(r, "min")
 		max := chi.URLParam(r, "max")
@@ -212,7 +212,7 @@ func CartFilterByWeight(db *gorm.DB) http.HandlerFunc {
 }
 
 // CartGet returns the cart in a JSON format
-func CartGet(db *gorm.DB) http.HandlerFunc {
+func CartGet(db *sqlx.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		c, _ := r.Cookie("CID")
 
@@ -227,7 +227,7 @@ func CartGet(db *gorm.DB) http.HandlerFunc {
 }
 
 // CartItems prints cart items
-func CartItems(db *gorm.DB) http.HandlerFunc {
+func CartItems(db *sqlx.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		c, _ := r.Cookie("CID")
 
@@ -242,17 +242,11 @@ func CartItems(db *gorm.DB) http.HandlerFunc {
 }
 
 // CartRemove takes out a product from the shopping cart
-func CartRemove(db *gorm.DB) http.HandlerFunc {
+func CartRemove(db *sqlx.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
 		q := chi.URLParam(r, "quantity")
 		c, _ := r.Cookie("CID")
-
-		key, err := strconv.Atoi(id)
-		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
-			return
-		}
 
 		quantity, err := strconv.Atoi(q)
 		if err != nil {
@@ -260,7 +254,7 @@ func CartRemove(db *gorm.DB) http.HandlerFunc {
 			return
 		}
 
-		if err = shopping.Remove(db, c.Value, key, quantity); err != nil {
+		if err = shopping.Remove(db, c.Value, id, quantity); err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
@@ -270,7 +264,7 @@ func CartRemove(db *gorm.DB) http.HandlerFunc {
 }
 
 // CartReset resets the cart to its default state
-func CartReset(db *gorm.DB) http.HandlerFunc {
+func CartReset(db *sqlx.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		c, _ := r.Cookie("CID")
 
@@ -284,7 +278,7 @@ func CartReset(db *gorm.DB) http.HandlerFunc {
 }
 
 // CartSize returns the size of the shopping cart
-func CartSize(db *gorm.DB) http.HandlerFunc {
+func CartSize(db *sqlx.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		c, _ := r.Cookie("CID")
 

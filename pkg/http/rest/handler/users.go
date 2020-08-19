@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -15,14 +16,14 @@ import (
 	"github.com/GGP1/palo/pkg/searching"
 	"github.com/GGP1/palo/pkg/shopping"
 	"github.com/GGP1/palo/pkg/updating"
+	"github.com/jmoiron/sqlx"
 
 	"github.com/go-chi/chi"
-	"github.com/jinzhu/gorm"
 )
 
 // Users handles users routes
 type Users struct {
-	DB *gorm.DB
+	DB *sqlx.DB
 }
 
 // Create creates a new user and saves it.
@@ -82,7 +83,7 @@ func (us *Users) Delete(d deleting.Service, s auth.Session, pendingList, validat
 		}
 
 		if userID != id {
-			response.Error(w, r, http.StatusUnauthorized, fmt.Errorf("not allowed to delete others user"))
+			response.Error(w, r, http.StatusUnauthorized, errors.New("not allowed to delete others user"))
 			return
 		}
 
@@ -118,14 +119,13 @@ func (us *Users) Delete(d deleting.Service, s auth.Session, pendingList, validat
 // Get lists all the users
 func (us *Users) Get(l listing.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var user []model.User
-
-		if err := l.GetUsers(us.DB, &user); err != nil {
+		users, err := l.GetUsers(us.DB)
+		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
 
-		response.JSON(w, r, http.StatusOK, user)
+		response.JSON(w, r, http.StatusOK, users)
 	}
 }
 
@@ -134,9 +134,8 @@ func (us *Users) GetByID(l listing.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
 
-		var user model.User
-
-		if err := l.GetUserByID(us.DB, &user, id); err != nil {
+		user, err := l.GetUserByID(us.DB, id)
+		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
@@ -152,7 +151,8 @@ func (us *Users) QRCode(l listing.Service) http.HandlerFunc {
 
 		var user model.User
 
-		if err := l.GetUserByID(us.DB, &user, id); err != nil {
+		user, err := l.GetUserByID(us.DB, id)
+		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
@@ -199,7 +199,7 @@ func (us *Users) Update(u updating.Service) http.HandlerFunc {
 		}
 
 		if userID != id {
-			response.Error(w, r, http.StatusUnauthorized, fmt.Errorf("not allowed to update others user"))
+			response.Error(w, r, http.StatusUnauthorized, errors.New("not allowed to update others user"))
 			return
 		}
 

@@ -12,9 +12,9 @@ import (
 	"github.com/GGP1/palo/pkg/auth/email"
 	"github.com/GGP1/palo/pkg/listing"
 	"github.com/GGP1/palo/pkg/model"
+	"github.com/jmoiron/sqlx"
 
 	"github.com/go-chi/chi"
-	"github.com/jinzhu/gorm"
 )
 
 type changeEmail struct {
@@ -27,11 +27,10 @@ type changePassword struct {
 }
 
 // EmailChange takes the new email and sends an email confirmation.
-func EmailChange(db *gorm.DB, validatedList email.Emailer, l listing.Service) http.HandlerFunc {
+func EmailChange(db *sqlx.DB, validatedList email.Emailer, l listing.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var (
-			new  changeEmail
-			user model.User
+			new changeEmail
 		)
 
 		if err := json.NewDecoder(r.Body).Decode(&new); err != nil {
@@ -40,7 +39,7 @@ func EmailChange(db *gorm.DB, validatedList email.Emailer, l listing.Service) ht
 		}
 		defer r.Body.Close()
 
-		if err := user.ValidateEmail(user.Email); err != nil {
+		if err := model.ValidateEmail(new.Email); err != nil {
 			response.Error(w, r, http.StatusBadRequest, err)
 			return
 		}
@@ -57,7 +56,8 @@ func EmailChange(db *gorm.DB, validatedList email.Emailer, l listing.Service) ht
 			return
 		}
 
-		if err = l.GetUserByID(db, &user, userID); err != nil {
+		user, err := l.GetUserByID(db, userID)
+		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
@@ -192,14 +192,14 @@ func ValidateEmail(pendingList, validatedList email.Emailer) http.HandlerFunc {
 			return
 		}
 
-		for k, v := range pList {
-			if v == token {
-				if err := validatedList.Add(k, v); err != nil {
+		for _, v := range pList {
+			if v.Token == token {
+				if err := validatedList.Add(v.Email, v.Token); err != nil {
 					response.Error(w, r, http.StatusInternalServerError, err)
 					return
 				}
 
-				if err := pendingList.Remove(k); err != nil {
+				if err := pendingList.Remove(v.Email); err != nil {
 					response.Error(w, r, http.StatusInternalServerError, err)
 					return
 				}

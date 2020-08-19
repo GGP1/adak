@@ -22,11 +22,11 @@ import (
 	m "github.com/GGP1/palo/pkg/http/rest/middleware"
 
 	"github.com/go-chi/chi"
-	"github.com/jinzhu/gorm"
+	"github.com/jmoiron/sqlx"
 )
 
 // NewRouter initializes services, creates and returns a mux router
-func NewRouter(db *gorm.DB) http.Handler {
+func NewRouter(db *sqlx.DB) http.Handler {
 	r := chi.NewRouter()
 
 	// Repositories

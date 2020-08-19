@@ -13,12 +13,12 @@ import (
 	"github.com/GGP1/palo/pkg/updating"
 
 	"github.com/go-chi/chi"
-	"github.com/jinzhu/gorm"
+	"github.com/jmoiron/sqlx"
 )
 
 // Products handles products routes.
 type Products struct {
-	DB *gorm.DB
+	DB *sqlx.DB
 }
 
 // Create creates a new product and saves it.
@@ -58,9 +58,8 @@ func (p *Products) Delete(d deleting.Service) http.HandlerFunc {
 // Get lists all the products.
 func (p *Products) Get(l listing.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var products []model.Product
-
-		if err := l.GetProducts(p.DB, &products); err != nil {
+		products, err := l.GetProducts(p.DB)
+		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
@@ -74,9 +73,8 @@ func (p *Products) GetByID(l listing.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
 
-		var product model.Product
-
-		if err := l.GetProductByID(p.DB, &product, id); err != nil {
+		product, err := l.GetProductByID(p.DB, id)
+		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}

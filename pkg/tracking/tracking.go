@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/jinzhu/gorm"
+	"github.com/jmoiron/sqlx"
 )
 
 // inspired by github.com/emvi/pirsch
@@ -29,12 +29,12 @@ type Searcher interface {
 // Hitter provides methods to hit requests and store them in a data store.
 // In case of an error it will panic.
 type Hitter struct {
-	DB   *gorm.DB
+	DB   *sqlx.DB
 	salt string
 }
 
 // NewTracker returns a new user tracker.
-func NewTracker(db *gorm.DB, salt string) Tracker {
+func NewTracker(db *sqlx.DB, salt string) Tracker {
 	return &Hitter{
 		DB:   db,
 		salt: salt,
@@ -43,9 +43,8 @@ func NewTracker(db *gorm.DB, salt string) Tracker {
 
 // Delete takes away the hit with the id specified from the database.
 func (h *Hitter) Delete(id string) error {
-	var hit Hit
-
-	if err := h.DB.Delete(&hit, id).Error; err != nil {
+	_, err := h.DB.Exec("DELETE FROM hits WHERE id=$1", id)
+	if err != nil {
 		return fmt.Errorf("couldn't delete the hit: %v", err)
 	}
 
@@ -56,7 +55,7 @@ func (h *Hitter) Delete(id string) error {
 func (h *Hitter) Get() ([]Hit, error) {
 	var hits []Hit
 
-	if err := h.DB.Find(&hits).Error; err != nil {
+	if err := h.DB.Select(&hits, "SELECT * FROM hits"); err != nil {
 		return nil, fmt.Errorf("couldn't find the hits: %v", err)
 	}
 
@@ -66,13 +65,19 @@ func (h *Hitter) Get() ([]Hit, error) {
 // Hit stores the given request.
 // The request might be ignored if it meets certain conditions.
 func (h *Hitter) Hit(r *http.Request) error {
+	query := `INSERT INTO hits
+	(id, footprint, path, url, language, user_agent, referer, date)
+	VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`
+
 	if !ignoreHit(r) {
 		hit, err := HitRequest(r, h.salt)
 		if err != nil {
 			return err
 		}
 
-		if err = h.DB.Create(&hit).Error; err != nil {
+		_, err = h.DB.Exec(query, hit.ID, hit.Footprint, hit.Path, hit.URL,
+			hit.Language, hit.UserAgent, hit.Referer, hit.Date)
+		if err != nil {
 			return fmt.Errorf("couldn't save the hit: %v", err)
 		}
 	}
@@ -84,12 +89,13 @@ func (h *Hitter) Hit(r *http.Request) error {
 func (h *Hitter) Search(value string) ([]Hit, error) {
 	var hits []Hit
 
-	if err := h.DB.
-		Where(`to_tsvector(id || ' ' || footprint || ' ' || 
-		path || ' ' || url || ' ' || 
-		language || ' ' || referer || ' ' || 
-		user_agent || ' ' || date) @@ to_tsquery(?)`, value).
-		Find(&hits).Error; err != nil {
+	query := `SELECT * FROM hits WHERE
+	to_tsvector(id || ' ' || footprint || ' ' || 
+	path || ' ' || url || ' ' || 
+	language || ' ' || referer || ' ' || 
+	user_agent || ' ' || date) @@ to_tsquery($1)`
+
+	if err := h.DB.Select(&hits, query, value); err != nil {
 		return nil, errors.New("no hits found")
 	}
 
@@ -100,7 +106,9 @@ func (h *Hitter) Search(value string) ([]Hit, error) {
 func (h *Hitter) SearchByField(field, value string) ([]Hit, error) {
 	var hits []Hit
 
-	if err := h.DB.Where("CONTAINS(?, '?')", field, value).Error; err != nil {
+	query := `SELECT * FROM hist WHERE CONTAINS($1, '$2')`
+
+	if err := h.DB.Select(&hits, query, field, value); err != nil {
 		return nil, errors.New("no hits found")
 	}
 

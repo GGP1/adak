@@ -5,21 +5,21 @@ import (
 	"fmt"
 
 	"github.com/GGP1/palo/pkg/model"
-	"github.com/jinzhu/gorm"
+	"github.com/jmoiron/sqlx"
 )
 
 // Repository provides access to the storage.
 type Repository interface {
-	UpdateProduct(db *gorm.DB, product *model.Product, id string) error
-	UpdateShop(db *gorm.DB, shop *model.Shop, id string) error
-	UpdateUser(db *gorm.DB, user *model.User, id string) error
+	UpdateProduct(db *sqlx.DB, product *model.Product, id string) error
+	UpdateShop(db *sqlx.DB, shop *model.Shop, id string) error
+	UpdateUser(db *sqlx.DB, user *model.User, id string) error
 }
 
 // Service provides models updating operations.
 type Service interface {
-	UpdateProduct(db *gorm.DB, product *model.Product, id string) error
-	UpdateShop(db *gorm.DB, shop *model.Shop, id string) error
-	UpdateUser(db *gorm.DB, user *model.User, id string) error
+	UpdateProduct(db *sqlx.DB, product *model.Product, id string) error
+	UpdateShop(db *sqlx.DB, shop *model.Shop, id string) error
+	UpdateUser(db *sqlx.DB, user *model.User, id string) error
 }
 
 type service struct {
@@ -32,18 +32,14 @@ func NewService(r Repository) Service {
 }
 
 // UpdateProduct updates a product, returns an error.
-func (s *service) UpdateProduct(db *gorm.DB, product *model.Product, id string) error {
-	if err := db.Model(&product).Where("id=?", id).Update(
-		"stock", product.Stock,
-		"brand", product.Brand,
-		"category", product.Category,
-		"type", product.Type,
-		"description", product.Description,
-		"weight", product.Weight,
-		"discount", product.Discount,
-		"taxes", product.Taxes,
-		"subtotal", product.Subtotal,
-		"total", product.Total).Error; err != nil {
+func (s *service) UpdateProduct(db *sqlx.DB, p *model.Product, id string) error {
+	query := `UPDATE products SET stock=$2, brand=$3, category=$4, type=$5,
+	description=$6, weight=$7, discount=$8, taxes=$9, subtotal=$10, total=$11
+	WHERE id=$1`
+
+	_, err := db.Exec(query, id, p.Stock, p.Brand, p.Category, p.Type,
+		p.Description, p.Weight, p.Discount, p.Taxes, p.Subtotal, p.Total)
+	if err != nil {
 		return fmt.Errorf("couldn't update the product: %v", err)
 	}
 
@@ -51,12 +47,13 @@ func (s *service) UpdateProduct(db *gorm.DB, product *model.Product, id string) 
 }
 
 // UpdateShop updates a shop, returns an error.
-func (s *service) UpdateShop(db *gorm.DB, shop *model.Shop, id string) error {
-	if err := db.Model(&shop).Where("id=?", id).Update(
-		"name", shop.Name,
-		"country", shop.Location.Country,
-		"city", shop.Location.City,
-		"address", shop.Location.Address).Error; err != nil {
+func (s *service) UpdateShop(db *sqlx.DB, shop *model.Shop, id string) error {
+	query := `UPDATE shops SET name=$2, country=$3, city=$4, address=$5
+	WHERE id=$1`
+
+	_, err := db.Exec(query, id, shop.Name, shop.Location.Country,
+		shop.Location.City, shop.Location.Address)
+	if err != nil {
 		return fmt.Errorf("couldn't update the shop: %v", err)
 	}
 
@@ -64,10 +61,11 @@ func (s *service) UpdateShop(db *gorm.DB, shop *model.Shop, id string) error {
 }
 
 // UpdateUser returns updates a user, returns an error.
-func (s *service) UpdateUser(db *gorm.DB, user *model.User, id string) error {
-	if err := db.Model(&user).Where("id=?", id).Update(
-		"name", user.Name,
-		"email", user.Email).Error; err != nil {
+func (s *service) UpdateUser(db *sqlx.DB, u *model.User, id string) error {
+	query := `UPDATE users SET name=$2, email=$3 WHERE id=$1`
+
+	_, err := db.Exec(query, id, u.Name, u.Email)
+	if err != nil {
 		return fmt.Errorf("couldn't update the user: %v", err)
 	}
 

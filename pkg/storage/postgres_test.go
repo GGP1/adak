@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	"github.com/GGP1/palo/internal/cfg"
+	"github.com/jmoiron/sqlx"
 
-	"github.com/jinzhu/gorm"
 	_ "github.com/lib/pq"
 )
 
@@ -25,7 +25,7 @@ func database(t *testing.T) {
 	{
 		t.Logf("\tTest 0:\tWhen checking the database connection.")
 		{
-			db, err := gorm.Open("postgres", cfg.DBURL)
+			db, err := sqlx.Open("postgres", cfg.DBURL)
 			if err != nil {
 				t.Fatalf("\t%s\tShould be able to connect to the database: %v", failed, err)
 			}
@@ -34,10 +34,10 @@ func database(t *testing.T) {
 
 			t.Logf("\tTest 1:\tWhen checking the db variable is valid.")
 			{
-				if reflect.TypeOf(db) != reflect.TypeOf(&gorm.DB{}) {
-					t.Fatalf("\t%s\tShould be of type *gorm.DB: %T", failed, db)
+				if reflect.TypeOf(db) != reflect.TypeOf(&sqlx.DB{}) {
+					t.Fatalf("\t%s\tShould be of type *sqlx.DB: %T", failed, db)
 				}
-				t.Logf("\t%s\tShould be of type *gorm.DB.", succeed)
+				t.Logf("\t%s\tShould be of type *sqlx.DB.", succeed)
 			}
 		}
 	}

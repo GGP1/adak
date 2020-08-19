@@ -17,7 +17,7 @@ type Hit struct {
 	Path      string    `json:"path"`
 	URL       string    `json:"url"`
 	Language  string    `json:"language"`
-	UserAgent string    `json:"user_agent"`
+	UserAgent string    `json:"user_agent" db:"user_agent"`
 	Referer   string    `json:"referer"`
 	Date      time.Time `json:"date"`
 }

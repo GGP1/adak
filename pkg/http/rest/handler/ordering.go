@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/GGP1/palo/internal/response"
@@ -13,9 +12,9 @@ import (
 	"github.com/GGP1/palo/pkg/shopping"
 	"github.com/GGP1/palo/pkg/shopping/ordering"
 	"github.com/GGP1/palo/pkg/shopping/payment/stripe"
+	"github.com/jmoiron/sqlx"
 
 	"github.com/go-chi/chi"
-	"github.com/jinzhu/gorm"
 )
 
 // orderParams holds the parameters for creating a order
@@ -39,17 +38,11 @@ type date struct {
 }
 
 // DeleteOrder deletes an order.
-func DeleteOrder(db *gorm.DB) http.HandlerFunc {
+func DeleteOrder(db *sqlx.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
 
-		orderID, err := strconv.Atoi(id)
-		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
-			return
-		}
-
-		if err := ordering.Delete(db, orderID); err != nil {
+		if err := ordering.Delete(db, id); err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
@@ -59,7 +52,7 @@ func DeleteOrder(db *gorm.DB) http.HandlerFunc {
 }
 
 // GetOrder finds all the stored orders.
-func GetOrder(db *gorm.DB) http.HandlerFunc {
+func GetOrder(db *sqlx.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var orders []ordering.Order
 
@@ -73,7 +66,7 @@ func GetOrder(db *gorm.DB) http.HandlerFunc {
 }
 
 // NewOrder creates a new order.
-func NewOrder(db *gorm.DB) http.HandlerFunc {
+func NewOrder(db *sqlx.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		cID, _ := r.Cookie("CID")
 		uID, _ := r.Cookie("UID")
@@ -117,7 +110,8 @@ func NewOrder(db *gorm.DB) http.HandlerFunc {
 
 		order.Status = ordering.PaidState
 
-		if err := db.Model(&order).Where("id=?", order.ID).UpdateColumn("status", order.Status).Error; err != nil {
+		_, err = db.Exec("UPDATE orders SET status=$2 WHERE id=$1", order.ID, order.Status)
+		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}

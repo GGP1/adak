@@ -11,14 +11,14 @@ import (
 	"github.com/GGP1/palo/pkg/model"
 	"github.com/GGP1/palo/pkg/searching"
 	"github.com/GGP1/palo/pkg/updating"
+	"github.com/jmoiron/sqlx"
 
 	"github.com/go-chi/chi"
-	"github.com/jinzhu/gorm"
 )
 
 // Shops handles shops routes
 type Shops struct {
-	DB *gorm.DB
+	DB *sqlx.DB
 }
 
 // Create creates a new shop and saves it.
@@ -58,14 +58,13 @@ func (s *Shops) Delete(d deleting.Service) http.HandlerFunc {
 // Get lists all the shops.
 func (s *Shops) Get(l listing.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var shop []model.Shop
-
-		if err := l.GetShops(s.DB, &shop); err != nil {
+		shops, err := l.GetShops(s.DB)
+		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
 
-		response.JSON(w, r, http.StatusOK, shop)
+		response.JSON(w, r, http.StatusOK, shops)
 	}
 }
 
@@ -74,9 +73,8 @@ func (s *Shops) GetByID(l listing.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
 
-		var shop model.Shop
-
-		if err := l.GetShopByID(s.DB, &shop, id); err != nil {
+		shop, err := l.GetShopByID(s.DB, id)
+		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
