@@ -7,7 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/GGP1/palo/internal/uuid"
+	"github.com/GGP1/palo/internal/random"
 	"github.com/GGP1/palo/pkg/auth/email"
 	"github.com/GGP1/palo/pkg/model"
 	"github.com/jmoiron/sqlx"
@@ -121,13 +121,13 @@ func (session *session) Login(w http.ResponseWriter, email, password string) err
 
 	for _, admin := range adminList {
 		if admin == user.Email {
-			admID := uuid.GenerateRandRunes(8)
+			admID := random.GenerateRunes(8)
 			setCookie(w, "AID", admID, "/", session.length)
 		}
 	}
 
 	// -SID- used to add the user to the session map
-	sID := uuid.GenerateRandRunes(27)
+	sID := random.GenerateRunes(27)
 	setCookie(w, "SID", sID, "/", session.length)
 
 	session.Lock()
@@ -135,7 +135,10 @@ func (session *session) Login(w http.ResponseWriter, email, password string) err
 	session.Unlock()
 
 	// -UID- used to deny users from making requests to other accounts
-	userID := uuid.GenerateRandRunes(24)
+	userID, err := GenerateFixedJWT(user.ID)
+	if err != nil {
+		return fmt.Errorf("failed generating a jwt token: %w", err)
+	}
 	setCookie(w, "UID", userID, "/", session.length)
 
 	// -CID- used to identify wich cart belongs to each user

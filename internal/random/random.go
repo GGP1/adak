@@ -1,11 +1,11 @@
-package uuid
+package random
 
 import "math/rand"
 
 var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 
-// GenerateRandRunes generates a random string.
-func GenerateRandRunes(n int) string {
+// GenerateRunes generates a random string.
+func GenerateRunes(n int) string {
 	b := make([]rune, n)
 
 	for i := range b {
