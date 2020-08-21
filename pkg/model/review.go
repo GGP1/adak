@@ -1,6 +1,9 @@
 package model
 
-import "time"
+import (
+	"errors"
+	"time"
+)
 
 // Review represents users critics over a shop or a product.
 type Review struct {
@@ -12,4 +15,17 @@ type Review struct {
 	ShopID    string    `json:"shop_id" db:"shop_id"`
 	CreatedAt time.Time `json:"created_at" db:"created_at"`
 	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`
+}
+
+// Validate checks the correction of the reviews sended by the user.
+func (r *Review) Validate() error {
+	if r.Stars < 0 || r.Stars > 5 {
+		return errors.New("invalid stars")
+	}
+
+	if r.UserID == "" && r.ProductID == "" && r.ShopID == "" {
+		return errors.New("invalid ids")
+	}
+
+	return nil
 }

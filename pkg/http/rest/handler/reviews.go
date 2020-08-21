@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/GGP1/palo/internal/response"
+	"github.com/GGP1/palo/pkg/auth"
 	"github.com/GGP1/palo/pkg/creating"
 	"github.com/GGP1/palo/pkg/deleting"
 	"github.com/GGP1/palo/pkg/listing"
@@ -24,13 +25,21 @@ func (rev *Reviews) Create(c creating.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var review model.Review
 
+		uID, _ := r.Cookie("UID")
+
+		userID, err := auth.ParseFixedJWT(uID.Value)
+		if err != nil {
+			response.Error(w, r, http.StatusInternalServerError, err)
+			return
+		}
+
 		if err := json.NewDecoder(r.Body).Decode(&review); err != nil {
 			response.Error(w, r, http.StatusBadRequest, err)
 			return
 		}
 		defer r.Body.Close()
 
-		if err := c.CreateReview(rev.DB, &review); err != nil {
+		if err := c.CreateReview(rev.DB, &review, userID); err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
