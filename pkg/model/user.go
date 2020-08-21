@@ -18,7 +18,7 @@ import (
 type User struct {
 	ID        string           `json:"id"`
 	CartID    string           `json:"cart_id" db:"cart_id"`
-	Name      string           `json:"name"`
+	Username  string           `json:"username"`
 	Email     string           `json:"email"`
 	Password  string           `json:"password"`
 	Orders    []ordering.Order `json:"orders"`
@@ -47,11 +47,11 @@ func (u *User) QRCode() (image.Image, error) {
 	return img, nil
 }
 
-// Validate checks if the inputs are correct.
+// Validate checks if the user inputs are correct.
 func (u *User) Validate(action string) error {
 	switch strings.ToLower(action) {
 	case "update":
-		if u.Name == "" {
+		if u.Username == "" {
 			return errors.New("username is required")
 		}
 
@@ -77,12 +77,16 @@ func (u *User) Validate(action string) error {
 		}
 
 	default:
-		if u.Name == "" {
+		if u.Username == "" {
 			return errors.New("username is required")
 		}
 
 		if u.Password == "" {
 			return errors.New("password is required")
+		}
+
+		if len(u.Password) < 6 {
+			return errors.New("password must be equal or greater than 6 characters")
 		}
 
 		if u.Email == "" {
@@ -99,7 +103,10 @@ func (u *User) Validate(action string) error {
 
 // ValidateEmail checks if the email is valid.
 func ValidateEmail(email string) error {
-	emailRegexp := regexp.MustCompile("^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
+	emailRegexp, err := regexp.Compile("^[a-zA-Z0-9.!#$%&'*+/=?^_`{|}~-]+@[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?(?:\\.[a-zA-Z0-9](?:[a-zA-Z0-9-]{0,61}[a-zA-Z0-9])?)*$")
+	if err != nil {
+		return err
+	}
 
 	if !emailRegexp.MatchString(email) {
 		return errors.New("invalid email")

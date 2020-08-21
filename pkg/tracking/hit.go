@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/GGP1/palo/internal/uuid"
+	"github.com/GGP1/palo/internal/random"
 )
 
 // Hit represents a single data point/page visit.
@@ -34,7 +34,7 @@ func (hit *Hit) String() (string, error) {
 
 // HitRequest generates a hit for each request
 func HitRequest(r *http.Request, salt string) (*Hit, error) {
-	id := uuid.GenerateRandRunes(27)
+	id := random.GenerateRunes(27)
 	date := time.Now()
 
 	footprint, err := Footprint(r, salt)

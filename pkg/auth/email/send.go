@@ -28,10 +28,10 @@ func SendValidation(user model.User, token string, errCh chan error) {
 	// 	Email content
 	// =================
 	from := mail.Address{Name: "Palo", Address: cfg.EmailSender}
-	to := mail.Address{Name: user.Name, Address: user.Email}
+	to := mail.Address{Name: user.Username, Address: user.Email}
 	subject := "Validation email"
 	items := Items{
-		Name:  user.Name,
+		Name:  user.Username,
 		Token: token,
 	}
 
@@ -77,11 +77,11 @@ func SendChangeConfirmation(user model.User, token, newEmail string, errCh chan 
 	// 	Email content
 	// =================
 	from := mail.Address{Name: "Palo", Address: cfg.EmailSender}
-	to := mail.Address{Name: user.Name, Address: user.Email}
+	to := mail.Address{Name: user.Username, Address: user.Email}
 	subject := "Email change confirmation"
 	items := Items{
 		ID:       user.ID,
-		Name:     user.Name,
+		Name:     user.Username,
 		Token:    token,
 		NewEmail: newEmail,
 	}

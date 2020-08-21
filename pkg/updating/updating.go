@@ -64,7 +64,7 @@ func (s *service) UpdateShop(db *sqlx.DB, shop *model.Shop, id string) error {
 func (s *service) UpdateUser(db *sqlx.DB, u *model.User, id string) error {
 	query := `UPDATE users SET name=$2, email=$3 WHERE id=$1`
 
-	_, err := db.Exec(query, id, u.Name, u.Email)
+	_, err := db.Exec(query, id, u.Username, u.Email)
 	if err != nil {
 		return fmt.Errorf("couldn't update the user: %v", err)
 	}
