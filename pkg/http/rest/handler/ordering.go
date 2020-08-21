@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"time"
@@ -11,10 +12,10 @@ import (
 	"github.com/GGP1/palo/pkg/model"
 	"github.com/GGP1/palo/pkg/shopping"
 	"github.com/GGP1/palo/pkg/shopping/ordering"
-	"github.com/GGP1/palo/pkg/shopping/payment/stripe"
-	"github.com/jmoiron/sqlx"
 
+	"github.com/GGP1/palo/pkg/shopping/payment/stripe"
 	"github.com/go-chi/chi"
+	"github.com/jmoiron/sqlx"
 )
 
 // orderParams holds the parameters for creating a order
@@ -54,9 +55,9 @@ func DeleteOrder(db *sqlx.DB) http.HandlerFunc {
 // GetOrder finds all the stored orders.
 func GetOrder(db *sqlx.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var orders []ordering.Order
 
-		if err := ordering.Get(db, &orders); err != nil {
+		orders, err := ordering.Get(db)
+		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
@@ -78,9 +79,16 @@ func NewOrder(db *sqlx.DB) http.HandlerFunc {
 		}
 		defer r.Body.Close()
 
+		err := o.validate()
+		if err != nil {
+			response.Error(w, r, http.StatusBadRequest, err)
+			return
+		}
+
 		userID, err := auth.ParseFixedJWT(uID.Value)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
+			return
 		}
 
 		deliveryDate := time.Date(o.Date.Year, time.Month(o.Date.Month), o.Date.Day, o.Date.Hour, o.Date.Minutes, 0, 0, time.Local)
@@ -119,4 +127,69 @@ func NewOrder(db *sqlx.DB) http.HandlerFunc {
 		respond := fmt.Sprintf("Thanks for your purchase! Your products will be delivered on %v.", order.DeliveryDate)
 		response.HTMLText(w, r, http.StatusOK, respond)
 	}
+}
+
+// validate order input.
+func (o *orderParams) validate() error {
+	if o.Address == "" {
+		return errors.New("address is required")
+	}
+
+	if o.Currency == "" {
+		return errors.New("currency is required")
+	}
+
+	if o.City == "" {
+		return errors.New("city is required")
+	}
+
+	if o.Country == "" {
+		return errors.New("country is required")
+	}
+
+	if o.State == "" {
+		return errors.New("state is required")
+	}
+
+	if o.ZipCode == "" {
+		return errors.New("zipcode is required")
+	}
+
+	if o.Card.Number == "" {
+		return errors.New("card number is required")
+	}
+
+	if o.Card.ExpMonth == "" || len(o.Card.ExpMonth) > 2 {
+		return errors.New("card expiration month is required")
+	}
+
+	if o.Card.ExpYear == "" || len(o.Card.ExpYear) > 5 {
+		return errors.New("invalid card expiration year")
+	}
+
+	if o.Card.CVC == "" || len(o.Card.CVC) > 3 {
+		return errors.New("invalid card cvc")
+	}
+
+	if o.Date.Year < 2020 || o.Date.Year > 2100 {
+		return errors.New("invalid year")
+	}
+
+	if o.Date.Month < 1 || o.Date.Month > 12 {
+		return errors.New("invalid month")
+	}
+
+	if o.Date.Day < 1 || o.Date.Day > 31 {
+		return errors.New("invalid day")
+	}
+
+	if o.Date.Hour < 1 || o.Date.Hour > 24 {
+		return errors.New("invalid hour")
+	}
+
+	if o.Date.Minutes < 1 || o.Date.Minutes > 60 {
+		return errors.New("invalid minutes")
+	}
+
+	return nil
 }

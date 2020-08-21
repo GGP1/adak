@@ -52,7 +52,7 @@ func NewService(r Repository) Service {
 func (s *service) GetProducts(db *sqlx.DB) ([]model.Product, error) {
 	var (
 		products []model.Product
-		reviews  []model.Review
+		result   []model.Product
 	)
 
 	if err := db.Select(&products, "SELECT * FROM products"); err != nil {
@@ -60,14 +60,18 @@ func (s *service) GetProducts(db *sqlx.DB) ([]model.Product, error) {
 	}
 
 	for _, product := range products {
+		var reviews []model.Review
+
 		if err := db.Select(&reviews, "SELECT * FROM reviews WHERE product_id=$1", product.ID); err != nil {
 			return nil, fmt.Errorf("error fetching reviews: %v", err)
 		}
 
 		product.Reviews = reviews
+
+		result = append(result, product)
 	}
 
-	return products, nil
+	return result, nil
 }
 
 // GetProductByID lists the product requested from the database.
@@ -84,6 +88,8 @@ func (s *service) GetProductByID(db *sqlx.DB, id string) (model.Product, error) 
 	if err := db.Select(&reviews, "SELECT * FROM reviews WHERE product_id=$1", id); err != nil {
 		return model.Product{}, fmt.Errorf("error fetching reviews: %v", err)
 	}
+
+	product.Reviews = reviews
 
 	return product, nil
 }
@@ -113,10 +119,8 @@ func (s *service) GetReviewByID(db *sqlx.DB, id string) (model.Review, error) {
 // GetShops lists all the shops stored in the database.
 func (s *service) GetShops(db *sqlx.DB) ([]model.Shop, error) {
 	var (
-		shops    []model.Shop
-		location model.Location
-		reviews  []model.Review
-		products []model.Product
+		shops  []model.Shop
+		result []model.Shop
 	)
 
 	if err := db.Select(&shops, "SELECT * FROM shops"); err != nil {
@@ -124,24 +128,32 @@ func (s *service) GetShops(db *sqlx.DB) ([]model.Shop, error) {
 	}
 
 	for _, shop := range shops {
+		var (
+			location model.Location
+			reviews  []model.Review
+			products []model.Product
+		)
+
 		if err := db.Get(&location, "SELECT * FROM locations WHERE shop_id=$1", shop.ID); err != nil {
 			return nil, fmt.Errorf("location not found: %v", err)
 		}
 
 		if err := db.Select(&reviews, "SELECT * FROM reviews WHERE shop_id=$1", shop.ID); err != nil {
-			return nil, fmt.Errorf("location not found: %v", err)
+			return nil, fmt.Errorf("reviews not found: %v", err)
 		}
 
 		if err := db.Select(&products, "SELECT * FROM products WHERE shop_id=$1", shop.ID); err != nil {
-			return nil, fmt.Errorf("location not found: %v", err)
+			return nil, fmt.Errorf("products not found: %v", err)
 		}
 
 		shop.Location = location
 		shop.Reviews = reviews
 		shop.Products = products
+
+		result = append(result, shop)
 	}
 
-	return shops, nil
+	return result, nil
 }
 
 // GetShopByID lists the shop requested from the database.
@@ -179,8 +191,8 @@ func (s *service) GetShopByID(db *sqlx.DB, id string) (model.Shop, error) {
 // GetUsers lists all the users stored in the database.
 func (s *service) GetUsers(db *sqlx.DB) ([]model.User, error) {
 	var (
-		users   []model.User
-		reviews []model.Review
+		users  []model.User
+		result []model.User
 	)
 
 	if err := db.Select(&users, "SELECT * FROM users"); err != nil {
@@ -188,7 +200,9 @@ func (s *service) GetUsers(db *sqlx.DB) ([]model.User, error) {
 	}
 
 	for _, user := range users {
-		orders, err := ordering.GetByID(db, user.ID)
+		var reviews []model.Review
+
+		orders, err := ordering.GetByUserID(db, user.ID)
 		if err != nil {
 			return nil, err
 		}
@@ -199,9 +213,11 @@ func (s *service) GetUsers(db *sqlx.DB) ([]model.User, error) {
 
 		user.Orders = orders
 		user.Reviews = reviews
+
+		result = append(result, user)
 	}
 
-	return users, nil
+	return result, nil
 }
 
 // GetUserByID lists the user requested from the database.
@@ -219,7 +235,7 @@ func (s *service) GetUserByID(db *sqlx.DB, id string) (model.User, error) {
 		return model.User{}, fmt.Errorf("error fetching reviews: %v", err)
 	}
 
-	orders, err := ordering.GetByID(db, id)
+	orders, err := ordering.GetByUserID(db, id)
 	if err != nil {
 		return model.User{}, err
 	}

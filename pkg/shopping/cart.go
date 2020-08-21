@@ -54,6 +54,11 @@ func NewCart(id string) *Cart {
 
 // Add adds a product to the cart.
 func Add(db *sqlx.DB, cartID string, p *CartProduct, quantity int) (*CartProduct, error) {
+	var (
+		cart Cart
+		sum  int
+	)
+
 	pQuery := `INSERT INTO cart_products
 	(id, cart_id, quantity, brand, category, type, description, weight, 
 	discount, taxes, subtotal, total)
@@ -61,8 +66,6 @@ func Add(db *sqlx.DB, cartID string, p *CartProduct, quantity int) (*CartProduct
 
 	cQuery := `UPDATE carts SET counter=$2, weight=$3, discount=$4, taxes=$5, 
 	subtotal=$6, total=$7 WHERE id=$1`
-
-	var cart Cart
 
 	if err := db.Get(&cart, "SELECT * FROM carts WHERE id=$1", cartID); err != nil {
 		return nil, fmt.Errorf("couldn't find the cart: %v", err)
@@ -84,15 +87,18 @@ func Add(db *sqlx.DB, cartID string, p *CartProduct, quantity int) (*CartProduct
 		cart.Total = cart.Total + p.Subtotal + taxes - discount
 	}
 
-	err := db.Get(&p, "SELECT * FROM cart_products WHERE id=$1 AND cart_id=$2", p.ID, cartID)
-	if err != nil { // if the product hasn't been created yet, create it
+	db.QueryRow("SELECT SUM(quantity) FROM cart_products WHERE id=$1 AND cart_id=$2", p.ID, cartID).Scan(&sum)
+
+	if sum == 0 {
 		_, err := db.Exec(pQuery, p.ID, cartID, p.Quantity, p.Brand, p.Category, p.Type, p.Description,
 			p.Weight, p.Discount, p.Taxes, p.Subtotal, p.Total)
 		if err != nil {
 			return nil, fmt.Errorf("couldn't create the product: %v", err)
 		}
-	} else { // else update it
-		p.Quantity++
+	}
+
+	if sum != 0 {
+		p.Quantity += sum
 
 		_, err := db.Exec("UPDATE cart_products SET quantity=$2 WHERE cart_id=$1", cartID, p.Quantity)
 		if err != nil {
@@ -100,7 +106,7 @@ func Add(db *sqlx.DB, cartID string, p *CartProduct, quantity int) (*CartProduct
 		}
 	}
 
-	_, err = db.Exec(cQuery, cartID, cart.Counter, cart.Weight, cart.Discount, cart.Taxes, cart.Subtotal,
+	_, err := db.Exec(cQuery, cartID, cart.Counter, cart.Weight, cart.Discount, cart.Taxes, cart.Subtotal,
 		cart.Total)
 	if err != nil {
 		return nil, fmt.Errorf("couldn't update the cart: %v", err)

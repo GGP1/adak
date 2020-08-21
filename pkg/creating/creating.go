@@ -8,7 +8,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/GGP1/palo/internal/uuid"
+	"github.com/GGP1/palo/internal/random"
 	"github.com/GGP1/palo/pkg/model"
 	"github.com/GGP1/palo/pkg/shopping"
 
@@ -19,7 +19,7 @@ import (
 // Repository provides access to the storage.
 type Repository interface {
 	CreateProduct(db *sqlx.DB, product *model.Product) error
-	CreateReview(db *sqlx.DB, review *model.Review) error
+	CreateReview(db *sqlx.DB, r *model.Review, userID string) error
 	CreateShop(db *sqlx.DB, shop *model.Shop) error
 	CreateUser(db *sqlx.DB, user *model.User) error
 }
@@ -27,7 +27,7 @@ type Repository interface {
 // Service provides models adding operations.
 type Service interface {
 	CreateProduct(db *sqlx.DB, product *model.Product) error
-	CreateReview(db *sqlx.DB, review *model.Review) error
+	CreateReview(db *sqlx.DB, r *model.Review, userID string) error
 	CreateShop(db *sqlx.DB, shop *model.Shop) error
 	CreateUser(db *sqlx.DB, user *model.User) error
 }
@@ -51,14 +51,15 @@ func (s *service) CreateProduct(db *sqlx.DB, p *model.Product) error {
 		return err
 	}
 
-	id := uuid.GenerateRandRunes(35)
+	id := random.GenerateRunes(35)
 	p.CreatedAt = time.Now()
 
 	taxes := ((p.Subtotal / 100) * p.Taxes)
 	discount := ((p.Subtotal / 100) * p.Discount)
 	p.Total = p.Subtotal + taxes - discount
 
-	_, err := db.Exec(query, id, p.ShopID, p.Stock, p.Brand, p.Category, p.Type, p.Description, p.Weight, p.Discount, p.Taxes, p.Subtotal, p.Total, p.CreatedAt, p.UpdatedAt)
+	_, err := db.Exec(query, id, p.ShopID, p.Stock, p.Brand, p.Category, p.Type, p.Description,
+		p.Weight, p.Discount, p.Taxes, p.Subtotal, p.Total, p.CreatedAt, p.UpdatedAt)
 	if err != nil {
 		return fmt.Errorf("couldn't create the product: %v", err)
 	}
@@ -67,15 +68,20 @@ func (s *service) CreateProduct(db *sqlx.DB, p *model.Product) error {
 }
 
 // CreateReview takes a new review and saves it into the database.
-func (s *service) CreateReview(db *sqlx.DB, r *model.Review) error {
+func (s *service) CreateReview(db *sqlx.DB, r *model.Review, userID string) error {
 	query := `INSERT INTO reviews
 	(id, stars, comment, user_id, product_id, shop_id, created_at, updated_at)
 	VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`
 
-	id := uuid.GenerateRandRunes(30)
+	err := r.Validate()
+	if err != nil {
+		return err
+	}
+
+	id := random.GenerateRunes(30)
 	r.CreatedAt = time.Now()
 
-	_, err := db.Exec(query, id, r.Stars, r.Comment, r.UserID, r.ProductID, r.ShopID, r.CreatedAt, r.UpdatedAt)
+	_, err = db.Exec(query, id, r.Stars, r.Comment, userID, r.ProductID, r.ShopID, r.CreatedAt, r.UpdatedAt)
 	if err != nil {
 		return fmt.Errorf("couldn't create the review: %v", err)
 	}
@@ -97,7 +103,7 @@ func (s *service) CreateShop(db *sqlx.DB, shop *model.Shop) error {
 		return err
 	}
 
-	id := uuid.GenerateRandRunes(30)
+	id := random.GenerateRunes(30)
 	shop.CreatedAt = time.Now()
 
 	_, err := db.Exec(sQuery, id, shop.Name, shop.CreatedAt, shop.UpdatedAt)
@@ -122,7 +128,7 @@ func (s *service) CreateUser(db *sqlx.DB, user *model.User) error {
 	VALUES ($1, $2, $3, $4, $5, $6, $7)`
 
 	userQuery := `INSERT INTO users
-	(id, cart_id, name, email, password, created_at, updated_at)
+	(id, cart_id, username, email, password, created_at, updated_at)
 	VALUES ($1, $2, $3, $4, $5, $6, $7)`
 
 	if err := user.Validate(""); err != nil {
@@ -141,20 +147,22 @@ func (s *service) CreateUser(db *sqlx.DB, user *model.User) error {
 	user.Password = string(hash)
 
 	// Create a cart for each user
-	cartID := uuid.GenerateRandRunes(30)
+	cartID := random.GenerateRunes(30)
 	user.CartID = cartID
 
 	cart := shopping.NewCart(user.CartID)
 
-	_, err = db.Exec(cartQuery, cart.ID, cart.Counter, cart.Weight, cart.Discount, cart.Taxes, cart.Subtotal, cart.Total)
+	_, err = db.Exec(cartQuery, cart.ID, cart.Counter, cart.Weight, cart.Discount,
+		cart.Taxes, cart.Subtotal, cart.Total)
 	if err != nil {
 		return fmt.Errorf("couldn't create the cart: %v", err)
 	}
 
-	userID := uuid.GenerateRandRunes(30)
+	userID := random.GenerateRunes(30)
 	user.CreatedAt = time.Now()
 
-	_, err = db.Exec(userQuery, userID, cart.ID, user.Name, user.Email, user.Password, user.CreatedAt, user.UpdatedAt)
+	_, err = db.Exec(userQuery, userID, cart.ID, user.Username, user.Email,
+		user.Password, user.CreatedAt, user.UpdatedAt)
 	if err != nil {
 		return fmt.Errorf("couldn't create the user: %v", err)
 	}

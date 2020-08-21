@@ -70,7 +70,7 @@ CREATE TABLE IF NOT EXISTS users
 (
     id text NOT NULL,
 	cart_id text NOT NULL,
-    name text NOT NULL,
+    username text NOT NULL,
     email text NOT NULL,
     password text NOT NULL,
     created_at timestamp with time zone DEFAULT NOW(),
@@ -95,14 +95,14 @@ CREATE TABLE IF NOT EXISTS locations
     zip_code text NOT NULL,
     city text NOT NULL,
     address text NOT NULL,
-    FOREIGN KEY (shop_id) REFERENCES shops (id) ON DELETE CASCADE
+    FOREIGN KEY (shop_id) REFERENCES shops (id) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS products
 (
     id text NOT NULL,
     shop_id text NOT NULL,
-    stock integer,
+    stock integer NOT NULL,
     brand text NOT NULL,
     category text NOT NULL,
     type text NOT NULL,
@@ -115,7 +115,7 @@ CREATE TABLE IF NOT EXISTS products
     created_at timestamp with time zone DEFAULT NOW(),
     updated_at timestamp with time zone,
     CONSTRAINT products_pkey PRIMARY KEY (id),
-    FOREIGN KEY (shop_id) REFERENCES shops (id) ON DELETE CASCADE
+    FOREIGN KEY (shop_id) REFERENCES shops (id) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS reviews
@@ -129,8 +129,9 @@ CREATE TABLE IF NOT EXISTS reviews
     created_at timestamp with time zone DEFAULT NOW(),
     updated_at timestamp with time zone,
     CONSTRAINT reviews_pkey PRIMARY KEY (id),
-    FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
-    FOREIGN KEY (product_id) REFERENCES products (id) ON DELETE CASCADE
+    FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY (product_id) REFERENCES products (id) ON DELETE CASCADE ON UPDATE CASCADE,
+    FOREIGN KEY (shop_id) REFERENCES shops (id) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS carts
@@ -160,7 +161,7 @@ CREATE TABLE IF NOT EXISTS cart_products
     subtotal numeric,
     total numeric,
     CONSTRAINT cart_products_pkey PRIMARY KEY (id),
-    FOREIGN KEY (cart_id) REFERENCES carts (id) ON DELETE CASCADE
+    FOREIGN KEY (cart_id) REFERENCES carts (id) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS hits
@@ -190,26 +191,8 @@ CREATE TABLE IF NOT EXISTS orders
     ordered_at timestamp with time zone,
     delivery_date timestamp with time zone,
     cart_id text,
-    CONSTRAINT orders_pkey PRIMARY KEY (id)
-);
-
-CREATE TABLE IF NOT EXISTS order_products
-(
-    id text NOT NULL,
-    order_id text,
-    product_id integer,
-    quantity integer,
-    brand text,
-    category text,
-    type text,
-    description text,
-    weight numeric,
-    discount numeric,
-    taxes numeric,
-    subtotal numeric,
-    total numeric,
-    CONSTRAINT order_products_pkey PRIMARY KEY (id),
-    FOREIGN KEY (order_id) REFERENCES orders (id) ON DELETE CASCADE
+    CONSTRAINT orders_pkey PRIMARY KEY (id),
+    FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS order_carts
@@ -221,7 +204,23 @@ CREATE TABLE IF NOT EXISTS order_carts
     taxes numeric,
     subtotal numeric,
     total numeric,
-    FOREIGN KEY (order_id) REFERENCES orders (id) ON DELETE CASCADE
+    FOREIGN KEY (order_id) REFERENCES orders (id) ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+CREATE TABLE IF NOT EXISTS order_products
+(
+    product_id text NOT NULL,
+    order_id text NOT NULL,
+    quantity integer,
+    brand text,
+    category text,
+    type text,
+    description text,
+    weight numeric,
+    discount numeric,
+    taxes numeric,
+    subtotal numeric,
+    total numeric
 );
 
 CREATE TABLE IF NOT EXISTS pending_list

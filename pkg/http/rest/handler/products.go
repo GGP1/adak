@@ -88,9 +88,8 @@ func (p *Products) Search(s searching.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		search := chi.URLParam(r, "search")
 
-		var products []model.Product
-
-		if err := s.SearchProducts(p.DB, &products, search); err != nil {
+		products, err := s.SearchProducts(p.DB, search)
+		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}

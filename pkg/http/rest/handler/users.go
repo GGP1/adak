@@ -172,9 +172,8 @@ func (us *Users) Search(s searching.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		search := chi.URLParam(r, "search")
 
-		var users []model.User
-
-		if err := s.SearchUsers(us.DB, &users, search); err != nil {
+		users, err := s.SearchUsers(us.DB, search)
+		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
