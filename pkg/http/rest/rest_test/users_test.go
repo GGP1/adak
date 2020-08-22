@@ -9,7 +9,6 @@ import (
 
 	"github.com/GGP1/palo/pkg/http/rest/handler"
 	"github.com/GGP1/palo/pkg/listing"
-	"github.com/GGP1/palo/pkg/storage"
 )
 
 func TestUsersHandler(t *testing.T) {
@@ -18,15 +17,12 @@ func TestUsersHandler(t *testing.T) {
 }
 
 func list(t *testing.T) {
-	db, _, _ := storage.PostgresConnect()
-
 	repo := *new(listing.Repository)
-	users := handler.Users{DB: db}
 
 	req := httptest.NewRequest("GET", "localhost:4000/users", nil)
 	rec := httptest.NewRecorder()
 
-	handler := users.Get(repo)
+	handler := handler.GetUsers(repo)
 	handler(rec, req)
 
 	res := rec.Result()

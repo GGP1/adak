@@ -12,29 +12,30 @@ import (
 
 // Repository provides access to the storage.
 type Repository interface {
-	SearchProducts(db *sqlx.DB, search string) ([]model.Product, error)
-	SearchShops(db *sqlx.DB, search string) ([]model.Shop, error)
-	SearchUsers(db *sqlx.DB, search string) ([]model.User, error)
+	SearchProducts(search string) ([]model.Product, error)
+	SearchShops(search string) ([]model.Shop, error)
+	SearchUsers(search string) ([]model.User, error)
 }
 
 // Service provides models searching operations.
 type Service interface {
-	SearchProducts(db *sqlx.DB, search string) ([]model.Product, error)
-	SearchShops(db *sqlx.DB, search string) ([]model.Shop, error)
-	SearchUsers(db *sqlx.DB, search string) ([]model.User, error)
+	SearchProducts(search string) ([]model.Product, error)
+	SearchShops(search string) ([]model.Shop, error)
+	SearchUsers(search string) ([]model.User, error)
 }
 
 type service struct {
-	r Repository
+	r  Repository
+	DB *sqlx.DB
 }
 
 // NewService creates a searching service with the necessary dependencies.
-func NewService(r Repository) Service {
-	return &service{r}
+func NewService(r Repository, db *sqlx.DB) Service {
+	return &service{r, db}
 }
 
 // SearchProducts looks for the products that contain the value specified. (Only text fields)
-func (s *service) SearchProducts(db *sqlx.DB, search string) ([]model.Product, error) {
+func (s *service) SearchProducts(search string) ([]model.Product, error) {
 	var (
 		products []model.Product
 		result   []model.Product
@@ -44,14 +45,14 @@ func (s *service) SearchProducts(db *sqlx.DB, search string) ([]model.Product, e
 	to_tsvector(id || ' ' || shop_id || ' ' || brand || ' ' || type || ' ' || category || ' ' || description)
 	@@ to_tsquery($1)`
 
-	if err := db.Select(&products, query, search); err != nil {
+	if err := s.DB.Select(&products, query, search); err != nil {
 		return nil, fmt.Errorf("couldn't find products: %v", err)
 	}
 
 	for _, product := range products {
 		var reviews []model.Review
 
-		if err := db.Select(&reviews, "SELECT * FROM reviews WHERE product_id=$1", product.ID); err != nil {
+		if err := s.DB.Select(&reviews, "SELECT * FROM reviews WHERE product_id=$1", product.ID); err != nil {
 			return nil, fmt.Errorf("error fetching reviews: %v", err)
 		}
 
@@ -64,7 +65,7 @@ func (s *service) SearchProducts(db *sqlx.DB, search string) ([]model.Product, e
 }
 
 // SearchShops looks for the shops that contain the value specified. (Only text fields)
-func (s *service) SearchShops(db *sqlx.DB, search string) ([]model.Shop, error) {
+func (s *service) SearchShops(search string) ([]model.Shop, error) {
 	var (
 		shops  []model.Shop
 		result []model.Shop
@@ -73,7 +74,7 @@ func (s *service) SearchShops(db *sqlx.DB, search string) ([]model.Shop, error) 
 	query := `SELECT * FROM shops WHERE
 	to_tsvector(id || ' ' || name) @@ to_tsquery($1)`
 
-	if err := db.Select(&shops, query, search); err != nil {
+	if err := s.DB.Select(&shops, query, search); err != nil {
 		return nil, fmt.Errorf("couldn't find shops: %v", err)
 	}
 
@@ -84,15 +85,15 @@ func (s *service) SearchShops(db *sqlx.DB, search string) ([]model.Shop, error) 
 			products []model.Product
 		)
 
-		if err := db.Get(&location, "SELECT * FROM locations WHERE shop_id=$1", shop.ID); err != nil {
+		if err := s.DB.Get(&location, "SELECT * FROM locations WHERE shop_id=$1", shop.ID); err != nil {
 			return nil, fmt.Errorf("location not found: %v", err)
 		}
 
-		if err := db.Select(&reviews, "SELECT * FROM reviews WHERE shop_id=$1", shop.ID); err != nil {
+		if err := s.DB.Select(&reviews, "SELECT * FROM reviews WHERE shop_id=$1", shop.ID); err != nil {
 			return nil, fmt.Errorf("reviews not found: %v", err)
 		}
 
-		if err := db.Select(&products, "SELECT * FROM products WHERE shop_id=$1", shop.ID); err != nil {
+		if err := s.DB.Select(&products, "SELECT * FROM products WHERE shop_id=$1", shop.ID); err != nil {
 			return nil, fmt.Errorf("products not found: %v", err)
 		}
 
@@ -107,7 +108,7 @@ func (s *service) SearchShops(db *sqlx.DB, search string) ([]model.Shop, error) 
 }
 
 // SearchUsers looks for the users that contain the value specified. (Only text fields)
-func (s *service) SearchUsers(db *sqlx.DB, search string) ([]model.User, error) {
+func (s *service) SearchUsers(search string) ([]model.User, error) {
 	var (
 		users  []model.User
 		result []model.User
@@ -117,19 +118,19 @@ func (s *service) SearchUsers(db *sqlx.DB, search string) ([]model.User, error) 
 	to_tsvector(id || ' ' || username || ' ' || email) 
 	@@ to_tsquery($1)`
 
-	if err := db.Select(&users, query, search); err != nil {
+	if err := s.DB.Select(&users, query, search); err != nil {
 		return nil, fmt.Errorf("couldn't find users: %v", err)
 	}
 
 	for _, user := range users {
 		var reviews []model.Review
 
-		orders, err := ordering.GetByUserID(db, user.ID)
+		orders, err := ordering.GetByUserID(s.DB, user.ID)
 		if err != nil {
 			return nil, err
 		}
 
-		if err := db.Select(&reviews, "SELECT * FROM reviews WHERE user_id=$1", user.ID); err != nil {
+		if err := s.DB.Select(&reviews, "SELECT * FROM reviews WHERE user_id=$1", user.ID); err != nil {
 			return nil, fmt.Errorf("error fetching reviews: %v", err)
 		}
 

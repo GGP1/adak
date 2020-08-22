@@ -44,7 +44,7 @@ func CartAdd(db *sqlx.DB) http.HandlerFunc {
 			return
 		}
 
-		response.JSON(w, r, http.StatusOK, cart)
+		response.JSON(w, r, http.StatusCreated, cart)
 	}
 }
 

@@ -9,32 +9,33 @@ import (
 
 // Repository provides access to the storage.
 type Repository interface {
-	DeleteProduct(db *sqlx.DB, id string) error
-	DeleteReview(db *sqlx.DB, id string) error
-	DeleteShop(db *sqlx.DB, id string) error
-	DeleteUser(db *sqlx.DB, id string) error
+	DeleteProduct(id string) error
+	DeleteReview(id string) error
+	DeleteShop(id string) error
+	DeleteUser(id string) error
 }
 
 // Service provides models deleting operations.
 type Service interface {
-	DeleteProduct(db *sqlx.DB, id string) error
-	DeleteReview(db *sqlx.DB, id string) error
-	DeleteShop(db *sqlx.DB, id string) error
-	DeleteUser(db *sqlx.DB, id string) error
+	DeleteProduct(id string) error
+	DeleteReview(id string) error
+	DeleteShop(id string) error
+	DeleteUser(id string) error
 }
 
 type service struct {
-	r Repository
+	r  Repository
+	DB *sqlx.DB
 }
 
 // NewService creates a deleting service with the necessary dependencies.
-func NewService(r Repository) Service {
-	return &service{r}
+func NewService(r Repository, db *sqlx.DB) Service {
+	return &service{r, db}
 }
 
 // DeleteProduct takes a product from the database and permanently deletes it.
-func (s *service) DeleteProduct(db *sqlx.DB, id string) error {
-	_, err := db.Exec("DELETE FROM products WHERE id=$1", id)
+func (s *service) DeleteProduct(id string) error {
+	_, err := s.DB.Exec("DELETE FROM products WHERE id=$1", id)
 	if err != nil {
 		return fmt.Errorf("couldn't delete the product: %v", err)
 	}
@@ -43,8 +44,8 @@ func (s *service) DeleteProduct(db *sqlx.DB, id string) error {
 }
 
 // DeleteReview takes a review from the database and permanently deletes it.
-func (s *service) DeleteReview(db *sqlx.DB, id string) error {
-	_, err := db.Exec("DELETE FROM reviews WHERE id=$1", id)
+func (s *service) DeleteReview(id string) error {
+	_, err := s.DB.Exec("DELETE FROM reviews WHERE id=$1", id)
 	if err != nil {
 		return fmt.Errorf("couldn't delete the review: %v", err)
 	}
@@ -53,8 +54,8 @@ func (s *service) DeleteReview(db *sqlx.DB, id string) error {
 }
 
 // DeleteShop takes a shop from the database and permanently deletes it.
-func (s *service) DeleteShop(db *sqlx.DB, id string) error {
-	_, err := db.Exec("DELETE FROM shops WHERE id=$1", id)
+func (s *service) DeleteShop(id string) error {
+	_, err := s.DB.Exec("DELETE FROM shops WHERE id=$1", id)
 	if err != nil {
 		return fmt.Errorf("couldn't delete the shop: %v", err)
 	}
@@ -63,8 +64,8 @@ func (s *service) DeleteShop(db *sqlx.DB, id string) error {
 }
 
 // DeleteUser takes a user from the database and permanently deletes it.
-func (s *service) DeleteUser(db *sqlx.DB, id string) error {
-	_, err := db.Exec("DELETE FROM users WHERE id=$1", id)
+func (s *service) DeleteUser(id string) error {
+	_, err := s.DB.Exec("DELETE FROM users WHERE id=$1", id)
 	if err != nil {
 		return fmt.Errorf("couldn't delete the user: %v", err)
 	}

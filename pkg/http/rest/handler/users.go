@@ -21,13 +21,8 @@ import (
 	"github.com/go-chi/chi"
 )
 
-// Users handles users routes
-type Users struct {
-	DB *sqlx.DB
-}
-
-// Create creates a new user and saves it.
-func (us *Users) Create(c creating.Service, pendingList email.Emailer) http.HandlerFunc {
+// CreateUser creates a new user and saves it.
+func CreateUser(c creating.Service, pendingList email.Emailer) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var user model.User
 
@@ -57,18 +52,18 @@ func (us *Users) Create(c creating.Service, pendingList email.Emailer) http.Hand
 			response.Error(w, r, http.StatusInternalServerError, fmt.Errorf("failed sending validation email: %w", <-errCh))
 			return
 		default:
-			if err = c.CreateUser(us.DB, &user); err != nil {
+			if err = c.CreateUser(&user); err != nil {
 				response.Error(w, r, http.StatusBadRequest, err)
 				return
 			}
 
-			response.HTMLText(w, r, http.StatusOK, "Your account was successfully created.\nPlease validate your email to start using Palo.")
+			response.HTMLText(w, r, http.StatusCreated, "Your account was successfully created.\nPlease validate your email to start using Palo.")
 		}
 	}
 }
 
-// Delete removes a user.
-func (us *Users) Delete(d deleting.Service, s auth.Session, pendingList, validatedList email.Emailer) http.HandlerFunc {
+// DeleteUser removes a user.
+func DeleteUser(d deleting.Service, s auth.Session, db *sqlx.DB, pendingList, validatedList email.Emailer) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
 		uID, _ := r.Cookie("UID")
@@ -82,14 +77,14 @@ func (us *Users) Delete(d deleting.Service, s auth.Session, pendingList, validat
 			return
 		}
 
-		if userID != id {
-			response.Error(w, r, http.StatusUnauthorized, errors.New("not allowed to delete others user"))
+		err = db.Get(&user, "SELECT * FROM users WHERE id=$1", userID)
+		if err != nil {
+			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
 
-		// Remove user from email lists
-		if err := pendingList.Remove(user.Email); err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
+		if userID != id {
+			response.Error(w, r, http.StatusUnauthorized, errors.New("not allowed to delete others user"))
 			return
 		}
 
@@ -98,13 +93,12 @@ func (us *Users) Delete(d deleting.Service, s auth.Session, pendingList, validat
 			return
 		}
 
-		// Delete user cart
-		if err := shopping.DeleteCart(us.DB, user.CartID); err != nil {
+		if err := shopping.DeleteCart(db, user.CartID); err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
 
-		if err := d.DeleteUser(us.DB, id); err != nil {
+		if err := d.DeleteUser(id); err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
@@ -116,10 +110,10 @@ func (us *Users) Delete(d deleting.Service, s auth.Session, pendingList, validat
 	}
 }
 
-// Get lists all the users
-func (us *Users) Get(l listing.Service) http.HandlerFunc {
+// GetUsers lists all the users
+func GetUsers(l listing.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		users, err := l.GetUsers(us.DB)
+		users, err := l.GetUsers()
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
@@ -129,12 +123,12 @@ func (us *Users) Get(l listing.Service) http.HandlerFunc {
 	}
 }
 
-// GetByID lists the user with the id requested.
-func (us *Users) GetByID(l listing.Service) http.HandlerFunc {
+// GetUserByID lists the user with the id requested.
+func GetUserByID(l listing.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
 
-		user, err := l.GetUserByID(us.DB, id)
+		user, err := l.GetUserByID(id)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
@@ -145,13 +139,13 @@ func (us *Users) GetByID(l listing.Service) http.HandlerFunc {
 }
 
 // QRCode shows the user id in a qrcode format.
-func (us *Users) QRCode(l listing.Service) http.HandlerFunc {
+func QRCode(l listing.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
 
 		var user model.User
 
-		user, err := l.GetUserByID(us.DB, id)
+		user, err := l.GetUserByID(id)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
@@ -167,12 +161,12 @@ func (us *Users) QRCode(l listing.Service) http.HandlerFunc {
 	}
 }
 
-// Search looks for the products with the given value.
-func (us *Users) Search(s searching.Service) http.HandlerFunc {
+// SearchUser looks for the products with the given value.
+func SearchUser(s searching.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		search := chi.URLParam(r, "search")
+		query := chi.URLParam(r, "query")
 
-		users, err := s.SearchUsers(us.DB, search)
+		users, err := s.SearchUsers(query)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
@@ -182,8 +176,8 @@ func (us *Users) Search(s searching.Service) http.HandlerFunc {
 	}
 }
 
-// Update updates the user with the given id.
-func (us *Users) Update(u updating.Service) http.HandlerFunc {
+// UpdateUser updates the user with the given id.
+func UpdateUser(u updating.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
 		uID, _ := r.Cookie("UID")
@@ -208,7 +202,7 @@ func (us *Users) Update(u updating.Service) http.HandlerFunc {
 		}
 		defer r.Body.Close()
 
-		if err := u.UpdateUser(us.DB, &user, id); err != nil {
+		if err := u.UpdateUser(&user, id); err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}

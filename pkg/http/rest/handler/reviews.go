@@ -20,8 +20,8 @@ type Reviews struct {
 	DB *sqlx.DB
 }
 
-// Create creates a new review and saves it.
-func (rev *Reviews) Create(c creating.Service) http.HandlerFunc {
+// CreateReview creates a new review and saves it.
+func CreateReview(c creating.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var review model.Review
 
@@ -39,21 +39,21 @@ func (rev *Reviews) Create(c creating.Service) http.HandlerFunc {
 		}
 		defer r.Body.Close()
 
-		if err := c.CreateReview(rev.DB, &review, userID); err != nil {
+		if err := c.CreateReview(&review, userID); err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
 
-		response.JSON(w, r, http.StatusOK, review)
+		response.JSON(w, r, http.StatusCreated, review)
 	}
 }
 
-// Delete removes a review.
-func (rev *Reviews) Delete(d deleting.Service) http.HandlerFunc {
+// DeleteReview removes a review.
+func DeleteReview(d deleting.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
 
-		if err := d.DeleteReview(rev.DB, id); err != nil {
+		if err := d.DeleteReview(id); err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
@@ -62,10 +62,10 @@ func (rev *Reviews) Delete(d deleting.Service) http.HandlerFunc {
 	}
 }
 
-// Get lists all the reviews.
-func (rev *Reviews) Get(l listing.Service) http.HandlerFunc {
+// GetReviews lists all the reviews.
+func GetReviews(l listing.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		reviews, err := l.GetReviews(rev.DB)
+		reviews, err := l.GetReviews()
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
@@ -75,12 +75,12 @@ func (rev *Reviews) Get(l listing.Service) http.HandlerFunc {
 	}
 }
 
-// GetByID lists the review with the id requested.
-func (rev *Reviews) GetByID(l listing.Service) http.HandlerFunc {
+// GetReviewByID lists the review with the id requested.
+func GetReviewByID(l listing.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
 
-		review, err := l.GetReviewByID(rev.DB, id)
+		review, err := l.GetReviewByID(id)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return

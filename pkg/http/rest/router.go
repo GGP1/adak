@@ -37,11 +37,11 @@ func NewRouter(db *sqlx.DB) http.Handler {
 	uRepo := *new(updating.Repository)
 
 	// Services
-	c := creating.NewService(cRepo)
-	d := deleting.NewService(dRepo)
-	l := listing.NewService(lRepo)
-	s := searching.NewService(sRepo)
-	u := updating.NewService(uRepo)
+	c := creating.NewService(cRepo, db)
+	d := deleting.NewService(dRepo, db)
+	l := listing.NewService(lRepo, db)
+	s := searching.NewService(sRepo, db)
+	u := updating.NewService(uRepo, db)
 
 	// -- Auth session --
 	session := auth.NewSession(db)
@@ -51,12 +51,6 @@ func NewRouter(db *sqlx.DB) http.Handler {
 	// -- Tracker --
 	tracker := tracking.NewTracker(db, "")
 
-	// Create handlers
-	products := h.Products{DB: db}
-	reviews := h.Reviews{DB: db}
-	shops := h.Shops{DB: db}
-	users := h.Users{DB: db}
-
 	// Middlewares
 	r.Use(m.AllowCrossOrigin)
 	r.Use(m.LimitRate)
@@ -65,35 +59,35 @@ func NewRouter(db *sqlx.DB) http.Handler {
 	// Auth
 	r.Post("/login", h.Login(session, validatedList))
 	r.Get("/logout", m.RequireLogin(h.Logout(session)))
-	r.Post("/settings/email", m.RequireLogin(h.EmailChange(db, pendingList, l)))
+	r.Post("/settings/email", m.RequireLogin(h.EmailChange(pendingList, l)))
 	r.Post("/settings/password", m.RequireLogin(h.PasswordChange(session, l)))
 	r.Get("/verification/{token}", h.ValidateEmail(pendingList, validatedList))
 	r.Get("/verification/{token}/{email}/{id}", h.EmailChangeConfirmation(session, validatedList))
 
 	// Creating
-	r.Post("/products/create", m.AdminsOnly(products.Create(c)))
-	r.Post("/reviews/create", m.RequireLogin(reviews.Create(c)))
-	r.Post("/shops/create", m.AdminsOnly(shops.Create(c)))
-	r.Post("/users/create", users.Create(c, pendingList))
+	r.Post("/products/create", m.AdminsOnly(h.CreateProduct(c)))
+	r.Post("/reviews/create", m.RequireLogin(h.CreateReview(c)))
+	r.Post("/shops/create", m.AdminsOnly(h.CreateShop(c)))
+	r.Post("/users/create", h.CreateUser(c, pendingList))
 
 	// Deleting
-	r.Delete("/products/{id}", m.AdminsOnly(products.Delete(d)))
-	r.Delete("/reviews/{id}", m.AdminsOnly(reviews.Delete(d)))
-	r.Delete("/shops/{id}", m.AdminsOnly(shops.Delete(d)))
-	r.Delete("/users/{id}", m.RequireLogin(users.Delete(d, session, pendingList, validatedList)))
+	r.Delete("/products/{id}", m.AdminsOnly(h.DeleteProduct(d)))
+	r.Delete("/reviews/{id}", m.AdminsOnly(h.DeleteReview(d)))
+	r.Delete("/shops/{id}", m.AdminsOnly(h.DeleteShop(d)))
+	r.Delete("/users/{id}", m.RequireLogin(h.DeleteUser(d, session, db, pendingList, validatedList)))
 
 	// Home
 	r.Get("/", h.Home(tracker))
 
 	// Listing
-	r.Get("/products", products.Get(l))
-	r.Get("/products/{id}", products.GetByID(l))
-	r.Get("/reviews", reviews.Get(l))
-	r.Get("/reviews/{id}", reviews.GetByID(l))
-	r.Get("/shops", shops.Get(l))
-	r.Get("/shops/{id}", shops.GetByID(l))
-	r.Get("/users", users.Get(l))
-	r.Get("/users/{id}", users.GetByID(l))
+	r.Get("/products", h.GetProducts(l))
+	r.Get("/products/{id}", h.GetProductByID(l))
+	r.Get("/reviews", h.GetReviews(l))
+	r.Get("/reviews/{id}", h.GetReviewByID(l))
+	r.Get("/shops", h.GetShops(l))
+	r.Get("/shops/{id}", h.GetShopByID(l))
+	r.Get("/users", h.GetUsers(l))
+	r.Get("/users/{id}", h.GetUserByID(l))
 
 	// Ordering
 	r.Get("/orders", m.AdminsOnly(h.GetOrder(db)))
@@ -101,9 +95,9 @@ func NewRouter(db *sqlx.DB) http.Handler {
 	r.Post("/order/new", m.RequireLogin(h.NewOrder(db)))
 
 	// Searching
-	r.Get("/products/search/{search}", products.Search(s))
-	r.Get("/shops/search/{search}", shops.Search(s))
-	r.Get("/users/search/{search}", users.Search(s))
+	r.Get("/products/search/{query}", h.SearchProduct(s))
+	r.Get("/shops/search/{query}", h.SearchShop(s))
+	r.Get("/users/search/{query}", h.SearchUser(s))
 
 	// Shopping
 	r.Get("/cart", m.RequireLogin(h.CartGet(db)))
@@ -135,12 +129,12 @@ func NewRouter(db *sqlx.DB) http.Handler {
 	r.Get("/tracker/{field}/{value}", m.AdminsOnly(h.SearchHitByField(tracker)))
 
 	// Updating
-	r.Put("/products/{id}", m.AdminsOnly(products.Update(u)))
-	r.Put("/shops/{id}", m.AdminsOnly(shops.Update(u)))
-	r.Put("/users/{id}", m.RequireLogin(users.Update(u)))
+	r.Put("/products/{id}", m.AdminsOnly(h.UpdateProduct(u)))
+	r.Put("/shops/{id}", m.AdminsOnly(h.UpdateShop(u)))
+	r.Put("/users/{id}", m.RequireLogin(h.UpdateUser(u)))
 
 	// Users
-	r.Get("/users/{id}/qrcode", users.QRCode(l))
+	r.Get("/users/{id}/qrcode", h.QRCode(l))
 
 	http.Handle("/", r)
 

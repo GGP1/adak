@@ -12,7 +12,6 @@ import (
 	"github.com/GGP1/palo/pkg/auth/email"
 	"github.com/GGP1/palo/pkg/listing"
 	"github.com/GGP1/palo/pkg/model"
-	"github.com/jmoiron/sqlx"
 
 	"github.com/go-chi/chi"
 )
@@ -27,7 +26,7 @@ type changePassword struct {
 }
 
 // EmailChange takes the new email and sends an email confirmation.
-func EmailChange(db *sqlx.DB, validatedList email.Emailer, l listing.Service) http.HandlerFunc {
+func EmailChange(validatedList email.Emailer, l listing.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var (
 			new changeEmail
@@ -56,7 +55,7 @@ func EmailChange(db *sqlx.DB, validatedList email.Emailer, l listing.Service) ht
 			return
 		}
 
-		user, err := l.GetUserByID(db, userID)
+		user, err := l.GetUserByID(userID)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return

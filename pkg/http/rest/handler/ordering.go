@@ -48,7 +48,7 @@ func DeleteOrder(db *sqlx.DB) http.HandlerFunc {
 			return
 		}
 
-		response.HTMLText(w, r, http.StatusOK, "The order has been deleted.")
+		response.HTMLText(w, r, http.StatusOK, "The order has been deleted succesfully.")
 	}
 }
 
@@ -125,7 +125,7 @@ func NewOrder(db *sqlx.DB) http.HandlerFunc {
 		}
 
 		respond := fmt.Sprintf("Thanks for your purchase! Your products will be delivered on %v.", order.DeliveryDate)
-		response.HTMLText(w, r, http.StatusOK, respond)
+		response.HTMLText(w, r, http.StatusCreated, respond)
 	}
 }
 

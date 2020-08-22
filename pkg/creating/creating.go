@@ -18,31 +18,32 @@ import (
 
 // Repository provides access to the storage.
 type Repository interface {
-	CreateProduct(db *sqlx.DB, product *model.Product) error
-	CreateReview(db *sqlx.DB, r *model.Review, userID string) error
-	CreateShop(db *sqlx.DB, shop *model.Shop) error
-	CreateUser(db *sqlx.DB, user *model.User) error
+	CreateProduct(product *model.Product) error
+	CreateReview(r *model.Review, userID string) error
+	CreateShop(shop *model.Shop) error
+	CreateUser(user *model.User) error
 }
 
 // Service provides models adding operations.
 type Service interface {
-	CreateProduct(db *sqlx.DB, product *model.Product) error
-	CreateReview(db *sqlx.DB, r *model.Review, userID string) error
-	CreateShop(db *sqlx.DB, shop *model.Shop) error
-	CreateUser(db *sqlx.DB, user *model.User) error
+	CreateProduct(product *model.Product) error
+	CreateReview(r *model.Review, userID string) error
+	CreateShop(shop *model.Shop) error
+	CreateUser(user *model.User) error
 }
 
 type service struct {
-	r Repository
+	r  Repository
+	DB *sqlx.DB
 }
 
 // NewService creates a deleting service with the necessary dependencies.
-func NewService(r Repository) Service {
-	return &service{r}
+func NewService(r Repository, db *sqlx.DB) Service {
+	return &service{r, db}
 }
 
 // CreateProduct validates a product and saves it into the database.
-func (s *service) CreateProduct(db *sqlx.DB, p *model.Product) error {
+func (s *service) CreateProduct(p *model.Product) error {
 	query := `INSERT INTO products 
 	(id, shop_id, stock, brand, category, type, description, weight, discount, taxes, subtotal, total, created_at, updated_at)
 	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`
@@ -58,7 +59,7 @@ func (s *service) CreateProduct(db *sqlx.DB, p *model.Product) error {
 	discount := ((p.Subtotal / 100) * p.Discount)
 	p.Total = p.Subtotal + taxes - discount
 
-	_, err := db.Exec(query, id, p.ShopID, p.Stock, p.Brand, p.Category, p.Type, p.Description,
+	_, err := s.DB.Exec(query, id, p.ShopID, p.Stock, p.Brand, p.Category, p.Type, p.Description,
 		p.Weight, p.Discount, p.Taxes, p.Subtotal, p.Total, p.CreatedAt, p.UpdatedAt)
 	if err != nil {
 		return fmt.Errorf("couldn't create the product: %v", err)
@@ -68,7 +69,7 @@ func (s *service) CreateProduct(db *sqlx.DB, p *model.Product) error {
 }
 
 // CreateReview takes a new review and saves it into the database.
-func (s *service) CreateReview(db *sqlx.DB, r *model.Review, userID string) error {
+func (s *service) CreateReview(r *model.Review, userID string) error {
 	query := `INSERT INTO reviews
 	(id, stars, comment, user_id, product_id, shop_id, created_at, updated_at)
 	VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`
@@ -81,7 +82,7 @@ func (s *service) CreateReview(db *sqlx.DB, r *model.Review, userID string) erro
 	id := random.GenerateRunes(30)
 	r.CreatedAt = time.Now()
 
-	_, err = db.Exec(query, id, r.Stars, r.Comment, userID, r.ProductID, r.ShopID, r.CreatedAt, r.UpdatedAt)
+	_, err = s.DB.Exec(query, id, r.Stars, r.Comment, userID, r.ProductID, r.ShopID, r.CreatedAt, r.UpdatedAt)
 	if err != nil {
 		return fmt.Errorf("couldn't create the review: %v", err)
 	}
@@ -90,7 +91,7 @@ func (s *service) CreateReview(db *sqlx.DB, r *model.Review, userID string) erro
 }
 
 // CreateShop validates a shop and saves it into the database.
-func (s *service) CreateShop(db *sqlx.DB, shop *model.Shop) error {
+func (s *service) CreateShop(shop *model.Shop) error {
 	sQuery := `INSERT INTO shops
 	(id, name, created_at, updated_at)
 	VALUES ($1, $2, $3, $4)`
@@ -106,12 +107,12 @@ func (s *service) CreateShop(db *sqlx.DB, shop *model.Shop) error {
 	id := random.GenerateRunes(30)
 	shop.CreatedAt = time.Now()
 
-	_, err := db.Exec(sQuery, id, shop.Name, shop.CreatedAt, shop.UpdatedAt)
+	_, err := s.DB.Exec(sQuery, id, shop.Name, shop.CreatedAt, shop.UpdatedAt)
 	if err != nil {
 		return fmt.Errorf("couldn't create the shop: %v", err)
 	}
 
-	_, err = db.Exec(lQuery, id, shop.Location.Country, shop.Location.State,
+	_, err = s.DB.Exec(lQuery, id, shop.Location.Country, shop.Location.State,
 		shop.Location.ZipCode, shop.Location.City, shop.Location.Address)
 	if err != nil {
 		return fmt.Errorf("couldn't create the shop: %v", err)
@@ -122,7 +123,7 @@ func (s *service) CreateShop(db *sqlx.DB, shop *model.Shop) error {
 
 // CreateUser validates a user, hashes its password, sends
 // a verification email and saves it into the database.
-func (s *service) CreateUser(db *sqlx.DB, user *model.User) error {
+func (s *service) CreateUser(user *model.User) error {
 	cartQuery := `INSERT INTO carts
 	(id, counter, weight, discount, taxes, subtotal, total)
 	VALUES ($1, $2, $3, $4, $5, $6, $7)`
@@ -135,7 +136,7 @@ func (s *service) CreateUser(db *sqlx.DB, user *model.User) error {
 		return err
 	}
 
-	err := db.Get(&user, "SELECT email FROM users WHERE email=$1", user.Email)
+	err := s.DB.Get(&user, "SELECT email FROM users WHERE email=$1", user.Email)
 	if err == nil {
 		return errors.New("email is already taken")
 	}
@@ -152,7 +153,7 @@ func (s *service) CreateUser(db *sqlx.DB, user *model.User) error {
 
 	cart := shopping.NewCart(user.CartID)
 
-	_, err = db.Exec(cartQuery, cart.ID, cart.Counter, cart.Weight, cart.Discount,
+	_, err = s.DB.Exec(cartQuery, cart.ID, cart.Counter, cart.Weight, cart.Discount,
 		cart.Taxes, cart.Subtotal, cart.Total)
 	if err != nil {
 		return fmt.Errorf("couldn't create the cart: %v", err)
@@ -161,7 +162,7 @@ func (s *service) CreateUser(db *sqlx.DB, user *model.User) error {
 	userID := random.GenerateRunes(30)
 	user.CreatedAt = time.Now()
 
-	_, err = db.Exec(userQuery, userID, cart.ID, user.Username, user.Email,
+	_, err = s.DB.Exec(userQuery, userID, cart.ID, user.Username, user.Email,
 		user.Password, user.CreatedAt, user.UpdatedAt)
 	if err != nil {
 		return fmt.Errorf("couldn't create the user: %v", err)
