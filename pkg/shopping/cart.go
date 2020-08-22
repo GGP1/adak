@@ -71,9 +71,10 @@ func Add(db *sqlx.DB, cartID string, p *CartProduct, quantity int) (*CartProduct
 		return nil, fmt.Errorf("couldn't find the cart: %v", err)
 	}
 
-	p.CartID = cartID
 	taxes := ((p.Subtotal / 100) * p.Taxes)
 	discount := ((p.Subtotal / 100) * p.Discount)
+
+	p.CartID = cartID
 	p.Total = p.Total + p.Subtotal + taxes - discount
 
 	// math.Ceil(x*100)/100 is used to round float numbers

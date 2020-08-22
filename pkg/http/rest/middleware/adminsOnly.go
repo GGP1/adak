@@ -10,7 +10,7 @@ func AdminsOnly(f http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, err := r.Cookie("AID")
 		if err != nil {
-			http.Error(w, "Restringed access.", http.StatusUnauthorized)
+			http.Error(w, "404 page not found", http.StatusNotFound)
 			return
 		}
 

@@ -11,7 +11,7 @@ type Shop struct {
 	ID        string    `json:"id"`
 	Name      string    `json:"name"`
 	Location  Location  `json:"location"`
-	Reviews   []Review  `json:"reviews"`
+	Reviews   []Review  `json:"reviews,omitempty"`
 	Products  []Product `json:"products"`
 	CreatedAt time.Time `json:"created_at" db:"created_at"`
 	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`

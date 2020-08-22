@@ -61,7 +61,7 @@ type OrderProduct struct {
 	Brand       string  `json:"brand"`
 	Category    string  `json:"category"`
 	Type        string  `json:"type"`
-	Description string  `json:"description"`
+	Description string  `json:"description,omitempty"`
 	Weight      float64 `json:"weight"`
 	Discount    float64 `json:"discount"`
 	Taxes       float64 `json:"taxes"`

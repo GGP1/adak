@@ -21,8 +21,8 @@ type User struct {
 	Username  string           `json:"username"`
 	Email     string           `json:"email"`
 	Password  string           `json:"password"`
-	Orders    []ordering.Order `json:"orders"`
-	Reviews   []Review         `json:"reviews"`
+	Orders    []ordering.Order `json:"orders,omitempty"`
+	Reviews   []Review         `json:"reviews,omitempty"`
 	CreatedAt time.Time        `json:"created_at" db:"created_at"`
 	UpdatedAt time.Time        `json:"updated_at" db:"updated_at"`
 }

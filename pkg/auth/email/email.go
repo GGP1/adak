@@ -78,7 +78,7 @@ func (l *List) Read() ([]List, error) {
 func (l *List) Remove(email string) error {
 	_, err := l.DB.Exec("DELETE FROM "+l.tableName+" WHERE email=$1", l.Email)
 	if err != nil {
-		return errors.New("couldn't delete the email from the list")
+		return fmt.Errorf("couldn't delete the email from the %s", l.tableName)
 	}
 
 	return nil

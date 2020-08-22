@@ -21,7 +21,7 @@ type Product struct {
 	Taxes       float32   `json:"taxes"`
 	Subtotal    float32   `json:"subtotal"`
 	Total       float32   `json:"total"`
-	Reviews     []Review  `json:"reviews"`
+	Reviews     []Review  `json:"reviews,omitempty"`
 	CreatedAt   time.Time `json:"created_at" db:"created_at"`
 	UpdatedAt   time.Time `json:"updated_at" db:"updated_at"`
 }
