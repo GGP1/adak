@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/GGP1/palo/internal/response"
@@ -23,9 +24,12 @@ type Reviews struct {
 // CreateReview creates a new review and saves it.
 func CreateReview(c creating.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var review model.Review
-
 		uID, _ := r.Cookie("UID")
+
+		var (
+			review model.Review
+			ctx    = r.Context()
+		)
 
 		userID, err := auth.ParseFixedJWT(uID.Value)
 		if err != nil {
@@ -39,7 +43,7 @@ func CreateReview(c creating.Service) http.HandlerFunc {
 		}
 		defer r.Body.Close()
 
-		if err := c.CreateReview(&review, userID); err != nil {
+		if err := c.CreateReview(ctx, &review, userID); err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
@@ -53,7 +57,9 @@ func DeleteReview(d deleting.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
 
-		if err := d.DeleteReview(id); err != nil {
+		ctx := r.Context()
+
+		if err := d.DeleteReview(ctx, id); err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
@@ -65,13 +71,22 @@ func DeleteReview(d deleting.Service) http.HandlerFunc {
 // GetReviews lists all the reviews.
 func GetReviews(l listing.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		reviews, err := l.GetReviews()
+		ctx := r.Context()
+
+		reviews, err := l.GetReviews(ctx)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
 
-		response.JSON(w, r, http.StatusOK, reviews)
+		select {
+		default:
+			response.JSON(w, r, http.StatusOK, reviews)
+		case <-ctx.Done():
+			response.Error(w, r, http.StatusInternalServerError, ctx.Err())
+			fmt.Println("context canceled")
+		}
+
 	}
 }
 
@@ -80,7 +95,9 @@ func GetReviewByID(l listing.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
 
-		review, err := l.GetReviewByID(id)
+		ctx := r.Context()
+
+		review, err := l.GetReviewByID(ctx, id)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return

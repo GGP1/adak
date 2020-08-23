@@ -1,6 +1,7 @@
 package main
 
 import (
+	"context"
 	"log"
 	"math/rand"
 	"time"
@@ -15,7 +16,10 @@ import (
 func main() {
 	rand.Seed(time.Now().UnixNano())
 
-	db, close, err := storage.PostgresConnect()
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	db, close, err := storage.PostgresConnect(ctx)
 	if err != nil {
 		log.Fatal(err)
 	}

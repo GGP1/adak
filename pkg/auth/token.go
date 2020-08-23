@@ -1,7 +1,6 @@
 package auth
 
 import (
-	"errors"
 	"fmt"
 	"time"
 
@@ -9,6 +8,7 @@ import (
 	"github.com/GGP1/palo/pkg/model"
 
 	"github.com/dgrijalva/jwt-go"
+	"github.com/pkg/errors"
 )
 
 // GenerateJWT creates a new jwt token - changes over time -.
@@ -50,7 +50,7 @@ func ParseFixedJWT(tokenString string) (string, error) {
 		return []byte(cfg.SecretKey), nil
 	})
 	if err != nil {
-		return "", fmt.Errorf("failed parsing the token: %v", err)
+		return "", errors.Wrap(err, "failed parsing the token")
 	}
 
 	claims, ok := token.Claims.(jwt.MapClaims)

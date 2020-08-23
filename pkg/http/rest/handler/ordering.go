@@ -18,8 +18,8 @@ import (
 	"github.com/jmoiron/sqlx"
 )
 
-// orderParams holds the parameters for creating a order
-type orderParams struct {
+// OrderParams holds the parameters for creating a order
+type OrderParams struct {
 	Currency string     `json:"currency"`
 	Address  string     `json:"address"`
 	City     string     `json:"city"`
@@ -43,7 +43,9 @@ func DeleteOrder(db *sqlx.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
 
-		if err := ordering.Delete(db, id); err != nil {
+		ctx := r.Context()
+
+		if err := ordering.Delete(ctx, db, id); err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
@@ -55,8 +57,9 @@ func DeleteOrder(db *sqlx.DB) http.HandlerFunc {
 // GetOrder finds all the stored orders.
 func GetOrder(db *sqlx.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
 
-		orders, err := ordering.Get(db)
+		orders, err := ordering.Get(ctx, db)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
@@ -72,8 +75,10 @@ func NewOrder(db *sqlx.DB) http.HandlerFunc {
 		cID, _ := r.Cookie("CID")
 		uID, _ := r.Cookie("UID")
 
-		var o orderParams
-
+		var (
+			o   OrderParams
+			ctx = r.Context()
+		)
 		if err := json.NewDecoder(r.Body).Decode(&o); err != nil {
 			response.Error(w, r, http.StatusBadRequest, err)
 		}
@@ -98,13 +103,13 @@ func NewOrder(db *sqlx.DB) http.HandlerFunc {
 			return
 		}
 
-		cart, err := shopping.Get(db, cID.Value)
+		cart, err := shopping.Get(ctx, db, cID.Value)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
 
-		order, err := ordering.NewOrder(db, userID, o.Currency, o.Address, o.City, o.Country, o.State, o.ZipCode, deliveryDate, cart)
+		order, err := ordering.NewOrder(ctx, db, userID, o.Currency, o.Address, o.City, o.Country, o.State, o.ZipCode, deliveryDate, cart)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
@@ -130,7 +135,7 @@ func NewOrder(db *sqlx.DB) http.HandlerFunc {
 }
 
 // validate order input.
-func (o *orderParams) validate() error {
+func (o *OrderParams) validate() error {
 	if o.Address == "" {
 		return errors.New("address is required")
 	}

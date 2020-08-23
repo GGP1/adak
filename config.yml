@@ -4,7 +4,7 @@ server:
   timeout:
     read: 5
     write: 5
-    shutdown: 3
+    shutdown: 5
 
 logger:
   stripe:

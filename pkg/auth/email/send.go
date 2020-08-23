@@ -5,6 +5,7 @@ package email
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"html/template"
 	"net/mail"
@@ -12,6 +13,7 @@ import (
 
 	"github.com/GGP1/palo/internal/cfg"
 	"github.com/GGP1/palo/pkg/model"
+	"github.com/pkg/errors"
 )
 
 // Items represents a struct with the values passed to the templates.
@@ -23,7 +25,7 @@ type Items struct {
 }
 
 // SendValidation sends a validation email to the user.
-func SendValidation(user model.User, token string, errCh chan error) {
+func SendValidation(ctx context.Context, user model.User, token string, errCh chan error) {
 	// =================
 	// 	Email content
 	// =================
@@ -67,7 +69,7 @@ func SendValidation(user model.User, token string, errCh chan error) {
 	auth := smtp.PlainAuth("", cfg.EmailSender, cfg.EmailPassword, smtpHost)
 
 	if err = smtp.SendMail(smtpHost+":"+smtpPort, auth, from.Address, []string{to.Address}, []byte(message)); err != nil {
-		errCh <- fmt.Errorf("couldn't send the email: %v", err)
+		errCh <- errors.Wrap(err, "couldn't send the email")
 	}
 }
 
@@ -118,6 +120,6 @@ func SendChangeConfirmation(user model.User, token, newEmail string, errCh chan 
 	auth := smtp.PlainAuth("", cfg.EmailSender, cfg.EmailPassword, smtpHost)
 
 	if err := smtp.SendMail(smtpHost+":"+smtpPort, auth, from.Address, []string{to.Address}, []byte(message)); err != nil {
-		errCh <- fmt.Errorf("couldn't send the email: %v", err)
+		errCh <- errors.Wrap(err, "couldn't send the email")
 	}
 }

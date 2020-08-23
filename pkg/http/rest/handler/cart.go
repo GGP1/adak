@@ -16,9 +16,12 @@ import (
 // CartAdd appends a product to the cart
 func CartAdd(db *sqlx.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var product shopping.CartProduct
-
 		q := chi.URLParam(r, "quantity")
+
+		var (
+			product shopping.CartProduct
+			ctx     = r.Context()
+		)
 
 		quantity, err := strconv.Atoi(q)
 		if err != nil {
@@ -38,7 +41,7 @@ func CartAdd(db *sqlx.DB) http.HandlerFunc {
 
 		cartID, _ := r.Cookie("CID")
 
-		cart, err := shopping.Add(db, cartID.Value, &product, quantity)
+		cart, err := shopping.Add(ctx, db, cartID.Value, &product, quantity)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
@@ -53,7 +56,9 @@ func CartCheckout(db *sqlx.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		c, _ := r.Cookie("CID")
 
-		checkout, err := shopping.Checkout(db, c.Value)
+		ctx := r.Context()
+
+		checkout, err := shopping.Checkout(ctx, db, c.Value)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
@@ -69,7 +74,9 @@ func CartFilterByBrand(db *sqlx.DB) http.HandlerFunc {
 		brand := chi.URLParam(r, "brand")
 		c, _ := r.Cookie("CID")
 
-		products, err := shopping.FilterByBrand(db, c.Value, brand)
+		ctx := r.Context()
+
+		products, err := shopping.FilterByBrand(ctx, db, c.Value, brand)
 		if err != nil {
 			response.Error(w, r, http.StatusNotFound, err)
 			return
@@ -85,7 +92,9 @@ func CartFilterByCategory(db *sqlx.DB) http.HandlerFunc {
 		category := chi.URLParam(r, "category")
 		c, _ := r.Cookie("CID")
 
-		products, err := shopping.FilterByCategory(db, c.Value, category)
+		ctx := r.Context()
+
+		products, err := shopping.FilterByCategory(ctx, db, c.Value, category)
 		if err != nil {
 			response.Error(w, r, http.StatusNotFound, err)
 			return
@@ -102,10 +111,12 @@ func CartFilterByDiscount(db *sqlx.DB) http.HandlerFunc {
 		max := chi.URLParam(r, "max")
 		c, _ := r.Cookie("CID")
 
+		ctx := r.Context()
+
 		minDiscount, _ := strconv.ParseFloat(min, 64)
 		maxDiscount, _ := strconv.ParseFloat(max, 64)
 
-		products, err := shopping.FilterByDiscount(db, c.Value, minDiscount, maxDiscount)
+		products, err := shopping.FilterByDiscount(ctx, db, c.Value, minDiscount, maxDiscount)
 		if err != nil {
 			response.Error(w, r, http.StatusNotFound, err)
 			return
@@ -122,10 +133,12 @@ func CartFilterBySubtotal(db *sqlx.DB) http.HandlerFunc {
 		max := chi.URLParam(r, "max")
 		c, _ := r.Cookie("CID")
 
+		ctx := r.Context()
+
 		minSubtotal, _ := strconv.ParseFloat(min, 64)
 		maxSubtotal, _ := strconv.ParseFloat(max, 64)
 
-		products, err := shopping.FilterBySubtotal(db, c.Value, minSubtotal, maxSubtotal)
+		products, err := shopping.FilterBySubtotal(ctx, db, c.Value, minSubtotal, maxSubtotal)
 		if err != nil {
 			response.Error(w, r, http.StatusNotFound, err)
 			return
@@ -142,10 +155,12 @@ func CartFilterByTaxes(db *sqlx.DB) http.HandlerFunc {
 		max := chi.URLParam(r, "max")
 		c, _ := r.Cookie("CID")
 
+		ctx := r.Context()
+
 		minTaxes, _ := strconv.ParseFloat(min, 64)
 		maxTaxes, _ := strconv.ParseFloat(max, 64)
 
-		products, err := shopping.FilterByTaxes(db, c.Value, minTaxes, maxTaxes)
+		products, err := shopping.FilterByTaxes(ctx, db, c.Value, minTaxes, maxTaxes)
 		if err != nil {
 			response.Error(w, r, http.StatusNotFound, err)
 			return
@@ -162,10 +177,12 @@ func CartFilterByTotal(db *sqlx.DB) http.HandlerFunc {
 		max := chi.URLParam(r, "max")
 		c, _ := r.Cookie("CID")
 
+		ctx := r.Context()
+
 		minTotal, _ := strconv.ParseFloat(min, 64)
 		maxTotal, _ := strconv.ParseFloat(max, 64)
 
-		products, err := shopping.FilterByTotal(db, c.Value, minTotal, maxTotal)
+		products, err := shopping.FilterByTotal(ctx, db, c.Value, minTotal, maxTotal)
 		if err != nil {
 			response.Error(w, r, http.StatusNotFound, err)
 			return
@@ -181,7 +198,9 @@ func CartFilterByType(db *sqlx.DB) http.HandlerFunc {
 		productType := chi.URLParam(r, "type")
 		c, _ := r.Cookie("CID")
 
-		products, err := shopping.FilterByType(db, c.Value, productType)
+		ctx := r.Context()
+
+		products, err := shopping.FilterByType(ctx, db, c.Value, productType)
 		if err != nil {
 			response.Error(w, r, http.StatusNotFound, err)
 			return
@@ -198,10 +217,12 @@ func CartFilterByWeight(db *sqlx.DB) http.HandlerFunc {
 		max := chi.URLParam(r, "max")
 		c, _ := r.Cookie("CID")
 
+		ctx := r.Context()
+
 		minWeight, _ := strconv.ParseFloat(min, 64)
 		maxWeight, _ := strconv.ParseFloat(max, 64)
 
-		products, err := shopping.FilterByWeight(db, c.Value, minWeight, maxWeight)
+		products, err := shopping.FilterByWeight(ctx, db, c.Value, minWeight, maxWeight)
 		if err != nil {
 			response.Error(w, r, http.StatusNotFound, err)
 			return
@@ -216,7 +237,9 @@ func CartGet(db *sqlx.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		c, _ := r.Cookie("CID")
 
-		cart, err := shopping.Get(db, c.Value)
+		ctx := r.Context()
+
+		cart, err := shopping.Get(ctx, db, c.Value)
 		if err != nil {
 			response.Error(w, r, http.StatusNotFound, err)
 			return
@@ -231,7 +254,9 @@ func CartItems(db *sqlx.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		c, _ := r.Cookie("CID")
 
-		items, err := shopping.Items(db, c.Value)
+		ctx := r.Context()
+
+		items, err := shopping.Items(ctx, db, c.Value)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
@@ -248,13 +273,15 @@ func CartRemove(db *sqlx.DB) http.HandlerFunc {
 		q := chi.URLParam(r, "quantity")
 		c, _ := r.Cookie("CID")
 
+		ctx := r.Context()
+
 		quantity, err := strconv.Atoi(q)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
 
-		if err = shopping.Remove(db, c.Value, id, quantity); err != nil {
+		if err = shopping.Remove(ctx, db, c.Value, id, quantity); err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
@@ -268,7 +295,9 @@ func CartReset(db *sqlx.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		c, _ := r.Cookie("CID")
 
-		if err := shopping.Reset(db, c.Value); err != nil {
+		ctx := r.Context()
+
+		if err := shopping.Reset(ctx, db, c.Value); err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
@@ -282,7 +311,9 @@ func CartSize(db *sqlx.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		c, _ := r.Cookie("CID")
 
-		size, err := shopping.Size(db, c.Value)
+		ctx := r.Context()
+
+		size, err := shopping.Size(ctx, db, c.Value)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return

@@ -1,6 +1,7 @@
 package email
 
 import (
+	"context"
 	"errors"
 	"fmt"
 
@@ -9,11 +10,11 @@ import (
 
 // Emailer provides email operations.
 type Emailer interface {
-	Add(email, token string) error
-	Exists(email string) bool
-	Read() ([]List, error)
-	Remove(email string) error
-	Seek(email string) error
+	Add(ctx context.Context, email, token string) error
+	Exists(ctx context.Context, email string) bool
+	Read(ctx context.Context) ([]List, error)
+	Remove(ctx context.Context, email string) error
+	Seek(ctx context.Context, email string) error
 }
 
 // List represents a list of emails and provides the methods to make
@@ -37,15 +38,15 @@ func NewList(db *sqlx.DB, tableName string) Emailer {
 }
 
 // Add a user to the list.
-func (l *List) Add(email, token string) error {
-	query := `INSERT INTO ` + l.tableName + `
+func (l *List) Add(ctx context.Context, email, token string) error {
+	q := `INSERT INTO ` + l.tableName + `
 	(email, token)
 	VALUES ($1, $2)`
 
 	l.Email = email
 	l.Token = token
 
-	_, err := l.DB.Exec(query, l.Email, l.Token)
+	_, err := l.DB.ExecContext(ctx, q, l.Email, l.Token)
 	if err != nil {
 		return fmt.Errorf("couldn't create the %s list", l.tableName)
 	}
@@ -54,8 +55,8 @@ func (l *List) Add(email, token string) error {
 }
 
 // Exists checks if the email is already stored in the database.
-func (l *List) Exists(email string) bool {
-	row := l.DB.QueryRow("SELECT * FROM "+l.tableName+" WHERE email=$1", l.Email)
+func (l *List) Exists(ctx context.Context, email string) bool {
+	row := l.DB.QueryRowContext(ctx, "SELECT * FROM "+l.tableName+" WHERE email=$1", l.Email)
 	if row != nil {
 		return true
 	}
@@ -64,10 +65,10 @@ func (l *List) Exists(email string) bool {
 }
 
 // Read returns a map with the email list or an error.
-func (l *List) Read() ([]List, error) {
+func (l *List) Read(ctx context.Context) ([]List, error) {
 	var list []List
 
-	if err := l.DB.Select(&list, "SELECT * FROM "+l.tableName+""); err != nil {
+	if err := l.DB.SelectContext(ctx, &list, "SELECT * FROM "+l.tableName+""); err != nil {
 		return nil, errors.New("list not found")
 	}
 
@@ -75,8 +76,8 @@ func (l *List) Read() ([]List, error) {
 }
 
 // Remove deletes an email from the list.
-func (l *List) Remove(email string) error {
-	_, err := l.DB.Exec("DELETE FROM "+l.tableName+" WHERE email=$1", l.Email)
+func (l *List) Remove(ctx context.Context, email string) error {
+	_, err := l.DB.ExecContext(ctx, "DELETE FROM "+l.tableName+" WHERE email=$1", l.Email)
 	if err != nil {
 		return fmt.Errorf("couldn't delete the email from the %s", l.tableName)
 	}
@@ -85,8 +86,8 @@ func (l *List) Remove(email string) error {
 }
 
 // Seek looks for the specified email in the list.
-func (l *List) Seek(email string) error {
-	_, err := l.DB.Exec("SELECT * FROM "+l.tableName+" WHERE email=$1", l.Email)
+func (l *List) Seek(ctx context.Context, email string) error {
+	_, err := l.DB.ExecContext(ctx, "SELECT * FROM "+l.tableName+" WHERE email=$1", l.Email)
 	if err != nil {
 		return errors.New("email not found")
 	}

@@ -14,7 +14,9 @@ func DeleteHit(t tracking.Tracker) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
 
-		if err := t.Delete(id); err != nil {
+		ctx := r.Context()
+
+		if err := t.Delete(ctx, id); err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
@@ -26,7 +28,9 @@ func DeleteHit(t tracking.Tracker) http.HandlerFunc {
 // GetHits retrieves total amount of hits stored.
 func GetHits(t tracking.Tracker) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		hits, err := t.Get()
+		ctx := r.Context()
+
+		hits, err := t.Get(ctx)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
@@ -41,7 +45,9 @@ func SearchHit(t tracking.Tracker) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		search := chi.URLParam(r, "search")
 
-		hits, err := t.Search(search)
+		ctx := r.Context()
+
+		hits, err := t.Search(ctx, search)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
@@ -57,7 +63,9 @@ func SearchHitByField(t tracking.Tracker) http.HandlerFunc {
 		field := chi.URLParam(r, "field")
 		value := chi.URLParam(r, "value")
 
-		hits, err := t.SearchByField(field, value)
+		ctx := r.Context()
+
+		hits, err := t.SearchByField(ctx, field, value)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return

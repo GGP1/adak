@@ -30,6 +30,7 @@ func EmailChange(validatedList email.Emailer, l listing.Service) http.HandlerFun
 	return func(w http.ResponseWriter, r *http.Request) {
 		var (
 			new changeEmail
+			ctx = r.Context()
 		)
 
 		if err := json.NewDecoder(r.Body).Decode(&new); err != nil {
@@ -43,7 +44,7 @@ func EmailChange(validatedList email.Emailer, l listing.Service) http.HandlerFun
 			return
 		}
 
-		exists := validatedList.Exists(new.Email)
+		exists := validatedList.Exists(ctx, new.Email)
 		if exists {
 			response.Error(w, r, http.StatusBadRequest, errors.New("email is already taken"))
 		}
@@ -55,7 +56,7 @@ func EmailChange(validatedList email.Emailer, l listing.Service) http.HandlerFun
 			return
 		}
 
-		user, err := l.GetUserByID(userID)
+		user, err := l.GetUserByID(ctx, userID)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
@@ -88,7 +89,9 @@ func EmailChangeConfirmation(s auth.Session, validatedList email.Emailer) http.H
 		email := chi.URLParam(r, "email")
 		id := chi.URLParam(r, "id")
 
-		if err := s.EmailChange(id, email, token, validatedList); err != nil {
+		ctx := r.Context()
+
+		if err := s.EmailChange(ctx, id, email, token, validatedList); err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
@@ -105,7 +108,10 @@ func Login(s auth.Session, validatedList email.Emailer) http.HandlerFunc {
 			return
 		}
 
-		var user model.User
+		var (
+			user model.User
+			ctx  = r.Context()
+		)
 
 		if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
 			response.Error(w, r, http.StatusBadRequest, err)
@@ -119,7 +125,7 @@ func Login(s auth.Session, validatedList email.Emailer) http.HandlerFunc {
 		}
 
 		// Check if the email is validated
-		if err := validatedList.Seek(user.Email); err != nil {
+		if err := validatedList.Seek(ctx, user.Email); err != nil {
 			response.Error(w, r, http.StatusUnauthorized, fmt.Errorf("please verify your email before logging in: %w", err))
 			return
 		}
@@ -129,7 +135,12 @@ func Login(s auth.Session, validatedList email.Emailer) http.HandlerFunc {
 			return
 		}
 
-		response.HTMLText(w, r, http.StatusOK, "You logged in!")
+		select {
+		case <-ctx.Done():
+			response.Error(w, r, http.StatusInternalServerError, ctx.Err())
+		default:
+			response.HTMLText(w, r, http.StatusOK, "You logged in!")
+		}
 	}
 }
 
@@ -153,9 +164,12 @@ func Logout(s auth.Session) http.HandlerFunc {
 // PasswordChange updates the user password.
 func PasswordChange(s auth.Session, l listing.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var changePass changePassword
-
 		uID, _ := r.Cookie("UID")
+
+		var (
+			changePass changePassword
+			ctx        = r.Context()
+		)
 
 		userID, err := auth.ParseFixedJWT(uID.Value)
 		if err != nil {
@@ -168,9 +182,14 @@ func PasswordChange(s auth.Session, l listing.Service) http.HandlerFunc {
 		}
 		defer r.Body.Close()
 
-		if err := s.PasswordChange(userID, changePass.OldPassword, changePass.NewPassword); err != nil {
+		if err := s.PasswordChange(ctx, userID, changePass.OldPassword, changePass.NewPassword); err != nil {
 			response.Error(w, r, http.StatusBadRequest, err)
 			return
+		}
+
+		select {
+		case <-ctx.Done():
+			response.Error(w, r, http.StatusInternalServerError, ctx.Err())
 		}
 
 		response.HTMLText(w, r, http.StatusOK, "Password changed successfully.")
@@ -183,9 +202,12 @@ func ValidateEmail(pendingList, validatedList email.Emailer) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		token := chi.URLParam(r, "token")
 
-		var validated bool
+		var (
+			validated bool
+			ctx       = r.Context()
+		)
 
-		pList, err := pendingList.Read()
+		pList, err := pendingList.Read(ctx)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
@@ -193,12 +215,12 @@ func ValidateEmail(pendingList, validatedList email.Emailer) http.HandlerFunc {
 
 		for _, v := range pList {
 			if v.Token == token {
-				if err := validatedList.Add(v.Email, v.Token); err != nil {
+				if err := validatedList.Add(ctx, v.Email, v.Token); err != nil {
 					response.Error(w, r, http.StatusInternalServerError, err)
 					return
 				}
 
-				if err := pendingList.Remove(v.Email); err != nil {
+				if err := pendingList.Remove(ctx, v.Email); err != nil {
 					response.Error(w, r, http.StatusInternalServerError, err)
 					return
 				}
@@ -210,6 +232,11 @@ func ValidateEmail(pendingList, validatedList email.Emailer) http.HandlerFunc {
 		if !validated {
 			response.Error(w, r, http.StatusInternalServerError, errors.New("error: email validation failed"))
 			return
+		}
+
+		select {
+		case <-ctx.Done():
+			response.Error(w, r, http.StatusInternalServerError, ctx.Err())
 		}
 
 		response.HTMLText(w, r, http.StatusOK, "You have successfully validated your email!")

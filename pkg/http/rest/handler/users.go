@@ -24,7 +24,10 @@ import (
 // CreateUser creates a new user and saves it.
 func CreateUser(c creating.Service, pendingList email.Emailer) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var user model.User
+		var (
+			user model.User
+			ctx  = r.Context()
+		)
 
 		if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
 			response.Error(w, r, http.StatusBadRequest, err)
@@ -38,23 +41,23 @@ func CreateUser(c creating.Service, pendingList email.Emailer) http.HandlerFunc 
 			return
 		}
 
-		if err := pendingList.Add(user.Email, token); err != nil {
+		if err := pendingList.Add(ctx, user.Email, token); err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
 
 		errCh := make(chan error)
 
-		go email.SendValidation(user, token, errCh)
+		go email.SendValidation(ctx, user, token, errCh)
 
 		select {
+		case <-ctx.Done():
+			response.Error(w, r, http.StatusInternalServerError, ctx.Err())
 		case <-errCh:
 			response.Error(w, r, http.StatusInternalServerError, fmt.Errorf("failed sending validation email: %w", <-errCh))
-			return
 		default:
-			if err = c.CreateUser(&user); err != nil {
+			if err = c.CreateUser(ctx, &user); err != nil {
 				response.Error(w, r, http.StatusBadRequest, err)
-				return
 			}
 
 			response.HTMLText(w, r, http.StatusCreated, "Your account was successfully created.\nPlease validate your email to start using Palo.")
@@ -68,7 +71,10 @@ func DeleteUser(d deleting.Service, s auth.Session, db *sqlx.DB, pendingList, va
 		id := chi.URLParam(r, "id")
 		uID, _ := r.Cookie("UID")
 
-		var user model.User
+		var (
+			user model.User
+			ctx  = r.Context()
+		)
 
 		// Check if it's the same user
 		userID, err := auth.ParseFixedJWT(uID.Value)
@@ -88,17 +94,17 @@ func DeleteUser(d deleting.Service, s auth.Session, db *sqlx.DB, pendingList, va
 			return
 		}
 
-		if err := validatedList.Remove(user.Email); err != nil {
+		if err := validatedList.Remove(ctx, user.Email); err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
 
-		if err := shopping.DeleteCart(db, user.CartID); err != nil {
+		if err := shopping.DeleteCart(ctx, db, user.CartID); err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
 
-		if err := d.DeleteUser(id); err != nil {
+		if err := d.DeleteUser(ctx, id); err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
@@ -113,7 +119,9 @@ func DeleteUser(d deleting.Service, s auth.Session, db *sqlx.DB, pendingList, va
 // GetUsers lists all the users
 func GetUsers(l listing.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		users, err := l.GetUsers()
+		ctx := r.Context()
+
+		users, err := l.GetUsers(ctx)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
@@ -128,7 +136,9 @@ func GetUserByID(l listing.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
 
-		user, err := l.GetUserByID(id)
+		ctx := r.Context()
+
+		user, err := l.GetUserByID(ctx, id)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
@@ -143,9 +153,12 @@ func QRCode(l listing.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
 
-		var user model.User
+		var (
+			user model.User
+			ctx  = r.Context()
+		)
 
-		user, err := l.GetUserByID(id)
+		user, err := l.GetUserByID(ctx, id)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
@@ -166,7 +179,9 @@ func SearchUser(s searching.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		query := chi.URLParam(r, "query")
 
-		users, err := s.SearchUsers(query)
+		ctx := r.Context()
+
+		users, err := s.SearchUsers(ctx, query)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
@@ -182,7 +197,10 @@ func UpdateUser(u updating.Service) http.HandlerFunc {
 		id := chi.URLParam(r, "id")
 		uID, _ := r.Cookie("UID")
 
-		var user model.User
+		var (
+			user model.User
+			ctx  = r.Context()
+		)
 
 		// Check if it's the same user
 		userID, err := auth.ParseFixedJWT(uID.Value)
@@ -202,7 +220,7 @@ func UpdateUser(u updating.Service) http.HandlerFunc {
 		}
 		defer r.Body.Close()
 
-		if err := u.UpdateUser(&user, id); err != nil {
+		if err := u.UpdateUser(ctx, &user, id); err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}

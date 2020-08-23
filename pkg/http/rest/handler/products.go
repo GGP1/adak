@@ -18,7 +18,10 @@ import (
 // CreateProduct creates a new product and saves it.
 func CreateProduct(c creating.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var product model.Product
+		var (
+			product model.Product
+			ctx     = r.Context()
+		)
 
 		if err := json.NewDecoder(r.Body).Decode(&product); err != nil {
 			response.Error(w, r, http.StatusBadRequest, err)
@@ -26,7 +29,7 @@ func CreateProduct(c creating.Service) http.HandlerFunc {
 		}
 		defer r.Body.Close()
 
-		if err := c.CreateProduct(&product); err != nil {
+		if err := c.CreateProduct(ctx, &product); err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
@@ -40,7 +43,9 @@ func DeleteProduct(d deleting.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
 
-		if err := d.DeleteProduct(id); err != nil {
+		ctx := r.Context()
+
+		if err := d.DeleteProduct(ctx, id); err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
@@ -52,7 +57,9 @@ func DeleteProduct(d deleting.Service) http.HandlerFunc {
 // GetProducts lists all the products.
 func GetProducts(l listing.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		products, err := l.GetProducts()
+		ctx := r.Context()
+
+		products, err := l.GetProducts(ctx)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
@@ -67,7 +74,9 @@ func GetProductByID(l listing.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
 
-		product, err := l.GetProductByID(id)
+		ctx := r.Context()
+
+		product, err := l.GetProductByID(ctx, id)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
@@ -82,7 +91,9 @@ func SearchProduct(s searching.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		query := chi.URLParam(r, "query")
 
-		products, err := s.SearchProducts(query)
+		ctx := r.Context()
+
+		products, err := s.SearchProducts(ctx, query)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
@@ -97,7 +108,10 @@ func UpdateProduct(u updating.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
 
-		var product model.Product
+		var (
+			product model.Product
+			ctx     = r.Context()
+		)
 
 		if err := json.NewDecoder(r.Body).Decode(&product); err != nil {
 			response.Error(w, r, http.StatusBadRequest, err)
@@ -105,7 +119,7 @@ func UpdateProduct(u updating.Service) http.HandlerFunc {
 		}
 		defer r.Body.Close()
 
-		if err := u.UpdateProduct(&product, id); err != nil {
+		if err := u.UpdateProduct(ctx, &product, id); err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}

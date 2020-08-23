@@ -18,7 +18,10 @@ import (
 // CreateShop creates a new shop and saves it.
 func CreateShop(c creating.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var shop *model.Shop
+		var (
+			shop *model.Shop
+			ctx  = r.Context()
+		)
 
 		if err := json.NewDecoder(r.Body).Decode(&shop); err != nil {
 			response.Error(w, r, http.StatusBadRequest, err)
@@ -26,7 +29,7 @@ func CreateShop(c creating.Service) http.HandlerFunc {
 		}
 		defer r.Body.Close()
 
-		if err := c.CreateShop(shop); err != nil {
+		if err := c.CreateShop(ctx, shop); err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
@@ -40,7 +43,9 @@ func DeleteShop(d deleting.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
 
-		if err := d.DeleteShop(id); err != nil {
+		ctx := r.Context()
+
+		if err := d.DeleteShop(ctx, id); err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
@@ -52,7 +57,9 @@ func DeleteShop(d deleting.Service) http.HandlerFunc {
 // GetShops lists all the shops.
 func GetShops(l listing.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		shops, err := l.GetShops()
+		ctx := r.Context()
+
+		shops, err := l.GetShops(ctx)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
@@ -67,7 +74,9 @@ func GetShopByID(l listing.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
 
-		shop, err := l.GetShopByID(id)
+		ctx := r.Context()
+
+		shop, err := l.GetShopByID(ctx, id)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
@@ -78,11 +87,13 @@ func GetShopByID(l listing.Service) http.HandlerFunc {
 }
 
 // SearchShop looks for the products with the given value.
-func SearchShop(sr searching.Service) http.HandlerFunc {
+func SearchShop(s searching.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		query := chi.URLParam(r, "query")
 
-		shops, err := sr.SearchShops(query)
+		ctx := r.Context()
+
+		shops, err := s.SearchShops(ctx, query)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
@@ -97,7 +108,10 @@ func UpdateShop(u updating.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
 
-		var shop *model.Shop
+		var (
+			shop *model.Shop
+			ctx  = r.Context()
+		)
 
 		if err := json.NewDecoder(r.Body).Decode(&shop); err != nil {
 			response.Error(w, r, http.StatusBadRequest, err)
@@ -105,7 +119,7 @@ func UpdateShop(u updating.Service) http.HandlerFunc {
 		}
 		defer r.Body.Close()
 
-		if err := u.UpdateShop(shop, id); err != nil {
+		if err := u.UpdateShop(ctx, shop, id); err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}

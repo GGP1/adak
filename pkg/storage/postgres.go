@@ -3,6 +3,7 @@
 package storage
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/GGP1/palo/internal/cfg"
@@ -13,7 +14,7 @@ import (
 // PostgresConnect creates a connection with the database using the postgres driver
 // and checks the existence of all the tables.
 // It returns a pointer to the sql.DB struct, the close function and an error.
-func PostgresConnect() (*sqlx.DB, func() error, error) {
+func PostgresConnect(ctx context.Context) (*sqlx.DB, func() error, error) {
 	db, err := sqlx.Open("postgres", cfg.DBURL)
 	if err != nil {
 		return nil, nil, fmt.Errorf("couldn't open the database: %w", err)
@@ -23,7 +24,7 @@ func PostgresConnect() (*sqlx.DB, func() error, error) {
 		return nil, nil, fmt.Errorf("database connection died: %w", err)
 	}
 
-	db.MustExec(tables)
+	db.MustExecContext(ctx, tables)
 
 	// if err := deleteOrdersTrigger(db); err != nil {
 	// 	return nil, nil, err

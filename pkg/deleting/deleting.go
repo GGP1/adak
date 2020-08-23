@@ -2,25 +2,27 @@
 package deleting
 
 import (
-	"fmt"
+	"context"
+	"time"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/pkg/errors"
 )
 
 // Repository provides access to the storage.
 type Repository interface {
-	DeleteProduct(id string) error
-	DeleteReview(id string) error
-	DeleteShop(id string) error
-	DeleteUser(id string) error
+	DeleteProduct(ctx context.Context, id string) error
+	DeleteReview(ctx context.Context, id string) error
+	DeleteShop(ctx context.Context, id string) error
+	DeleteUser(ctx context.Context, id string) error
 }
 
 // Service provides models deleting operations.
 type Service interface {
-	DeleteProduct(id string) error
-	DeleteReview(id string) error
-	DeleteShop(id string) error
-	DeleteUser(id string) error
+	DeleteProduct(ctx context.Context, id string) error
+	DeleteReview(ctx context.Context, id string) error
+	DeleteShop(ctx context.Context, id string) error
+	DeleteUser(ctx context.Context, id string) error
 }
 
 type service struct {
@@ -34,41 +36,61 @@ func NewService(r Repository, db *sqlx.DB) Service {
 }
 
 // DeleteProduct takes a product from the database and permanently deletes it.
-func (s *service) DeleteProduct(id string) error {
-	_, err := s.DB.Exec("DELETE FROM products WHERE id=$1", id)
+func (s *service) DeleteProduct(ctx context.Context, id string) error {
+	_, err := s.DB.ExecContext(ctx, "DELETE FROM products WHERE id=$1", id)
 	if err != nil {
-		return fmt.Errorf("couldn't delete the product: %v", err)
+		return errors.Wrap(err, "couldn't delete the product")
 	}
 
-	return nil
+	select {
+	case <-time.After(0 * time.Nanosecond):
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
 }
 
 // DeleteReview takes a review from the database and permanently deletes it.
-func (s *service) DeleteReview(id string) error {
-	_, err := s.DB.Exec("DELETE FROM reviews WHERE id=$1", id)
+func (s *service) DeleteReview(ctx context.Context, id string) error {
+	_, err := s.DB.ExecContext(ctx, "DELETE FROM reviews WHERE id=$1", id)
 	if err != nil {
-		return fmt.Errorf("couldn't delete the review: %v", err)
+		return errors.Wrap(err, "couldn't delete the review")
 	}
 
-	return nil
+	select {
+	case <-time.After(0 * time.Nanosecond):
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
 }
 
 // DeleteShop takes a shop from the database and permanently deletes it.
-func (s *service) DeleteShop(id string) error {
-	_, err := s.DB.Exec("DELETE FROM shops WHERE id=$1", id)
+func (s *service) DeleteShop(ctx context.Context, id string) error {
+	_, err := s.DB.ExecContext(ctx, "DELETE FROM shops WHERE id=$1", id)
 	if err != nil {
-		return fmt.Errorf("couldn't delete the shop: %v", err)
+		return errors.Wrap(err, "couldn't delete the shop")
 	}
 
-	return nil
+	select {
+	case <-time.After(0 * time.Nanosecond):
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
 }
 
 // DeleteUser takes a user from the database and permanently deletes it.
-func (s *service) DeleteUser(id string) error {
-	_, err := s.DB.Exec("DELETE FROM users WHERE id=$1", id)
+func (s *service) DeleteUser(ctx context.Context, id string) error {
+	_, err := s.DB.ExecContext(ctx, "DELETE FROM users WHERE id=$1", id)
 	if err != nil {
-		return fmt.Errorf("couldn't delete the user: %v", err)
+		return errors.Wrap(err, "couldn't delete the user")
 	}
 
-	return nil
+	select {
+	case <-time.After(0 * time.Nanosecond):
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
 }

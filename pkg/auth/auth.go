@@ -2,7 +2,7 @@
 package auth
 
 import (
-	"fmt"
+	"context"
 	"net/http"
 	"sync"
 	"time"
@@ -10,8 +10,9 @@ import (
 	"github.com/GGP1/palo/internal/random"
 	"github.com/GGP1/palo/pkg/auth/email"
 	"github.com/GGP1/palo/pkg/model"
-	"github.com/jmoiron/sqlx"
 
+	"github.com/jmoiron/sqlx"
+	"github.com/pkg/errors"
 	"golang.org/x/crypto/bcrypt"
 )
 
@@ -19,10 +20,10 @@ import (
 type Session interface {
 	AlreadyLoggedIn(w http.ResponseWriter, r *http.Request) bool
 	Clean()
-	EmailChange(id, newEmail, token string, validatedList email.Emailer) error
+	EmailChange(ctx context.Context, id, newEmail, token string, validatedList email.Emailer) error
 	Login(w http.ResponseWriter, email, password string) error
 	Logout(w http.ResponseWriter, r *http.Request, c *http.Cookie)
-	PasswordChange(id, oldPass, newPass string) error
+	PasswordChange(ctx context.Context, id, oldPass, newPass string) error
 }
 
 type userInfo struct {
@@ -81,26 +82,26 @@ func (session *session) Clean() {
 }
 
 // EmailChange changes the user email.
-func (session *session) EmailChange(id, newEmail, token string, validatedList email.Emailer) error {
+func (session *session) EmailChange(ctx context.Context, id, newEmail, token string, validatedList email.Emailer) error {
 	var user model.User
 
 	if err := session.DB.Select(&user, "SELECT * FROM users WHERE id=?", id); err != nil {
-		return fmt.Errorf("invalid email: %v", err)
+		return errors.Wrap(err, "invalid email")
 	}
 
-	if err := validatedList.Remove(user.Email); err != nil {
+	if err := validatedList.Remove(ctx, user.Email); err != nil {
 		return err
 	}
 
 	user.Email = newEmail
 
-	if err := validatedList.Add(newEmail, token); err != nil {
+	if err := validatedList.Add(ctx, newEmail, token); err != nil {
 		return err
 	}
 
 	_, err := session.DB.Exec("UPDATE users set email=$2 WHERE id=$1", id, newEmail)
 	if err != nil {
-		return fmt.Errorf("couldn't change the email: %v", err)
+		return errors.Wrap(err, "couldn't change the email")
 	}
 
 	return nil
@@ -112,11 +113,11 @@ func (session *session) Login(w http.ResponseWriter, email, password string) err
 	var user model.User
 
 	if err := session.DB.Get(&user, "SELECT * FROM users WHERE email=$1", email); err != nil {
-		return fmt.Errorf("invalid email: %v", err)
+		return errors.Wrap(err, "invalid email")
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
-		return fmt.Errorf("invalid password: %v", err)
+		return errors.Wrap(err, "invalid password")
 	}
 
 	for _, admin := range adminList {
@@ -137,7 +138,7 @@ func (session *session) Login(w http.ResponseWriter, email, password string) err
 	// -UID- used to deny users from making requests to other accounts
 	userID, err := GenerateFixedJWT(user.ID)
 	if err != nil {
-		return fmt.Errorf("failed generating a jwt token: %w", err)
+		return errors.Wrap(err, "failed generating a jwt token")
 	}
 	setCookie(w, "UID", userID, "/", session.length)
 
@@ -169,26 +170,26 @@ func (session *session) Logout(w http.ResponseWriter, r *http.Request, c *http.C
 }
 
 // PasswordChange changes the user password.
-func (session *session) PasswordChange(id, oldPass, newPass string) error {
+func (session *session) PasswordChange(ctx context.Context, id, oldPass, newPass string) error {
 	var user model.User
 
-	if err := session.DB.Get(&user, "SELECT password FROM users WHERE id=$1", id); err != nil {
-		return fmt.Errorf("invalid email: %v", err)
+	if err := session.DB.GetContext(ctx, &user, "SELECT password FROM users WHERE id=$1", id); err != nil {
+		return errors.Wrap(err, "invalid email")
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(oldPass)); err != nil {
-		return fmt.Errorf("invalid old password: %v", err)
+		return errors.Wrap(err, "invalid old password")
 	}
 
 	newPassHash, err := bcrypt.GenerateFromPassword([]byte(newPass), bcrypt.DefaultCost)
 	if err != nil {
-		return fmt.Errorf("couldn't generate the password hash: %v", err)
+		return errors.Wrap(err, "couldn't generate the password hash")
 	}
 	user.Password = string(newPassHash)
 
-	_, err = session.DB.Exec("UPDATE users SET password=$1", user.Password)
+	_, err = session.DB.ExecContext(ctx, "UPDATE users SET password=$1", user.Password)
 	if err != nil {
-		return fmt.Errorf("couldn't change the password: %v", err)
+		return errors.Wrap(err, "couldn't change the password")
 	}
 
 	return nil

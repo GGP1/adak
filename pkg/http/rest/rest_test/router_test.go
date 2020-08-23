@@ -1,6 +1,7 @@
 package rest_test
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -17,7 +18,11 @@ const (
 
 // Fix
 func TestRouting(t *testing.T) {
-	db, close, err := storage.PostgresConnect()
+	ctx := context.Background()
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	db, close, err := storage.PostgresConnect(ctx)
 	if err != nil {
 		t.Fatal("Database failed connecting")
 	}
