@@ -45,10 +45,12 @@ func CreateUser(c creating.Service, pendingList email.Emailer) http.HandlerFunc 
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
-
 		errCh := make(chan error)
-
 		go email.SendValidation(ctx, user, token, errCh)
+		if err != nil {
+			response.Error(w, r, http.StatusInternalServerError, err)
+			return
+		}
 
 		select {
 		case <-ctx.Done():

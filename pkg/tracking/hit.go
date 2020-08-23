@@ -76,25 +76,25 @@ func getLanguage(r *http.Request) string {
 
 		switch parts[0] {
 		case english:
-			language = "English"
+			language = "english"
 		case spanish:
-			language = "Spanish"
+			language = "spanish"
 		case portuguese:
-			language = "Portuguese"
+			language = "portuguese"
 		case chinese:
-			language = "Chinese"
+			language = "chinese"
 		case german:
-			language = "German"
+			language = "german"
 		case french:
-			language = "French"
+			language = "french"
 		case italian:
-			language = "Italian"
+			language = "italian"
 		case russian:
-			language = "Russian"
+			language = "russian"
 		case hindi:
-			language = "Hindi"
+			language = "hindi"
 		case japanese:
-			language = "Japanese"
+			language = "japanese"
 		}
 		return language
 	}

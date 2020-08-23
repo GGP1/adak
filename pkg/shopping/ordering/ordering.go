@@ -137,12 +137,7 @@ func NewOrder(ctx context.Context, db *sqlx.DB, userID, currency, address, city,
 		return nil, errors.Wrap(err, "couldn't reset the cart")
 	}
 
-	select {
-	case <-time.After(0 * time.Nanosecond):
-		return &order, nil
-	case <-ctx.Done():
-		return nil, ctx.Err()
-	}
+	return &order, nil
 }
 
 // Delete removes an order.

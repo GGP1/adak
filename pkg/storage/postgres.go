@@ -1,5 +1,5 @@
 // Package storage implements functions for the manipulation
-// of databases and caches.
+// of databases.
 package storage
 
 import (
@@ -26,43 +26,7 @@ func PostgresConnect(ctx context.Context) (*sqlx.DB, func() error, error) {
 
 	db.MustExecContext(ctx, tables)
 
-	// if err := deleteOrdersTrigger(db); err != nil {
-	// 	return nil, nil, err
-	// }
-
 	return db, db.Close, nil
-}
-
-// If they don't exist, create a function that deletes every order that is outdated,
-// giving a margin of 2 days, and create a trigger that executes every time we insert
-// new orders.
-func deleteOrdersTrigger(db *sqlx.DB) error {
-	function := `
-	CREATE FUNCTION IF NOT EXISTS delete_old_orders() RETURNS trigger
-    	LANGUAGE plpgsql
-		AS $$
-	BEGIN
-		DELETE FROM orders WHERE delivery_date < NOW() - INTERVAL '2 days';
-		RETURN NULL;
-	END;
-	$$;`
-
-	trigger := `
-	CREATE TRIGGER IF NOT EXISTS trigger_delete_old_orders
-		AFTER INSERT ON orders
-		EXECUTE PROCEDURE delete_old_orders();`
-
-	_, err := db.Exec(function)
-	if err != nil {
-		return fmt.Errorf("database function: %w", err)
-	}
-
-	_, err = db.Exec(trigger)
-	if err != nil {
-		return fmt.Errorf("database trigger: %w", err)
-	}
-
-	return nil
 }
 
 // Order matters

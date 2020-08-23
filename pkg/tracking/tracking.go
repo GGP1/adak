@@ -5,7 +5,6 @@ import (
 	"context"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
@@ -49,12 +48,7 @@ func (h *Hitter) Delete(ctx context.Context, id string) error {
 		return errors.Wrap(err, "couldn't delete the hit")
 	}
 
-	select {
-	case <-time.After(0 * time.Nanosecond):
-		return nil
-	case <-ctx.Done():
-		return ctx.Err()
-	}
+	return nil
 }
 
 // Get lists all the hits stored in the database.
@@ -65,12 +59,7 @@ func (h *Hitter) Get(ctx context.Context) ([]Hit, error) {
 		return nil, errors.Wrap(err, "couldn't find the hits")
 	}
 
-	select {
-	case <-time.After(0 * time.Nanosecond):
-		return hits, nil
-	case <-ctx.Done():
-		return nil, ctx.Err()
-	}
+	return hits, nil
 }
 
 // Hit stores the given request.
@@ -93,12 +82,7 @@ func (h *Hitter) Hit(ctx context.Context, r *http.Request) error {
 		}
 	}
 
-	select {
-	case <-time.After(0 * time.Nanosecond):
-		return nil
-	case <-ctx.Done():
-		return ctx.Err()
-	}
+	return nil
 }
 
 // Search looks for a value and returns a slice of the hits that contain that value.
@@ -115,12 +99,7 @@ func (h *Hitter) Search(ctx context.Context, value string) ([]Hit, error) {
 		return nil, errors.New("no hits found")
 	}
 
-	select {
-	case <-time.After(0 * time.Nanosecond):
-		return hits, nil
-	case <-ctx.Done():
-		return nil, ctx.Err()
-	}
+	return hits, nil
 }
 
 // SearchByField looks for a value and returns a slice of the hits that contain that value.
@@ -133,12 +112,7 @@ func (h *Hitter) SearchByField(ctx context.Context, field, value string) ([]Hit,
 		return nil, errors.New("no hits found")
 	}
 
-	select {
-	case <-time.After(0 * time.Nanosecond):
-		return hits, nil
-	case <-ctx.Done():
-		return nil, ctx.Err()
-	}
+	return hits, nil
 }
 
 // Check headers commonly used by bots.

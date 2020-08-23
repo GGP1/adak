@@ -65,12 +65,7 @@ func (s *service) CreateProduct(ctx context.Context, p *model.Product) error {
 		return errors.Wrap(err, "couldn't create the product")
 	}
 
-	select {
-	case <-time.After(0 * time.Nanosecond):
-		return nil
-	case <-ctx.Done():
-		return ctx.Err()
-	}
+	return nil
 }
 
 // CreateReview takes a new review and saves it into the database.
@@ -92,12 +87,7 @@ func (s *service) CreateReview(ctx context.Context, r *model.Review, userID stri
 		return errors.Wrap(err, "couldn't create the review")
 	}
 
-	select {
-	case <-time.After(0 * time.Nanosecond):
-		return nil
-	case <-ctx.Done():
-		return ctx.Err()
-	}
+	return nil
 }
 
 // CreateShop validates a shop and saves it into the database.
@@ -128,12 +118,7 @@ func (s *service) CreateShop(ctx context.Context, shop *model.Shop) error {
 		return errors.Wrap(err, "couldn't create the shop")
 	}
 
-	select {
-	case <-time.After(0 * time.Nanosecond):
-		return nil
-	case <-ctx.Done():
-		return ctx.Err()
-	}
+	return nil
 }
 
 // CreateUser validates a user, hashes its password, sends
@@ -183,10 +168,5 @@ func (s *service) CreateUser(ctx context.Context, user *model.User) error {
 		return errors.Wrap(err, "couldn't create the user")
 	}
 
-	select {
-	case <-time.After(0 * time.Nanosecond):
-		return nil
-	case <-ctx.Done():
-		return ctx.Err()
-	}
+	return nil
 }

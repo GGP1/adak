@@ -3,7 +3,6 @@ package listing
 
 import (
 	"context"
-	"time"
 
 	"github.com/GGP1/palo/pkg/model"
 	"github.com/GGP1/palo/pkg/shopping/ordering"
@@ -74,12 +73,7 @@ func (s *service) GetProducts(ctx context.Context) ([]model.Product, error) {
 		result = append(result, product)
 	}
 
-	select {
-	case <-time.After(0 * time.Nanosecond):
-		return result, nil
-	case <-ctx.Done():
-		return nil, ctx.Err()
-	}
+	return result, nil
 }
 
 // GetProductByID lists the product requested from the database.
@@ -99,12 +93,7 @@ func (s *service) GetProductByID(ctx context.Context, id string) (model.Product,
 
 	product.Reviews = reviews
 
-	select {
-	case <-time.After(0 * time.Nanosecond):
-		return product, nil
-	case <-ctx.Done():
-		return model.Product{}, ctx.Err()
-	}
+	return product, nil
 }
 
 // GetReviews lists all the reviews stored in the database.
@@ -115,12 +104,7 @@ func (s *service) GetReviews(ctx context.Context) ([]model.Review, error) {
 		return nil, errors.Wrap(err, "reviews not found")
 	}
 
-	select {
-	case <-time.After(0 * time.Nanosecond):
-		return reviews, nil
-	case <-ctx.Done():
-		return nil, ctx.Err()
-	}
+	return reviews, nil
 }
 
 // GetReviewByID lists the review requested from the database.
@@ -131,12 +115,7 @@ func (s *service) GetReviewByID(ctx context.Context, id string) (model.Review, e
 		return model.Review{}, errors.Wrap(err, "review not found")
 	}
 
-	select {
-	case <-time.After(0 * time.Nanosecond):
-		return review, nil
-	case <-ctx.Done():
-		return model.Review{}, ctx.Err()
-	}
+	return review, nil
 }
 
 // GetShops lists all the shops stored in the database.
@@ -176,12 +155,7 @@ func (s *service) GetShops(ctx context.Context) ([]model.Shop, error) {
 		result = append(result, shop)
 	}
 
-	select {
-	case <-time.After(0 * time.Nanosecond):
-		return result, nil
-	case <-ctx.Done():
-		return nil, ctx.Err()
-	}
+	return result, nil
 }
 
 // GetShopByID lists the shop requested from the database.
@@ -213,12 +187,7 @@ func (s *service) GetShopByID(ctx context.Context, id string) (model.Shop, error
 	shop.Reviews = reviews
 	shop.Products = products
 
-	select {
-	case <-time.After(0 * time.Nanosecond):
-		return shop, nil
-	case <-ctx.Done():
-		return model.Shop{}, ctx.Err()
-	}
+	return shop, nil
 }
 
 // GetUsers lists all the users stored in the database.
@@ -250,12 +219,7 @@ func (s *service) GetUsers(ctx context.Context) ([]model.User, error) {
 		result = append(result, user)
 	}
 
-	select {
-	case <-time.After(0 * time.Nanosecond):
-		return result, nil
-	case <-ctx.Done():
-		return nil, ctx.Err()
-	}
+	return result, nil
 }
 
 // GetUserByID lists the user requested from the database.
@@ -280,10 +244,5 @@ func (s *service) GetUserByID(ctx context.Context, id string) (model.User, error
 
 	user.Orders = orders
 
-	select {
-	case <-time.After(0 * time.Nanosecond):
-		return user, nil
-	case <-ctx.Done():
-		return model.User{}, ctx.Err()
-	}
+	return user, nil
 }

@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"math"
-	"time"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
@@ -115,12 +114,7 @@ func Add(ctx context.Context, db *sqlx.DB, cartID string, p *CartProduct, quanti
 		return nil, errors.Wrap(err, "couldn't update the cart")
 	}
 
-	select {
-	case <-time.After(0 * time.Nanosecond):
-		return p, nil
-	case <-ctx.Done():
-		return nil, ctx.Err()
-	}
+	return p, nil
 }
 
 // Checkout takes all the products and returns the total price.
@@ -133,12 +127,7 @@ func Checkout(ctx context.Context, db *sqlx.DB, cartID string) (float64, error) 
 
 	total := cart.Total + cart.Taxes - cart.Discount
 
-	select {
-	case <-time.After(0 * time.Nanosecond):
-		return total, nil
-	case <-ctx.Done():
-		return 0, ctx.Err()
-	}
+	return total, nil
 }
 
 // DeleteCart takes a cart from the database and permanently deletes it.
@@ -148,12 +137,7 @@ func DeleteCart(ctx context.Context, db *sqlx.DB, cartID string) error {
 		return errors.New("couldn't delete the cart")
 	}
 
-	select {
-	case <-time.After(0 * time.Nanosecond):
-		return nil
-	case <-ctx.Done():
-		return ctx.Err()
-	}
+	return nil
 }
 
 // Get returns the user cart.
@@ -173,12 +157,7 @@ func Get(ctx context.Context, db *sqlx.DB, cartID string) (Cart, error) {
 
 	cart.Products = products
 
-	select {
-	case <-time.After(0 * time.Nanosecond):
-		return cart, nil
-	case <-ctx.Done():
-		return Cart{}, ctx.Err()
-	}
+	return cart, nil
 }
 
 // Items prints cart products.
@@ -193,12 +172,7 @@ func Items(ctx context.Context, db *sqlx.DB, cartID string) ([]CartProduct, erro
 		return nil, errors.New("cart is empty")
 	}
 
-	select {
-	case <-time.After(0 * time.Nanosecond):
-		return products, nil
-	case <-ctx.Done():
-		return nil, ctx.Err()
-	}
+	return products, nil
 }
 
 // Remove takes away the specified quantity of products from the cart.
@@ -257,12 +231,7 @@ func Remove(ctx context.Context, db *sqlx.DB, cartID string, pID string, quantit
 		return errors.Wrap(err, "couldn't update the cart")
 	}
 
-	select {
-	case <-time.After(0 * time.Nanosecond):
-		return nil
-	case <-ctx.Done():
-		return ctx.Err()
-	}
+	return nil
 }
 
 // Reset sets the cart to its default values.
@@ -281,12 +250,7 @@ func Reset(ctx context.Context, db *sqlx.DB, cartID string) error {
 		return errors.Wrap(err, "couldn't update the cart")
 	}
 
-	select {
-	case <-time.After(0 * time.Nanosecond):
-		return nil
-	case <-ctx.Done():
-		return ctx.Err()
-	}
+	return nil
 }
 
 // Size returns the quantity of products in the cart.
@@ -297,12 +261,7 @@ func Size(ctx context.Context, db *sqlx.DB, cartID string) (int, error) {
 		return 0, errors.Wrap(err, "couldn't find the cart")
 	}
 
-	select {
-	case <-time.After(0 * time.Nanosecond):
-		return cart.Counter, nil
-	case <-ctx.Done():
-		return 0, ctx.Err()
-	}
+	return cart.Counter, nil
 }
 
 // String returns a string with the cart details.
@@ -316,10 +275,5 @@ func String(ctx context.Context, db *sqlx.DB, cartID string) (string, error) {
 	const details = `The cart has %d products, a weight of %2.fkg, $%2.f of discounts, 
 	$%2.f of taxes and a total of $%2.f`
 
-	select {
-	case <-time.After(0 * time.Nanosecond):
-		return fmt.Sprintf(details, c.Counter, c.Weight, c.Discount, c.Taxes, c.Total), nil
-	case <-ctx.Done():
-		return "", ctx.Err()
-	}
+	return fmt.Sprintf(details, c.Counter, c.Weight, c.Discount, c.Taxes, c.Total), nil
 }

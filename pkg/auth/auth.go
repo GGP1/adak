@@ -21,7 +21,7 @@ type Session interface {
 	AlreadyLoggedIn(w http.ResponseWriter, r *http.Request) bool
 	Clean()
 	EmailChange(ctx context.Context, id, newEmail, token string, validatedList email.Emailer) error
-	Login(w http.ResponseWriter, email, password string) error
+	Login(ctx context.Context, w http.ResponseWriter, email, password string) error
 	Logout(w http.ResponseWriter, r *http.Request, c *http.Cookie)
 	PasswordChange(ctx context.Context, id, oldPass, newPass string) error
 }
@@ -85,7 +85,7 @@ func (session *session) Clean() {
 func (session *session) EmailChange(ctx context.Context, id, newEmail, token string, validatedList email.Emailer) error {
 	var user model.User
 
-	if err := session.DB.Select(&user, "SELECT * FROM users WHERE id=?", id); err != nil {
+	if err := session.DB.SelectContext(ctx, &user, "SELECT * FROM users WHERE id=?", id); err != nil {
 		return errors.Wrap(err, "invalid email")
 	}
 
@@ -99,20 +99,21 @@ func (session *session) EmailChange(ctx context.Context, id, newEmail, token str
 		return err
 	}
 
-	_, err := session.DB.Exec("UPDATE users set email=$2 WHERE id=$1", id, newEmail)
+	_, err := session.DB.ExecContext(ctx, "UPDATE users set email=$2 WHERE id=$1", id, newEmail)
 	if err != nil {
 		return errors.Wrap(err, "couldn't change the email")
 	}
 
 	return nil
+
 }
 
 // Login authenticates users and returns a jwt token.
 // If the user is already logged in, redirects him to the home page.
-func (session *session) Login(w http.ResponseWriter, email, password string) error {
+func (session *session) Login(ctx context.Context, w http.ResponseWriter, email, password string) error {
 	var user model.User
 
-	if err := session.DB.Get(&user, "SELECT * FROM users WHERE email=$1", email); err != nil {
+	if err := session.DB.GetContext(ctx, &user, "SELECT * FROM users WHERE email=$1", email); err != nil {
 		return errors.Wrap(err, "invalid email")
 	}
 

@@ -2,7 +2,6 @@ package shopping
 
 import (
 	"context"
-	"time"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
@@ -26,12 +25,7 @@ func FilterByBrand(ctx context.Context, db *sqlx.DB, cartID, brand string) ([]Ca
 		return nil, errNotFound
 	}
 
-	select {
-	case <-time.After(0 * time.Nanosecond):
-		return products, nil
-	case <-ctx.Done():
-		return nil, ctx.Err()
-	}
+	return products, nil
 }
 
 // FilterByCategory looks for products with the specified category.
@@ -48,12 +42,7 @@ func FilterByCategory(ctx context.Context, db *sqlx.DB, cartID, category string)
 		return nil, errNotFound
 	}
 
-	select {
-	case <-time.After(0 * time.Nanosecond):
-		return products, nil
-	case <-ctx.Done():
-		return nil, ctx.Err()
-	}
+	return products, nil
 }
 
 // FilterByDiscount looks for products within the percentage of discount range specified.
@@ -70,12 +59,7 @@ func FilterByDiscount(ctx context.Context, db *sqlx.DB, cartID string, min, max 
 		return nil, errNotFound
 	}
 
-	select {
-	case <-time.After(0 * time.Nanosecond):
-		return products, nil
-	case <-ctx.Done():
-		return nil, ctx.Err()
-	}
+	return products, nil
 }
 
 // FilterBySubtotal looks for products within the subtotal price range specified.
@@ -92,12 +76,7 @@ func FilterBySubtotal(ctx context.Context, db *sqlx.DB, cartID string, min, max 
 		return nil, errNotFound
 	}
 
-	select {
-	case <-time.After(0 * time.Nanosecond):
-		return products, nil
-	case <-ctx.Done():
-		return nil, ctx.Err()
-	}
+	return products, nil
 }
 
 // FilterByTaxes looks for products within the percentage of taxes range specified.
@@ -114,12 +93,7 @@ func FilterByTaxes(ctx context.Context, db *sqlx.DB, cartID string, min, max flo
 		return nil, errNotFound
 	}
 
-	select {
-	case <-time.After(0 * time.Nanosecond):
-		return products, nil
-	case <-ctx.Done():
-		return nil, ctx.Err()
-	}
+	return products, nil
 }
 
 // FilterByTotal looks for products within the total price range specified.
@@ -136,12 +110,7 @@ func FilterByTotal(ctx context.Context, db *sqlx.DB, cartID string, min, max flo
 		return nil, errNotFound
 	}
 
-	select {
-	case <-time.After(0 * time.Nanosecond):
-		return products, nil
-	case <-ctx.Done():
-		return nil, ctx.Err()
-	}
+	return products, nil
 }
 
 // FilterByType looks for products with the specified type.
@@ -158,12 +127,7 @@ func FilterByType(ctx context.Context, db *sqlx.DB, cartID, pType string) ([]Car
 		return nil, errNotFound
 	}
 
-	select {
-	case <-time.After(0 * time.Nanosecond):
-		return products, nil
-	case <-ctx.Done():
-		return nil, ctx.Err()
-	}
+	return products, nil
 }
 
 // FilterByWeight looks for products within the weight range specified.
@@ -180,10 +144,5 @@ func FilterByWeight(ctx context.Context, db *sqlx.DB, cartID string, min, max fl
 		return nil, errNotFound
 	}
 
-	select {
-	case <-time.After(0 * time.Nanosecond):
-		return products, nil
-	case <-ctx.Done():
-		return nil, ctx.Err()
-	}
+	return products, nil
 }

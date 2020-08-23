@@ -3,7 +3,6 @@ package updating
 
 import (
 	"context"
-	"time"
 
 	"github.com/GGP1/palo/pkg/model"
 	"github.com/jmoiron/sqlx"
@@ -46,12 +45,7 @@ func (s *service) UpdateProduct(ctx context.Context, p *model.Product, id string
 		return errors.Wrap(err, "couldn't update the product")
 	}
 
-	select {
-	case <-time.After(0 * time.Nanosecond):
-		return nil
-	case <-ctx.Done():
-		return ctx.Err()
-	}
+	return nil
 }
 
 // UpdateShop updates a shop, returns an error.
@@ -65,12 +59,7 @@ func (s *service) UpdateShop(ctx context.Context, shop *model.Shop, id string) e
 		return errors.Wrap(err, "couldn't update the shop")
 	}
 
-	select {
-	case <-time.After(0 * time.Nanosecond):
-		return nil
-	case <-ctx.Done():
-		return ctx.Err()
-	}
+	return nil
 }
 
 // UpdateUser returns updates a user, returns an error.
@@ -82,10 +71,5 @@ func (s *service) UpdateUser(ctx context.Context, u *model.User, id string) erro
 		return errors.Wrap(err, "couldn't update the user")
 	}
 
-	select {
-	case <-time.After(0 * time.Nanosecond):
-		return nil
-	case <-ctx.Done():
-		return ctx.Err()
-	}
+	return nil
 }

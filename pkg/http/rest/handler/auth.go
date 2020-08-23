@@ -130,17 +130,13 @@ func Login(s auth.Session, validatedList email.Emailer) http.HandlerFunc {
 			return
 		}
 
-		if err := s.Login(w, user.Email, user.Password); err != nil {
+		if err := s.Login(ctx, w, user.Email, user.Password); err != nil {
 			response.Error(w, r, http.StatusUnauthorized, err)
 			return
 		}
 
-		select {
-		case <-ctx.Done():
-			response.Error(w, r, http.StatusInternalServerError, ctx.Err())
-		default:
-			response.HTMLText(w, r, http.StatusOK, "You logged in!")
-		}
+		response.HTMLText(w, r, http.StatusOK, "You logged in!")
+
 	}
 }
 
@@ -187,11 +183,6 @@ func PasswordChange(s auth.Session, l listing.Service) http.HandlerFunc {
 			return
 		}
 
-		select {
-		case <-ctx.Done():
-			response.Error(w, r, http.StatusInternalServerError, ctx.Err())
-		}
-
 		response.HTMLText(w, r, http.StatusOK, "Password changed successfully.")
 	}
 }
@@ -232,11 +223,6 @@ func ValidateEmail(pendingList, validatedList email.Emailer) http.HandlerFunc {
 		if !validated {
 			response.Error(w, r, http.StatusInternalServerError, errors.New("error: email validation failed"))
 			return
-		}
-
-		select {
-		case <-ctx.Done():
-			response.Error(w, r, http.StatusInternalServerError, ctx.Err())
 		}
 
 		response.HTMLText(w, r, http.StatusOK, "You have successfully validated your email!")

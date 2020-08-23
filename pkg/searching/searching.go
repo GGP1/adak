@@ -4,7 +4,6 @@ package searching
 
 import (
 	"context"
-	"time"
 
 	"github.com/GGP1/palo/pkg/model"
 	"github.com/GGP1/palo/pkg/shopping/ordering"
@@ -63,12 +62,7 @@ func (s *service) SearchProducts(ctx context.Context, search string) ([]model.Pr
 		result = append(result, product)
 	}
 
-	select {
-	case <-time.After(0 * time.Nanosecond):
-		return result, nil
-	case <-ctx.Done():
-		return nil, ctx.Err()
-	}
+	return result, nil
 }
 
 // SearchShops looks for the shops that contain the value specified. (Only text fields)
@@ -111,12 +105,7 @@ func (s *service) SearchShops(ctx context.Context, search string) ([]model.Shop,
 		result = append(result, shop)
 	}
 
-	select {
-	case <-time.After(0 * time.Nanosecond):
-		return result, nil
-	case <-ctx.Done():
-		return nil, ctx.Err()
-	}
+	return result, nil
 }
 
 // SearchUsers looks for the users that contain the value specified. (Only text fields)
@@ -152,10 +141,5 @@ func (s *service) SearchUsers(ctx context.Context, search string) ([]model.User,
 		result = append(result, user)
 	}
 
-	select {
-	case <-time.After(0 * time.Nanosecond):
-		return result, nil
-	case <-ctx.Done():
-		return nil, ctx.Err()
-	}
+	return result, nil
 }

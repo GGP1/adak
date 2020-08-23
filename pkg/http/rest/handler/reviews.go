@@ -2,7 +2,6 @@ package handler
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"github.com/GGP1/palo/internal/response"
@@ -79,14 +78,7 @@ func GetReviews(l listing.Service) http.HandlerFunc {
 			return
 		}
 
-		select {
-		default:
-			response.JSON(w, r, http.StatusOK, reviews)
-		case <-ctx.Done():
-			response.Error(w, r, http.StatusInternalServerError, ctx.Err())
-			fmt.Println("context canceled")
-		}
-
+		response.JSON(w, r, http.StatusOK, reviews)
 	}
 }
 

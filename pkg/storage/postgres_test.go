@@ -16,11 +16,7 @@ const (
 	failed  = "\u2717"
 )
 
-func TestDatabase(t *testing.T) {
-	t.Run("database", database)
-}
-
-func database(t *testing.T) {
+func TestPostgres(t *testing.T) {
 	t.Log("Given the need to test database connection.")
 	{
 		t.Logf("\tTest 0:\tWhen checking the database connection.")
@@ -38,6 +34,14 @@ func database(t *testing.T) {
 					t.Fatalf("\t%s\tShould be of type *sqlx.DB: %T", failed, db)
 				}
 				t.Logf("\t%s\tShould be of type *sqlx.DB.", succeed)
+			}
+
+			t.Logf("\tTest 2:\tWhen verifying that the connection is still alive.")
+			{
+				if err := db.Ping(); err != nil {
+					t.Fatalf("\t%s\tShould be nil: %v", failed, err)
+				}
+				t.Logf("\t%s\tShould be nil.", succeed)
 			}
 		}
 	}

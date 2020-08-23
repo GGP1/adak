@@ -3,7 +3,6 @@ package deleting
 
 import (
 	"context"
-	"time"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
@@ -42,12 +41,7 @@ func (s *service) DeleteProduct(ctx context.Context, id string) error {
 		return errors.Wrap(err, "couldn't delete the product")
 	}
 
-	select {
-	case <-time.After(0 * time.Nanosecond):
-		return nil
-	case <-ctx.Done():
-		return ctx.Err()
-	}
+	return nil
 }
 
 // DeleteReview takes a review from the database and permanently deletes it.
@@ -57,12 +51,7 @@ func (s *service) DeleteReview(ctx context.Context, id string) error {
 		return errors.Wrap(err, "couldn't delete the review")
 	}
 
-	select {
-	case <-time.After(0 * time.Nanosecond):
-		return nil
-	case <-ctx.Done():
-		return ctx.Err()
-	}
+	return nil
 }
 
 // DeleteShop takes a shop from the database and permanently deletes it.
@@ -72,12 +61,7 @@ func (s *service) DeleteShop(ctx context.Context, id string) error {
 		return errors.Wrap(err, "couldn't delete the shop")
 	}
 
-	select {
-	case <-time.After(0 * time.Nanosecond):
-		return nil
-	case <-ctx.Done():
-		return ctx.Err()
-	}
+	return nil
 }
 
 // DeleteUser takes a user from the database and permanently deletes it.
@@ -87,10 +71,5 @@ func (s *service) DeleteUser(ctx context.Context, id string) error {
 		return errors.Wrap(err, "couldn't delete the user")
 	}
 
-	select {
-	case <-time.After(0 * time.Nanosecond):
-		return nil
-	case <-ctx.Done():
-		return ctx.Err()
-	}
+	return nil
 }
