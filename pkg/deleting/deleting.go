@@ -34,7 +34,7 @@ func NewService(r Repository, db *sqlx.DB) Service {
 	return &service{r, db}
 }
 
-// DeleteProduct takes a product from the database and permanently deletes it.
+// DeleteProduct permanently deletes a product from the database.
 func (s *service) DeleteProduct(ctx context.Context, id string) error {
 	_, err := s.DB.ExecContext(ctx, "DELETE FROM products WHERE id=$1", id)
 	if err != nil {
@@ -44,7 +44,7 @@ func (s *service) DeleteProduct(ctx context.Context, id string) error {
 	return nil
 }
 
-// DeleteReview takes a review from the database and permanently deletes it.
+// DeleteReview permanently deletes a review from the database.
 func (s *service) DeleteReview(ctx context.Context, id string) error {
 	_, err := s.DB.ExecContext(ctx, "DELETE FROM reviews WHERE id=$1", id)
 	if err != nil {
@@ -54,7 +54,7 @@ func (s *service) DeleteReview(ctx context.Context, id string) error {
 	return nil
 }
 
-// DeleteShop takes a shop from the database and permanently deletes it.
+// DeleteShop permanently deletes a shop from the database.
 func (s *service) DeleteShop(ctx context.Context, id string) error {
 	_, err := s.DB.ExecContext(ctx, "DELETE FROM shops WHERE id=$1", id)
 	if err != nil {
@@ -64,7 +64,7 @@ func (s *service) DeleteShop(ctx context.Context, id string) error {
 	return nil
 }
 
-// DeleteUser takes a user from the database and permanently deletes it.
+// DeleteUser permanently deletes a user from the database.
 func (s *service) DeleteUser(ctx context.Context, id string) error {
 	_, err := s.DB.ExecContext(ctx, "DELETE FROM users WHERE id=$1", id)
 	if err != nil {

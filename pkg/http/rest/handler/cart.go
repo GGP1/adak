@@ -2,18 +2,18 @@ package handler
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 	"strconv"
 
 	"github.com/GGP1/palo/internal/response"
 	"github.com/GGP1/palo/pkg/shopping"
-	"github.com/jmoiron/sqlx"
 
 	"github.com/go-chi/chi"
+	"github.com/jmoiron/sqlx"
+	"github.com/pkg/errors"
 )
 
-// CartAdd appends a product to the cart
+// CartAdd appends a product to the cart.
 func CartAdd(db *sqlx.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		q := chi.URLParam(r, "quantity")
@@ -29,7 +29,7 @@ func CartAdd(db *sqlx.DB) http.HandlerFunc {
 		}
 
 		if quantity == 0 {
-			response.Error(w, r, http.StatusBadRequest, fmt.Errorf("error: please insert a valid quantity"))
+			response.Error(w, r, http.StatusBadRequest, errors.New("error: please insert a valid quantity"))
 			return
 		}
 
@@ -51,7 +51,7 @@ func CartAdd(db *sqlx.DB) http.HandlerFunc {
 	}
 }
 
-// CartCheckout returns the final purchase
+// CartCheckout returns the final purchase.
 func CartCheckout(db *sqlx.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		c, _ := r.Cookie("CID")
@@ -68,7 +68,7 @@ func CartCheckout(db *sqlx.DB) http.HandlerFunc {
 	}
 }
 
-// CartFilterByBrand returns the products filtered by brand
+// CartFilterByBrand returns the products filtered by brand.
 func CartFilterByBrand(db *sqlx.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		brand := chi.URLParam(r, "brand")
@@ -86,7 +86,7 @@ func CartFilterByBrand(db *sqlx.DB) http.HandlerFunc {
 	}
 }
 
-// CartFilterByCategory returns the products filtered by category
+// CartFilterByCategory returns the products filtered by category.
 func CartFilterByCategory(db *sqlx.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		category := chi.URLParam(r, "category")
@@ -104,7 +104,7 @@ func CartFilterByCategory(db *sqlx.DB) http.HandlerFunc {
 	}
 }
 
-// CartFilterByDiscount returns the products filtered by discount
+// CartFilterByDiscount returns the products filtered by discount.
 func CartFilterByDiscount(db *sqlx.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		min := chi.URLParam(r, "min")
@@ -126,7 +126,7 @@ func CartFilterByDiscount(db *sqlx.DB) http.HandlerFunc {
 	}
 }
 
-// CartFilterBySubtotal returns the products filtered by subtotal
+// CartFilterBySubtotal returns the products filtered by subtotal.
 func CartFilterBySubtotal(db *sqlx.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		min := chi.URLParam(r, "min")
@@ -148,7 +148,7 @@ func CartFilterBySubtotal(db *sqlx.DB) http.HandlerFunc {
 	}
 }
 
-// CartFilterByTaxes returns the products filtered by taxes
+// CartFilterByTaxes returns the products filtered by taxes.
 func CartFilterByTaxes(db *sqlx.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		min := chi.URLParam(r, "min")
@@ -170,7 +170,7 @@ func CartFilterByTaxes(db *sqlx.DB) http.HandlerFunc {
 	}
 }
 
-// CartFilterByTotal returns the products filtered by total
+// CartFilterByTotal returns the products filtered by total.
 func CartFilterByTotal(db *sqlx.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		min := chi.URLParam(r, "min")
@@ -192,7 +192,7 @@ func CartFilterByTotal(db *sqlx.DB) http.HandlerFunc {
 	}
 }
 
-// CartFilterByType returns the products filtered by type
+// CartFilterByType returns the products filtered by type.
 func CartFilterByType(db *sqlx.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		productType := chi.URLParam(r, "type")
@@ -210,7 +210,7 @@ func CartFilterByType(db *sqlx.DB) http.HandlerFunc {
 	}
 }
 
-// CartFilterByWeight returns the products filtered by weight
+// CartFilterByWeight returns the products filtered by weight.
 func CartFilterByWeight(db *sqlx.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		min := chi.URLParam(r, "min")
@@ -232,7 +232,7 @@ func CartFilterByWeight(db *sqlx.DB) http.HandlerFunc {
 	}
 }
 
-// CartGet returns the cart in a JSON format
+// CartGet returns the cart in a JSON format.
 func CartGet(db *sqlx.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		c, _ := r.Cookie("CID")
@@ -249,14 +249,14 @@ func CartGet(db *sqlx.DB) http.HandlerFunc {
 	}
 }
 
-// CartItems prints cart items
-func CartItems(db *sqlx.DB) http.HandlerFunc {
+// CartProducts retrieves cart products.
+func CartProducts(db *sqlx.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		c, _ := r.Cookie("CID")
 
 		ctx := r.Context()
 
-		items, err := shopping.Items(ctx, db, c.Value)
+		items, err := shopping.Products(ctx, db, c.Value)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
@@ -266,7 +266,7 @@ func CartItems(db *sqlx.DB) http.HandlerFunc {
 	}
 }
 
-// CartRemove takes out a product from the shopping cart
+// CartRemove takes out a product from the shopping cart.
 func CartRemove(db *sqlx.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
@@ -290,7 +290,7 @@ func CartRemove(db *sqlx.DB) http.HandlerFunc {
 	}
 }
 
-// CartReset resets the cart to its default state
+// CartReset resets the cart to its default state.
 func CartReset(db *sqlx.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		c, _ := r.Cookie("CID")
@@ -306,7 +306,7 @@ func CartReset(db *sqlx.DB) http.HandlerFunc {
 	}
 }
 
-// CartSize returns the size of the shopping cart
+// CartSize returns the size of the shopping cart.
 func CartSize(db *sqlx.DB) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		c, _ := r.Cookie("CID")

@@ -10,9 +10,9 @@ import (
 	"github.com/GGP1/palo/pkg/deleting"
 	"github.com/GGP1/palo/pkg/listing"
 	"github.com/GGP1/palo/pkg/model"
-	"github.com/jmoiron/sqlx"
 
 	"github.com/go-chi/chi"
+	"github.com/jmoiron/sqlx"
 )
 
 // Reviews handles reviews routes.

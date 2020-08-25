@@ -5,6 +5,7 @@ import (
 	"context"
 
 	"github.com/GGP1/palo/pkg/model"
+
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 )
@@ -33,7 +34,7 @@ func NewService(r Repository, db *sqlx.DB) Service {
 	return &service{r, db}
 }
 
-// UpdateProduct updates a product, returns an error.
+// UpdateProduct updates product fields.
 func (s *service) UpdateProduct(ctx context.Context, p *model.Product, id string) error {
 	q := `UPDATE products SET stock=$2, brand=$3, category=$4, type=$5,
 	description=$6, weight=$7, discount=$8, taxes=$9, subtotal=$10, total=$11
@@ -48,7 +49,7 @@ func (s *service) UpdateProduct(ctx context.Context, p *model.Product, id string
 	return nil
 }
 
-// UpdateShop updates a shop, returns an error.
+// UpdateShop updates shop fields.
 func (s *service) UpdateShop(ctx context.Context, shop *model.Shop, id string) error {
 	q := `UPDATE shops SET name=$2, country=$3, city=$4, address=$5
 	WHERE id=$1`
@@ -62,7 +63,7 @@ func (s *service) UpdateShop(ctx context.Context, shop *model.Shop, id string) e
 	return nil
 }
 
-// UpdateUser returns updates a user, returns an error.
+// UpdateUser sets new values for an already existing user.
 func (s *service) UpdateUser(ctx context.Context, u *model.User, id string) error {
 	q := `UPDATE users SET name=$2, email=$3 WHERE id=$1`
 

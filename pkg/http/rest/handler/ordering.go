@@ -12,13 +12,13 @@ import (
 	"github.com/GGP1/palo/pkg/model"
 	"github.com/GGP1/palo/pkg/shopping"
 	"github.com/GGP1/palo/pkg/shopping/ordering"
-
 	"github.com/GGP1/palo/pkg/shopping/payment/stripe"
+
 	"github.com/go-chi/chi"
 	"github.com/jmoiron/sqlx"
 )
 
-// OrderParams holds the parameters for creating a order
+// OrderParams holds the parameters for creating a order.
 type OrderParams struct {
 	Currency string     `json:"currency"`
 	Address  string     `json:"address"`
@@ -79,6 +79,7 @@ func NewOrder(db *sqlx.DB) http.HandlerFunc {
 			o   OrderParams
 			ctx = r.Context()
 		)
+
 		if err := json.NewDecoder(r.Body).Decode(&o); err != nil {
 			response.Error(w, r, http.StatusBadRequest, err)
 		}
@@ -99,7 +100,7 @@ func NewOrder(db *sqlx.DB) http.HandlerFunc {
 		deliveryDate := time.Date(o.Date.Year, time.Month(o.Date.Month), o.Date.Day, o.Date.Hour, o.Date.Minutes, 0, 0, time.Local)
 
 		if deliveryDate.Sub(time.Now()) < 0 {
-			response.Error(w, r, http.StatusBadRequest, fmt.Errorf("past dates are not valid"))
+			response.Error(w, r, http.StatusBadRequest, errors.New("past dates are not valid"))
 			return
 		}
 
@@ -123,7 +124,7 @@ func NewOrder(db *sqlx.DB) http.HandlerFunc {
 
 		order.Status = ordering.PaidState
 
-		_, err = db.Exec("UPDATE orders SET status=$2 WHERE id=$1", order.ID, order.Status)
+		_, err = db.ExecContext(ctx, "UPDATE orders SET status=$2 WHERE id=$1", order.ID, order.Status)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return

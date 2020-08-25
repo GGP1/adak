@@ -4,11 +4,11 @@ package storage
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/GGP1/palo/internal/cfg"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/pkg/errors"
 )
 
 // PostgresConnect creates a connection with the database using the postgres driver
@@ -17,11 +17,11 @@ import (
 func PostgresConnect(ctx context.Context) (*sqlx.DB, func() error, error) {
 	db, err := sqlx.Open("postgres", cfg.DBURL)
 	if err != nil {
-		return nil, nil, fmt.Errorf("couldn't open the database: %w", err)
+		return nil, nil, errors.Wrap(err, "couldn't open the database")
 	}
 
 	if err := db.Ping(); err != nil {
-		return nil, nil, fmt.Errorf("database connection died: %w", err)
+		return nil, nil, errors.Wrap(err, "database connection died")
 	}
 
 	db.MustExecContext(ctx, tables)
@@ -190,13 +190,13 @@ CREATE TABLE IF NOT EXISTS order_products
 
 CREATE TABLE IF NOT EXISTS pending_list
 (
-    email text,
-    token text
+    email text NOT NULL,
+    token text NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS validated_list
 (
-    email text,
-    token text
+    email text NOT NULL,
+    token text NOT NULL
 )
 `

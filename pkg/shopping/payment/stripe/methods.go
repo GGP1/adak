@@ -1,10 +1,9 @@
 package stripe
 
 import (
-	"fmt"
-
 	"github.com/GGP1/palo/pkg/model"
 
+	"github.com/pkg/errors"
 	stripe "github.com/stripe/stripe-go"
 	"github.com/stripe/stripe-go/paymentmethod"
 )
@@ -17,7 +16,7 @@ func AttachMethod(customerID, methodID string) (*stripe.PaymentMethod, error) {
 
 	pm, err := paymentmethod.Attach(methodID, params)
 	if err != nil {
-		return nil, fmt.Errorf("stripe: PaymentMethod: %v", err)
+		return nil, errors.Wrap(err, "stripe: PaymentMethod")
 	}
 
 	return pm, nil
@@ -37,7 +36,7 @@ func CreateMethod(card model.Card) (string, error) {
 
 	pm, err := paymentmethod.New(params)
 	if err != nil {
-		return "", fmt.Errorf("stripe: PaymentMethod: %v", err)
+		return "", errors.Wrap(err, "stripe: PaymentMethod")
 	}
 
 	return pm.ID, nil
@@ -47,7 +46,7 @@ func CreateMethod(card model.Card) (string, error) {
 func DetachMethod(methodID string) (*stripe.PaymentMethod, error) {
 	pm, err := paymentmethod.Detach(methodID, nil)
 	if err != nil {
-		return nil, fmt.Errorf("stripe: PaymentMethod: %v", err)
+		return nil, errors.Wrap(err, "stripe: PaymentMethod")
 	}
 
 	return pm, nil
@@ -74,7 +73,7 @@ func ListMethods(customerID string) []*stripe.PaymentMethod {
 func RetrieveMethod(methodID string) (*stripe.PaymentMethod, error) {
 	pm, err := paymentmethod.Get(methodID, nil)
 	if err != nil {
-		return nil, fmt.Errorf("stripe: PaymentMethod: %v", err)
+		return nil, errors.Wrap(err, "stripe: PaymentMethod")
 	}
 
 	return pm, nil
@@ -87,7 +86,7 @@ func UpdateMethod(methodID string) (*stripe.PaymentMethod, error) {
 
 	pm, err := paymentmethod.Update(methodID, params)
 	if err != nil {
-		return nil, fmt.Errorf("stripe: PaymentMethod: %v", err)
+		return nil, errors.Wrap(err, "stripe: PaymentMethod")
 	}
 
 	return pm, nil

@@ -1,5 +1,8 @@
 package tracking
 
+// userAgentBotList is a slice of strings used to block hits that
+// contain bot related content. If any of this strings are found in
+// the footprint, then the hit is going to be discarded.
 var userAgentBotlist = []string{
 	"://", // urls
 	"bot",

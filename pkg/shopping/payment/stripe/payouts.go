@@ -1,8 +1,7 @@
 package stripe
 
 import (
-	"fmt"
-
+	"github.com/pkg/errors"
 	stripe "github.com/stripe/stripe-go"
 	"github.com/stripe/stripe-go/payout"
 )
@@ -11,7 +10,7 @@ import (
 func CancelPayout(payoutID string) (*stripe.Payout, error) {
 	p, err := payout.Cancel(payoutID, nil)
 	if err != nil {
-		return nil, fmt.Errorf("stripe: Payout: %v", err)
+		return nil, errors.Wrap(err, "stripe: Payout")
 	}
 
 	return p, nil
@@ -26,7 +25,7 @@ func CreatePayout(amount int) (*stripe.Payout, error) {
 
 	p, err := payout.New(params)
 	if err != nil {
-		return nil, fmt.Errorf("stripe: Payout: %v", err)
+		return nil, errors.Wrap(err, "stripe: Payout")
 	}
 
 	return p, nil
@@ -36,7 +35,7 @@ func CreatePayout(amount int) (*stripe.Payout, error) {
 func GetPayout(payoutID string) (*stripe.Payout, error) {
 	p, err := payout.Get(payoutID, nil)
 	if err != nil {
-		return nil, fmt.Errorf("stripe: Payout: %v", err)
+		return nil, errors.Wrap(err, "stripe: Payout")
 	}
 
 	return p, nil
@@ -62,7 +61,7 @@ func ListPayouts() []*stripe.Payout {
 func UpdatePayout(payoutID string) (*stripe.Payout, error) {
 	p, err := payout.Update(payoutID, nil)
 	if err != nil {
-		return nil, fmt.Errorf("stripe: Payout: %v", err)
+		return nil, errors.Wrap(err, "stripe: Payout")
 	}
 
 	return p, nil

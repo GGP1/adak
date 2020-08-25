@@ -90,7 +90,7 @@ func Add(ctx context.Context, db *sqlx.DB, cartID string, p *CartProduct, quanti
 	}
 
 	db.QueryRow("SELECT SUM(quantity) FROM cart_products WHERE id=$1 AND cart_id=$2", p.ID, cartID).Scan(&sum)
-
+	// If sum == 0 (does not exist a product with the same id and cart_id), create the product.
 	if sum == 0 {
 		_, err := db.ExecContext(ctx, pQuery, p.ID, cartID, p.Quantity, p.Brand, p.Category, p.Type, p.Description,
 			p.Weight, p.Discount, p.Taxes, p.Subtotal, p.Total)
@@ -98,7 +98,7 @@ func Add(ctx context.Context, db *sqlx.DB, cartID string, p *CartProduct, quanti
 			return nil, errors.Wrap(err, "couldn't create the product")
 		}
 	}
-
+	// If sum != 0 (product already exists), update the quantity.
 	if sum != 0 {
 		p.Quantity += sum
 
@@ -117,7 +117,7 @@ func Add(ctx context.Context, db *sqlx.DB, cartID string, p *CartProduct, quanti
 	return p, nil
 }
 
-// Checkout takes all the products and returns the total price.
+// Checkout returns the cart total.
 func Checkout(ctx context.Context, db *sqlx.DB, cartID string) (float64, error) {
 	var cart Cart
 
@@ -130,7 +130,7 @@ func Checkout(ctx context.Context, db *sqlx.DB, cartID string) (float64, error) 
 	return total, nil
 }
 
-// DeleteCart takes a cart from the database and permanently deletes it.
+// DeleteCart permanently deletes a cart from the database.
 func DeleteCart(ctx context.Context, db *sqlx.DB, cartID string) error {
 	_, err := db.ExecContext(ctx, "DELETE FROM carts WHERE id=$1", cartID)
 	if err != nil {
@@ -160,8 +160,8 @@ func Get(ctx context.Context, db *sqlx.DB, cartID string) (Cart, error) {
 	return cart, nil
 }
 
-// Items prints cart products.
-func Items(ctx context.Context, db *sqlx.DB, cartID string) ([]CartProduct, error) {
+// Products returns the cart products.
+func Products(ctx context.Context, db *sqlx.DB, cartID string) ([]CartProduct, error) {
 	var products []CartProduct
 
 	if err := db.SelectContext(ctx, &products, "SELECT * FROM cart_products WHERE cart_id=$1", cartID); err != nil {
@@ -234,26 +234,25 @@ func Remove(ctx context.Context, db *sqlx.DB, cartID string, pID string, quantit
 	return nil
 }
 
-// Reset sets the cart to its default values.
+// Reset sets cart values to default.
 func Reset(ctx context.Context, db *sqlx.DB, cartID string) error {
 	cQuery := `UPDATE carts SET counter=$2, weight=$3, discount=$4, taxes=$5, 
 	subtotal=$6, total=$7 WHERE id=$1`
 
 	_, err := db.ExecContext(ctx, "DELETE FROM cart_products WHERE cart_id=$1", cartID)
 	if err != nil {
-		return errors.Wrap(err, "couldn't delete the product")
+		return errors.Wrap(err, "couldn't delete cart products")
 	}
 
-	// Set cart values to 0
 	_, err = db.ExecContext(ctx, cQuery, cartID, 0, 0, 0, 0, 0, 0)
 	if err != nil {
-		return errors.Wrap(err, "couldn't update the cart")
+		return errors.Wrap(err, "couldn't reset the cart")
 	}
 
 	return nil
 }
 
-// Size returns the quantity of products in the cart.
+// Size returns the quantity of products inside the cart.
 func Size(ctx context.Context, db *sqlx.DB, cartID string) (int, error) {
 	var cart Cart
 

@@ -42,7 +42,7 @@ func NewService(r Repository, db *sqlx.DB) Service {
 	return &service{r, db}
 }
 
-// CreateProduct validates a product and saves it into the database.
+// CreateProduct creates a product.
 func (s *service) CreateProduct(ctx context.Context, p *model.Product) error {
 	q := `INSERT INTO products 
 	(id, shop_id, stock, brand, category, type, description, weight, discount, taxes, subtotal, total, created_at, updated_at)
@@ -68,7 +68,7 @@ func (s *service) CreateProduct(ctx context.Context, p *model.Product) error {
 	return nil
 }
 
-// CreateReview takes a new review and saves it into the database.
+// CreateReview creates a review.
 func (s *service) CreateReview(ctx context.Context, r *model.Review, userID string) error {
 	q := `INSERT INTO reviews
 	(id, stars, comment, user_id, product_id, shop_id, created_at, updated_at)
@@ -90,7 +90,7 @@ func (s *service) CreateReview(ctx context.Context, r *model.Review, userID stri
 	return nil
 }
 
-// CreateShop validates a shop and saves it into the database.
+// CreateShop creates a shop.
 func (s *service) CreateShop(ctx context.Context, shop *model.Shop) error {
 	sQuery := `INSERT INTO shops
 	(id, name, created_at, updated_at)
@@ -121,8 +121,7 @@ func (s *service) CreateShop(ctx context.Context, shop *model.Shop) error {
 	return nil
 }
 
-// CreateUser validates a user, hashes its password, sends
-// a verification email and saves it into the database.
+// CreateUser creates a user.
 func (s *service) CreateUser(ctx context.Context, user *model.User) error {
 	cartQuery := `INSERT INTO carts
 	(id, counter, weight, discount, taxes, subtotal, total)

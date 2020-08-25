@@ -1,7 +1,6 @@
 package model
 
 import (
-	"errors"
 	"fmt"
 	"image"
 	"regexp"
@@ -10,6 +9,7 @@ import (
 
 	"github.com/GGP1/palo/pkg/shopping/ordering"
 
+	"github.com/pkg/errors"
 	qrcode "github.com/skip2/go-qrcode"
 )
 
@@ -27,7 +27,7 @@ type User struct {
 	UpdatedAt time.Time        `json:"updated_at" db:"updated_at"`
 }
 
-// Card respresents a user card.
+// Card symbolizes a user card.
 type Card struct {
 	Number   string `json:"number"`
 	ExpMonth string `json:"exp_month"`
@@ -39,7 +39,7 @@ type Card struct {
 func (u *User) QRCode() (image.Image, error) {
 	qr, err := qrcode.New(fmt.Sprintf("http://127.0.0.1/users/%s", u.ID), qrcode.Medium)
 	if err != nil {
-		return nil, fmt.Errorf("qrcode: %v", err)
+		return nil, errors.Wrap(err, "qrcode")
 	}
 
 	img := qr.Image(256)

@@ -7,7 +7,6 @@ import (
 )
 
 // Product represents a market commodity.
-// It contains its properties, reviews and belongs to one shop.
 type Product struct {
 	ID          string    `json:"id"`
 	ShopID      string    `json:"shop_id" db:"shop_id"`

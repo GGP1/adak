@@ -1,12 +1,12 @@
 package stripe
 
 import (
-	"errors"
 	"fmt"
 
 	"github.com/GGP1/palo/pkg/model"
 	"github.com/GGP1/palo/pkg/shopping/ordering"
 
+	"github.com/pkg/errors"
 	stripe "github.com/stripe/stripe-go"
 	"github.com/stripe/stripe-go/paymentintent"
 )
@@ -15,7 +15,7 @@ import (
 func CancelIntent(intentID string) error {
 	_, err := paymentintent.Cancel(intentID, nil)
 	if err != nil {
-		return fmt.Errorf("stripe: PaymentIntent: %v", err)
+		return errors.Wrap(err, "stripe: PaymentIntent")
 	}
 
 	return nil
@@ -26,7 +26,7 @@ func CancelIntent(intentID string) error {
 func CaptureIntent(intentID string) error {
 	_, err := paymentintent.Capture(intentID, nil)
 	if err != nil {
-		return fmt.Errorf("stripe: PaymentIntent: %v", err)
+		return errors.Wrap(err, "stripe: PaymentIntent")
 	}
 
 	return nil
@@ -37,7 +37,7 @@ func CaptureIntent(intentID string) error {
 func ConfirmIntent(intentID string, source *stripe.Source) error {
 	pi, err := paymentintent.Get(intentID, nil)
 	if err != nil {
-		return fmt.Errorf("stripe: PaymentIntent: %v", err)
+		return errors.Wrap(err, "stripe: PaymentIntent")
 	}
 
 	if pi.Status != "requires_payment_method" {
@@ -50,7 +50,7 @@ func ConfirmIntent(intentID string, source *stripe.Source) error {
 
 	_, err = paymentintent.Confirm(pi.ID, params)
 	if err != nil {
-		return fmt.Errorf("stripe: PaymentIntent: %v", err)
+		return errors.Wrap(err, "stripe: PaymentIntent")
 	}
 
 	return nil
@@ -90,11 +90,11 @@ func CreateIntent(order *ordering.Order, card model.Card) (*stripe.PaymentIntent
 
 	pi, err := paymentintent.New(params)
 	if err != nil {
-		return nil, fmt.Errorf("stripe: PaymentIntent: %v", err)
+		return nil, errors.Wrap(err, "stripe: PaymentIntent")
 	}
 
 	if pi.Status == stripe.PaymentIntentStatusCanceled {
-		return nil, fmt.Errorf("stripe: invalid PaymentIntent status: %s", pi.Status)
+		return nil, errors.Wrapf(err, "stripe: invalid PaymentIntent status: %s", pi.Status)
 	}
 
 	return pi, nil
@@ -120,7 +120,7 @@ func ListIntents() []*stripe.PaymentIntent {
 func RetrieveIntent(intentID string) (*stripe.PaymentIntent, error) {
 	pi, err := paymentintent.Get(intentID, nil)
 	if err != nil {
-		return nil, fmt.Errorf("stripe: PaymentIntent: %v", err)
+		return nil, errors.Wrap(err, "stripe: PaymentIntent")
 	}
 
 	return pi, nil
@@ -134,7 +134,7 @@ func UpdateIntent(intentID string, order ordering.Order) (*stripe.PaymentIntent,
 
 	pi, err := paymentintent.Update(intentID, params)
 	if err != nil {
-		return nil, fmt.Errorf("stripe: PaymentIntent: %v", err)
+		return nil, errors.Wrap(err, "stripe: PaymentIntent")
 	}
 
 	return pi, nil

@@ -3,8 +3,6 @@ package handler
 
 import (
 	"encoding/json"
-	"errors"
-	"fmt"
 	"net/http"
 
 	"github.com/GGP1/palo/internal/response"
@@ -14,6 +12,7 @@ import (
 	"github.com/GGP1/palo/pkg/model"
 
 	"github.com/go-chi/chi"
+	"github.com/pkg/errors"
 )
 
 type changeEmail struct {
@@ -64,7 +63,7 @@ func EmailChange(validatedList email.Emailer, l listing.Service) http.HandlerFun
 
 		token, err := auth.GenerateJWT(user)
 		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, fmt.Errorf("could not generate the jwt token: %w", err))
+			response.Error(w, r, http.StatusInternalServerError, errors.Wrap(err, "could not generate the jwt token"))
 			return
 		}
 
@@ -74,7 +73,7 @@ func EmailChange(validatedList email.Emailer, l listing.Service) http.HandlerFun
 
 		select {
 		case <-errCh:
-			response.Error(w, r, http.StatusInternalServerError, fmt.Errorf("failed sending confirmation email: %w", <-errCh))
+			response.Error(w, r, http.StatusInternalServerError, errors.Wrap(<-errCh, "failed sending confirmation email"))
 			return
 		default:
 			response.HTMLText(w, r, http.StatusOK, "We sent you an email to confirm that it is you.")
@@ -126,7 +125,7 @@ func Login(s auth.Session, validatedList email.Emailer) http.HandlerFunc {
 
 		// Check if the email is validated
 		if err := validatedList.Seek(ctx, user.Email); err != nil {
-			response.Error(w, r, http.StatusUnauthorized, fmt.Errorf("please verify your email before logging in: %w", err))
+			response.Error(w, r, http.StatusUnauthorized, errors.Wrap(err, "please verify your email before logging in"))
 			return
 		}
 

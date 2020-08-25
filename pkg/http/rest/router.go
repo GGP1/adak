@@ -29,7 +29,7 @@ import (
 func NewRouter(db *sqlx.DB) http.Handler {
 	r := chi.NewRouter()
 
-	// Repositories
+	// Service repositories
 	cRepo := *new(creating.Repository)
 	dRepo := *new(deleting.Repository)
 	lRepo := *new(listing.Repository)
@@ -106,7 +106,7 @@ func NewRouter(db *sqlx.DB) http.Handler {
 	r.Get("/cart/category/{category}", m.RequireLogin(h.CartFilterByCategory(db)))
 	r.Get("/cart/discount/{min}/{max}", m.RequireLogin(h.CartFilterByDiscount(db)))
 	r.Get("/cart/checkout", m.RequireLogin(h.CartCheckout(db)))
-	r.Get("/cart/items", m.RequireLogin(h.CartItems(db)))
+	r.Get("/cart/products", m.RequireLogin(h.CartProducts(db)))
 	r.Delete("/cart/remove/{id}/{quantity}", m.RequireLogin(h.CartRemove(db)))
 	r.Get("/cart/reset", m.RequireLogin(h.CartReset(db)))
 	r.Get("/cart/size", m.RequireLogin(h.CartSize(db)))

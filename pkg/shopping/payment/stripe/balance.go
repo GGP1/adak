@@ -1,7 +1,7 @@
 package stripe
 
 import (
-	"fmt"
+	"github.com/pkg/errors"
 
 	stripe "github.com/stripe/stripe-go"
 	"github.com/stripe/stripe-go/balance"
@@ -13,7 +13,7 @@ import (
 func GetBalance() (*stripe.Balance, error) {
 	b, err := balance.Get(nil)
 	if err != nil {
-		return nil, fmt.Errorf("stripe: account balance: %v", err)
+		return nil, errors.Wrap(err, "stripe: account balance")
 	}
 
 	return b, nil
@@ -23,7 +23,7 @@ func GetBalance() (*stripe.Balance, error) {
 func GetTxBalance(txID string) (*stripe.BalanceTransaction, error) {
 	txBalance, err := balancetransaction.Get(txID, nil)
 	if err != nil {
-		return nil, fmt.Errorf("stripe: transaction balance: %v", err)
+		return nil, errors.Wrap(err, "stripe: transaction balance")
 	}
 
 	return txBalance, nil

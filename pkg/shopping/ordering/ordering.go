@@ -12,20 +12,16 @@ import (
 	"github.com/pkg/errors"
 )
 
+// Order status
 const (
-	// PendingState is the pending state of an Order
-	PendingState = "pending"
-	// PaidState is the paid state of an Order
-	PaidState = "paid"
-	// ShippingState is the shipping state of an order
+	PendingState  = "pending"
+	PaidState     = "paid"
 	ShippingState = "shipping"
-	// ShippedState is the shipped state of an Order
-	ShippedState = "shipped"
-	// FailedState is the failed state of an Order
-	FailedState = "failed"
+	ShippedState  = "shipped"
+	FailedState   = "failed"
 )
 
-// Order represents the user purchase request.
+// Order represents a user purchase request.
 type Order struct {
 	ID           string         `json:"id"`
 	UserID       string         `json:"user_id" db:"user_id"`
@@ -54,7 +50,7 @@ type OrderCart struct {
 	Total    float64 `json:"total"`
 }
 
-// OrderProduct represents the a product place into the cart ordered by the user.
+// OrderProduct represents a product placed into the cart ordered by the user.
 type OrderProduct struct {
 	ProductID   string  `json:"product_id" db:"product_id"`
 	OrderID     string  `json:"order_id" db:"order_id"`
@@ -163,7 +159,7 @@ func Delete(ctx context.Context, db *sqlx.DB, orderID string) error {
 func Get(ctx context.Context, db *sqlx.DB) ([]Order, error) {
 	var (
 		orders []Order
-		result []Order
+		list   []Order
 	)
 
 	if err := db.SelectContext(ctx, &orders, "SELECT * FROM orders"); err != nil {
@@ -187,17 +183,17 @@ func Get(ctx context.Context, db *sqlx.DB) ([]Order, error) {
 		order.Cart = cart
 		order.Products = products
 
-		result = append(result, order)
+		list = append(list, order)
 	}
 
-	return result, nil
+	return list, nil
 }
 
-// GetByUserID retrieves orders depending on their id.
+// GetByUserID retrieves orders depending on the user requested.
 func GetByUserID(ctx context.Context, db *sqlx.DB, userID string) ([]Order, error) {
 	var (
 		orders []Order
-		result []Order
+		list   []Order
 	)
 
 	if err := db.SelectContext(ctx, &orders, "SELECT * FROM orders WHERE user_id=$1", userID); err != nil {
@@ -221,8 +217,8 @@ func GetByUserID(ctx context.Context, db *sqlx.DB, userID string) ([]Order, erro
 		order.Cart = cart
 		order.Products = products
 
-		result = append(result, order)
+		list = append(list, order)
 	}
 
-	return result, nil
+	return list, nil
 }

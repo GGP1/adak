@@ -10,7 +10,7 @@ import (
 	"time"
 )
 
-// Footprint returns a hash for given request and salt.
+// Footprint takes user non-private information and generates a hash.
 // The hash is unique for the visitor, not for the page.
 func Footprint(r *http.Request, salt string) (string, error) {
 	var sb strings.Builder

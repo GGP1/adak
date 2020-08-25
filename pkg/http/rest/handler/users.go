@@ -2,8 +2,6 @@ package handler
 
 import (
 	"encoding/json"
-	"errors"
-	"fmt"
 	"net/http"
 
 	"github.com/GGP1/palo/internal/response"
@@ -16,9 +14,10 @@ import (
 	"github.com/GGP1/palo/pkg/searching"
 	"github.com/GGP1/palo/pkg/shopping"
 	"github.com/GGP1/palo/pkg/updating"
-	"github.com/jmoiron/sqlx"
 
 	"github.com/go-chi/chi"
+	"github.com/jmoiron/sqlx"
+	"github.com/pkg/errors"
 )
 
 // CreateUser creates a new user and saves it.
@@ -37,7 +36,7 @@ func CreateUser(c creating.Service, pendingList email.Emailer) http.HandlerFunc 
 
 		token, err := auth.GenerateJWT(user)
 		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, fmt.Errorf("could not generate the jwt token: %w", err))
+			response.Error(w, r, http.StatusInternalServerError, errors.Wrap(err, "could not generate the jwt token"))
 			return
 		}
 
@@ -45,7 +44,9 @@ func CreateUser(c creating.Service, pendingList email.Emailer) http.HandlerFunc 
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
+
 		errCh := make(chan error)
+
 		go email.SendValidation(ctx, user, token, errCh)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
@@ -56,7 +57,7 @@ func CreateUser(c creating.Service, pendingList email.Emailer) http.HandlerFunc 
 		case <-ctx.Done():
 			response.Error(w, r, http.StatusInternalServerError, ctx.Err())
 		case <-errCh:
-			response.Error(w, r, http.StatusInternalServerError, fmt.Errorf("failed sending validation email: %w", <-errCh))
+			response.Error(w, r, http.StatusInternalServerError, errors.Wrap(<-errCh, "failed sending validation email"))
 		default:
 			if err = c.CreateUser(ctx, &user); err != nil {
 				response.Error(w, r, http.StatusBadRequest, err)
@@ -85,14 +86,14 @@ func DeleteUser(d deleting.Service, s auth.Session, db *sqlx.DB, pendingList, va
 			return
 		}
 
-		err = db.Get(&user, "SELECT * FROM users WHERE id=$1", userID)
-		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
+		if userID != id {
+			response.Error(w, r, http.StatusUnauthorized, errors.New("not allowed to delete others user"))
 			return
 		}
 
-		if userID != id {
-			response.Error(w, r, http.StatusUnauthorized, errors.New("not allowed to delete others user"))
+		err = db.GetContext(ctx, &user, "SELECT * FROM users WHERE id=$1", userID)
+		if err != nil {
+			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
 
@@ -118,7 +119,7 @@ func DeleteUser(d deleting.Service, s auth.Session, db *sqlx.DB, pendingList, va
 	}
 }
 
-// GetUsers lists all the users
+// GetUsers lists all the users.
 func GetUsers(l listing.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()

@@ -7,6 +7,7 @@ import (
 
 	"github.com/GGP1/palo/pkg/model"
 	"github.com/GGP1/palo/pkg/shopping/ordering"
+
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 )
@@ -39,8 +40,11 @@ func NewService(r Repository, db *sqlx.DB) Service {
 func (s *service) SearchProducts(ctx context.Context, search string) ([]model.Product, error) {
 	var (
 		products []model.Product
-		result   []model.Product
+		list     []model.Product
 	)
+
+	ch := make(chan model.Product)
+	errCh := make(chan error)
 
 	q := `SELECT * FROM products WHERE
 	to_tsvector(id || ' ' || shop_id || ' ' || brand || ' ' || type || ' ' || category || ' ' || description)
@@ -51,26 +55,40 @@ func (s *service) SearchProducts(ctx context.Context, search string) ([]model.Pr
 	}
 
 	for _, product := range products {
-		var reviews []model.Review
+		go func(product model.Product) {
+			var reviews []model.Review
 
-		if err := s.DB.SelectContext(ctx, &reviews, "SELECT * FROM reviews WHERE product_id=$1", product.ID); err != nil {
-			return nil, errors.Wrap(err, "error fetching reviews")
-		}
+			if err := s.DB.SelectContext(ctx, &reviews, "SELECT * FROM reviews WHERE product_id=$1", product.ID); err != nil {
+				errCh <- errors.Wrap(err, "error fetching reviews")
+			}
 
-		product.Reviews = reviews
+			product.Reviews = reviews
 
-		result = append(result, product)
+			ch <- product
+		}(product)
 	}
 
-	return result, nil
+	select {
+	case p := <-ch:
+		list = append(list, p)
+	case err := <-errCh:
+		return nil, err
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
+
+	return list, nil
 }
 
 // SearchShops looks for the shops that contain the value specified. (Only text fields)
 func (s *service) SearchShops(ctx context.Context, search string) ([]model.Shop, error) {
 	var (
-		shops  []model.Shop
-		result []model.Shop
+		shops []model.Shop
+		list  []model.Shop
 	)
+
+	ch := make(chan model.Shop)
+	errCh := make(chan error)
 
 	q := `SELECT * FROM shops WHERE
 	to_tsvector(id || ' ' || name) @@ to_tsquery($1)`
@@ -80,40 +98,54 @@ func (s *service) SearchShops(ctx context.Context, search string) ([]model.Shop,
 	}
 
 	for _, shop := range shops {
-		var (
-			location model.Location
-			reviews  []model.Review
-			products []model.Product
-		)
+		go func(shop model.Shop) {
+			var (
+				location model.Location
+				reviews  []model.Review
+				products []model.Product
+			)
 
-		if err := s.DB.GetContext(ctx, &location, "SELECT * FROM locations WHERE shop_id=$1", shop.ID); err != nil {
-			return nil, errors.Wrap(err, "location not found")
-		}
+			if err := s.DB.GetContext(ctx, &location, "SELECT * FROM locations WHERE shop_id=$1", shop.ID); err != nil {
+				errCh <- errors.Wrap(err, "location not found")
+			}
 
-		if err := s.DB.SelectContext(ctx, &reviews, "SELECT * FROM reviews WHERE shop_id=$1", shop.ID); err != nil {
-			return nil, errors.Wrap(err, "reviews not found")
-		}
+			if err := s.DB.SelectContext(ctx, &reviews, "SELECT * FROM reviews WHERE shop_id=$1", shop.ID); err != nil {
+				errCh <- errors.Wrap(err, "reviews not found")
+			}
 
-		if err := s.DB.SelectContext(ctx, &products, "SELECT * FROM products WHERE shop_id=$1", shop.ID); err != nil {
-			return nil, errors.Wrap(err, "products not found")
-		}
+			if err := s.DB.SelectContext(ctx, &products, "SELECT * FROM products WHERE shop_id=$1", shop.ID); err != nil {
+				errCh <- errors.Wrap(err, "products not found")
+			}
 
-		shop.Location = location
-		shop.Reviews = reviews
-		shop.Products = products
+			shop.Location = location
+			shop.Reviews = reviews
+			shop.Products = products
 
-		result = append(result, shop)
+			ch <- shop
+		}(shop)
 	}
 
-	return result, nil
+	select {
+	case s := <-ch:
+		list = append(list, s)
+	case err := <-errCh:
+		return nil, err
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
+
+	return list, nil
 }
 
 // SearchUsers looks for the users that contain the value specified. (Only text fields)
 func (s *service) SearchUsers(ctx context.Context, search string) ([]model.User, error) {
 	var (
-		users  []model.User
-		result []model.User
+		users []model.User
+		list  []model.User
 	)
+
+	ch := make(chan model.User)
+	errCh := make(chan error)
 
 	q := `SELECT * FROM users WHERE
 	to_tsvector(id || ' ' || username || ' ' || email) 
@@ -124,22 +156,32 @@ func (s *service) SearchUsers(ctx context.Context, search string) ([]model.User,
 	}
 
 	for _, user := range users {
-		var reviews []model.Review
+		go func(user model.User) {
+			var reviews []model.Review
 
-		orders, err := ordering.GetByUserID(ctx, s.DB, user.ID)
-		if err != nil {
-			return nil, err
-		}
+			orders, err := ordering.GetByUserID(ctx, s.DB, user.ID)
+			if err != nil {
+				errCh <- err
+			}
 
-		if err := s.DB.SelectContext(ctx, &reviews, "SELECT * FROM reviews WHERE user_id=$1", user.ID); err != nil {
-			return nil, errors.Wrap(err, "error fetching reviews")
-		}
+			if err := s.DB.SelectContext(ctx, &reviews, "SELECT * FROM reviews WHERE user_id=$1", user.ID); err != nil {
+				errCh <- errors.Wrap(err, "error fetching reviews")
+			}
 
-		user.Orders = orders
-		user.Reviews = reviews
+			user.Orders = orders
+			user.Reviews = reviews
 
-		result = append(result, user)
+			ch <- user
+		}(user)
+	}
+	select {
+	case u := <-ch:
+		list = append(list, u)
+	case err := <-errCh:
+		return nil, err
+	case <-ctx.Done():
+		return nil, ctx.Err()
 	}
 
-	return result, nil
+	return list, nil
 }

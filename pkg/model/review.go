@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-// Review represents users critics over a shop or a product.
+// Review represents users critics over a shop or product.
 type Review struct {
 	ID        string    `json:"id"`
 	Stars     uint8     `json:"stars"`

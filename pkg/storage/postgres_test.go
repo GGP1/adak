@@ -5,8 +5,8 @@ import (
 	"testing"
 
 	"github.com/GGP1/palo/internal/cfg"
-	"github.com/jmoiron/sqlx"
 
+	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
 )
 

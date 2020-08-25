@@ -21,7 +21,7 @@ type Emailer interface {
 // queries, each list may contain a unique table.
 type List struct {
 	DB *sqlx.DB
-	// Used to distinguish between tables of the same struct
+	// tableName is used to distinguish email tables
 	tableName string
 	Email     string `json:"email"`
 	Token     string `json:"token"`

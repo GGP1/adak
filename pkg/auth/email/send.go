@@ -13,10 +13,11 @@ import (
 
 	"github.com/GGP1/palo/internal/cfg"
 	"github.com/GGP1/palo/pkg/model"
+
 	"github.com/pkg/errors"
 )
 
-// Items represents a struct with the values passed to the templates.
+// Items is a struct that keeps the values passed to the templates.
 type Items struct {
 	ID       string
 	Name     string
@@ -73,7 +74,7 @@ func SendValidation(ctx context.Context, user model.User, token string, errCh ch
 	}
 }
 
-// SendChangeConfirmation sends a validation email to the user.
+// SendChangeConfirmation sends a confirmation email to the user.
 func SendChangeConfirmation(user model.User, token, newEmail string, errCh chan error) {
 	// =================
 	// 	Email content

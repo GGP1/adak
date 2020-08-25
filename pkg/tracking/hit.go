@@ -22,7 +22,7 @@ type Hit struct {
 	Date      time.Time `json:"date"`
 }
 
-// String returns a string of the hit struct
+// String returns a string of the hit struct.
 func (hit *Hit) String() (string, error) {
 	out, err := json.Marshal(hit)
 	if err != nil {
@@ -32,7 +32,7 @@ func (hit *Hit) String() (string, error) {
 	return string(out), nil
 }
 
-// HitRequest generates a hit for each request
+// HitRequest generates a hit for each request.
 func HitRequest(r *http.Request, salt string) (*Hit, error) {
 	id := random.GenerateRunes(27)
 	date := time.Now()
@@ -54,7 +54,7 @@ func HitRequest(r *http.Request, salt string) (*Hit, error) {
 	}, nil
 }
 
-// Get the user language
+// Get the user language from the web browser.
 func getLanguage(r *http.Request) string {
 	lang := r.Header.Get("Accept-Language")
 

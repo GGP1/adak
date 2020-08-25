@@ -40,7 +40,7 @@ func GetHits(t tracking.Tracker) http.HandlerFunc {
 	}
 }
 
-// SearchHit returns the hits that matched with the search
+// SearchHit returns the hits that matched with the search.
 func SearchHit(t tracking.Tracker) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		search := chi.URLParam(r, "search")
@@ -57,7 +57,7 @@ func SearchHit(t tracking.Tracker) http.HandlerFunc {
 	}
 }
 
-// SearchHitByField returns the hits that matched with the search
+// SearchHitByField returns the hits that matched with the search.
 func SearchHitByField(t tracking.Tracker) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		field := chi.URLParam(r, "field")

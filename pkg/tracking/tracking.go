@@ -27,7 +27,6 @@ type Searcher interface {
 }
 
 // Hitter provides methods to hit requests and store them in a data store.
-// In case of an error it will panic.
 type Hitter struct {
 	DB   *sqlx.DB
 	salt string

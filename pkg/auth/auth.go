@@ -50,7 +50,7 @@ func NewSession(db *sqlx.DB) Session {
 	}
 }
 
-// AlreadyLoggedIn checks if the user have previously logged in or not.
+// AlreadyLoggedIn checks if the user has an active session or not.
 func (session *session) AlreadyLoggedIn(w http.ResponseWriter, r *http.Request) bool {
 	cookie, err := r.Cookie("SID")
 	if err != nil {
@@ -74,7 +74,7 @@ func (session *session) AlreadyLoggedIn(w http.ResponseWriter, r *http.Request) 
 // Clean deletes all the sessions that have expired.
 func (session *session) Clean() {
 	for key, value := range session.store {
-		if time.Now().Sub(value.lastSeen) > (time.Hour * 24) {
+		if time.Now().Sub(value.lastSeen) > (time.Hour * 240) {
 			delete(session.store, key)
 		}
 	}
