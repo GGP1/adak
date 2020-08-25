@@ -7,8 +7,7 @@ import (
 	"regexp"
 	"testing"
 
-	"github.com/GGP1/palo/pkg/http/rest/handler"
-	"github.com/GGP1/palo/pkg/listing"
+	"github.com/GGP1/palo/pkg/user"
 )
 
 func TestUsersHandler(t *testing.T) {
@@ -17,12 +16,12 @@ func TestUsersHandler(t *testing.T) {
 }
 
 func list(t *testing.T) {
-	repo := *new(listing.Repository)
+	repo := *new(user.Repository)
 
 	req := httptest.NewRequest("GET", "localhost:4000/users", nil)
 	rec := httptest.NewRecorder()
 
-	handler := handler.GetUsers(repo)
+	handler := user.Get(repo)
 	handler(rec, req)
 
 	res := rec.Result()

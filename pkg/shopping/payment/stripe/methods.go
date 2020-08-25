@@ -1,8 +1,6 @@
 package stripe
 
 import (
-	"github.com/GGP1/palo/pkg/model"
-
 	"github.com/pkg/errors"
 	stripe "github.com/stripe/stripe-go"
 	"github.com/stripe/stripe-go/paymentmethod"
@@ -23,7 +21,7 @@ func AttachMethod(customerID, methodID string) (*stripe.PaymentMethod, error) {
 }
 
 // CreateMethod creates a new payment method.
-func CreateMethod(card model.Card) (string, error) {
+func CreateMethod(card Card) (string, error) {
 	params := &stripe.PaymentMethodParams{
 		Card: &stripe.PaymentMethodCardParams{
 			Number:   stripe.String(card.Number),

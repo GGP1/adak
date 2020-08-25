@@ -7,9 +7,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/GGP1/palo/internal/random"
-	"github.com/GGP1/palo/pkg/auth/email"
-	"github.com/GGP1/palo/pkg/model"
+	"github.com/GGP1/palo/internal/token"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
@@ -20,10 +18,8 @@ import (
 type Session interface {
 	AlreadyLoggedIn(w http.ResponseWriter, r *http.Request) bool
 	Clean()
-	EmailChange(ctx context.Context, id, newEmail, token string, validatedList email.Emailer) error
 	Login(ctx context.Context, w http.ResponseWriter, email, password string) error
 	Logout(w http.ResponseWriter, r *http.Request, c *http.Cookie)
-	PasswordChange(ctx context.Context, id, oldPass, newPass string) error
 }
 
 type userInfo struct {
@@ -81,39 +77,13 @@ func (session *session) Clean() {
 	session.clean = time.Now()
 }
 
-// EmailChange changes the user email.
-func (session *session) EmailChange(ctx context.Context, id, newEmail, token string, validatedList email.Emailer) error {
-	var user model.User
-
-	if err := session.DB.SelectContext(ctx, &user, "SELECT * FROM users WHERE id=?", id); err != nil {
-		return errors.Wrap(err, "invalid email")
-	}
-
-	if err := validatedList.Remove(ctx, user.Email); err != nil {
-		return err
-	}
-
-	user.Email = newEmail
-
-	if err := validatedList.Add(ctx, newEmail, token); err != nil {
-		return err
-	}
-
-	_, err := session.DB.ExecContext(ctx, "UPDATE users set email=$2 WHERE id=$1", id, newEmail)
-	if err != nil {
-		return errors.Wrap(err, "couldn't change the email")
-	}
-
-	return nil
-
-}
-
-// Login authenticates users and returns a jwt token.
-// If the user is already logged in, redirects him to the home page.
+// Login authenticates users.
 func (session *session) Login(ctx context.Context, w http.ResponseWriter, email, password string) error {
-	var user model.User
+	var user User
 
-	if err := session.DB.GetContext(ctx, &user, "SELECT * FROM users WHERE email=$1", email); err != nil {
+	q := `SELECT id, cart_id, username, email, password FROM users WHERE email=$1`
+
+	if err := session.DB.GetContext(ctx, &user, q, email); err != nil {
 		return errors.Wrap(err, "invalid email")
 	}
 
@@ -123,13 +93,13 @@ func (session *session) Login(ctx context.Context, w http.ResponseWriter, email,
 
 	for _, admin := range adminList {
 		if admin == user.Email {
-			admID := random.GenerateRunes(8)
+			admID := token.GenerateRunes(8)
 			setCookie(w, "AID", admID, "/", session.length)
 		}
 	}
 
 	// -SID- used to add the user to the session map
-	sID := random.GenerateRunes(27)
+	sID := token.GenerateRunes(27)
 	setCookie(w, "SID", sID, "/", session.length)
 
 	session.Lock()
@@ -137,15 +107,14 @@ func (session *session) Login(ctx context.Context, w http.ResponseWriter, email,
 	session.Unlock()
 
 	// -UID- used to deny users from making requests to other accounts
-	userID, err := GenerateFixedJWT(user.ID)
+	userID, err := token.GenerateFixedJWT(user.ID)
 	if err != nil {
 		return errors.Wrap(err, "failed generating a jwt token")
 	}
 	setCookie(w, "UID", userID, "/", session.length)
 
 	// -CID- used to identify wich cart belongs to each user
-	cartID := user.CartID
-	setCookie(w, "CID", cartID, "/", session.length)
+	setCookie(w, "CID", user.CartID, "/", session.length)
 
 	return nil
 }
@@ -168,32 +137,6 @@ func (session *session) Logout(w http.ResponseWriter, r *http.Request, c *http.C
 	if time.Now().Sub(session.clean) > (time.Second * 30) {
 		go session.Clean()
 	}
-}
-
-// PasswordChange changes the user password.
-func (session *session) PasswordChange(ctx context.Context, id, oldPass, newPass string) error {
-	var user model.User
-
-	if err := session.DB.GetContext(ctx, &user, "SELECT password FROM users WHERE id=$1", id); err != nil {
-		return errors.Wrap(err, "invalid email")
-	}
-
-	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(oldPass)); err != nil {
-		return errors.Wrap(err, "invalid old password")
-	}
-
-	newPassHash, err := bcrypt.GenerateFromPassword([]byte(newPass), bcrypt.DefaultCost)
-	if err != nil {
-		return errors.Wrap(err, "couldn't generate the password hash")
-	}
-	user.Password = string(newPassHash)
-
-	_, err = session.DB.ExecContext(ctx, "UPDATE users SET password=$1", user.Password)
-	if err != nil {
-		return errors.Wrap(err, "couldn't change the password")
-	}
-
-	return nil
 }
 
 func deleteCookie(w http.ResponseWriter, name string) {

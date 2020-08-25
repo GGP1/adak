@@ -5,8 +5,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/GGP1/palo/internal/random"
-	"github.com/GGP1/palo/pkg/shopping"
+	"github.com/GGP1/palo/internal/token"
+	"github.com/GGP1/palo/pkg/shopping/cart"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
@@ -66,8 +66,8 @@ type OrderProduct struct {
 	Total       float64 `json:"total"`
 }
 
-// NewOrder creates an order.
-func NewOrder(ctx context.Context, db *sqlx.DB, userID, currency, address, city, country, state, zipcode string, deliveryDate time.Time, cart shopping.Cart) (*Order, error) {
+// New creates an order.
+func New(ctx context.Context, db *sqlx.DB, userID, currency, address, city, country, state, zipcode string, deliveryDate time.Time, c cart.Cart) (*Order, error) {
 	orderQuery := `INSERT INTO orders
 	(id, user_id, currency, address, city, country, state, zip_code, status, ordered_at, delivery_date, cart_id)
 	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`
@@ -80,11 +80,11 @@ func NewOrder(ctx context.Context, db *sqlx.DB, userID, currency, address, city,
 	(product_id, order_id, quantity, brand, category, type, description, weight, discount, taxes, subtotal, total)
 	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`
 
-	if cart.Counter == 0 {
+	if c.Counter == 0 {
 		return nil, errors.New("ordering 0 products is not permitted")
 	}
 
-	id := random.GenerateRunes(30)
+	id := token.GenerateRunes(30)
 
 	order := Order{
 		ID:           id,
@@ -97,18 +97,18 @@ func NewOrder(ctx context.Context, db *sqlx.DB, userID, currency, address, city,
 		Status:       PendingState,
 		OrderedAt:    time.Now(),
 		DeliveryDate: deliveryDate,
-		CartID:       cart.ID,
+		CartID:       c.ID,
 		Cart: OrderCart{
-			Counter:  cart.Counter,
-			Weight:   cart.Weight,
-			Discount: cart.Discount,
-			Taxes:    cart.Taxes,
-			Subtotal: cart.Subtotal,
-			Total:    cart.Total,
+			Counter:  c.Counter,
+			Weight:   c.Weight,
+			Discount: c.Discount,
+			Taxes:    c.Taxes,
+			Subtotal: c.Subtotal,
+			Total:    c.Total,
 		},
 	}
 
-	for _, product := range cart.Products {
+	for _, product := range c.Products {
 		_, err := db.ExecContext(ctx, orderPQuery, product.ID, id, product.Quantity, product.Brand,
 			product.Category, product.Type, product.Description, product.Weight,
 			product.Discount, product.Taxes, product.Subtotal, product.Total)
@@ -118,18 +118,18 @@ func NewOrder(ctx context.Context, db *sqlx.DB, userID, currency, address, city,
 	}
 
 	_, err := db.ExecContext(ctx, orderQuery, id, userID, currency, address, city, country,
-		state, zipcode, PendingState, time.Now(), deliveryDate, cart.ID)
+		state, zipcode, PendingState, time.Now(), deliveryDate, c.ID)
 	if err != nil {
 		return nil, errors.Wrap(err, "couldn't create the order")
 	}
 
-	_, err = db.ExecContext(ctx, orderCQuery, id, cart.Counter, cart.Weight, cart.Discount,
-		cart.Taxes, cart.Subtotal, cart.Total)
+	_, err = db.ExecContext(ctx, orderCQuery, id, c.Counter, c.Weight, c.Discount,
+		c.Taxes, c.Subtotal, c.Total)
 	if err != nil {
 		return nil, errors.Wrap(err, "couldn't create the order cart")
 	}
 
-	if err := shopping.Reset(ctx, db, cart.ID); err != nil {
+	if err := cart.Reset(ctx, db, c.ID); err != nil {
 		return nil, errors.Wrap(err, "couldn't reset the cart")
 	}
 

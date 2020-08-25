@@ -1,22 +1,19 @@
-/*
-Package rest contains all the functions related to the rest api
-*/
 package rest
 
 import (
 	"net/http"
 
 	"github.com/GGP1/palo/pkg/auth"
-	"github.com/GGP1/palo/pkg/auth/email"
-	"github.com/GGP1/palo/pkg/creating"
-	"github.com/GGP1/palo/pkg/deleting"
-	"github.com/GGP1/palo/pkg/searching"
+	"github.com/GGP1/palo/pkg/email"
+	"github.com/GGP1/palo/pkg/product"
+	"github.com/GGP1/palo/pkg/review"
+	"github.com/GGP1/palo/pkg/shop"
+	"github.com/GGP1/palo/pkg/shopping/cart"
+	"github.com/GGP1/palo/pkg/shopping/ordering"
+	"github.com/GGP1/palo/pkg/shopping/payment/stripe"
 	"github.com/GGP1/palo/pkg/tracking"
-
-	// h -> handler
-	h "github.com/GGP1/palo/pkg/http/rest/handler"
-	"github.com/GGP1/palo/pkg/listing"
-	"github.com/GGP1/palo/pkg/updating"
+	"github.com/GGP1/palo/pkg/user"
+	"github.com/GGP1/palo/pkg/user/account"
 
 	// m -> middleware
 	m "github.com/GGP1/palo/pkg/http/rest/middleware"
@@ -30,18 +27,18 @@ func NewRouter(db *sqlx.DB) http.Handler {
 	r := chi.NewRouter()
 
 	// Service repositories
-	cRepo := *new(creating.Repository)
-	dRepo := *new(deleting.Repository)
-	lRepo := *new(listing.Repository)
-	sRepo := *new(searching.Repository)
-	uRepo := *new(updating.Repository)
+	aRepo := *new(account.Repository)
+	pRepo := *new(product.Repository)
+	rRepo := *new(review.Repository)
+	sRepo := *new(shop.Repository)
+	uRepo := *new(user.Repository)
 
 	// Services
-	c := creating.NewService(cRepo, db)
-	d := deleting.NewService(dRepo, db)
-	l := listing.NewService(lRepo, db)
-	s := searching.NewService(sRepo, db)
-	u := updating.NewService(uRepo, db)
+	a := account.NewService(aRepo, db)
+	p := product.NewService(pRepo, db)
+	rev := review.NewService(rRepo, db)
+	s := shop.NewService(sRepo, db)
+	u := user.NewService(uRepo, db)
 
 	// -- Auth session --
 	session := auth.NewSession(db)
@@ -57,84 +54,83 @@ func NewRouter(db *sqlx.DB) http.Handler {
 	r.Use(m.LogFormatter)
 
 	// Auth
-	r.Post("/login", h.Login(session, validatedList))
-	r.Get("/logout", m.RequireLogin(h.Logout(session)))
-	r.Post("/settings/email", m.RequireLogin(h.EmailChange(pendingList, l)))
-	r.Post("/settings/password", m.RequireLogin(h.PasswordChange(session, l)))
-	r.Get("/verification/{token}", h.ValidateEmail(pendingList, validatedList))
-	r.Get("/verification/{token}/{email}/{id}", h.EmailChangeConfirmation(session, validatedList))
+	r.Post("/login", auth.Login(session, validatedList))
+	r.Get("/logout", m.RequireLogin(auth.Logout(session)))
 
-	// Creating
-	r.Post("/products/create", m.AdminsOnly(h.CreateProduct(c)))
-	r.Post("/reviews/create", m.RequireLogin(h.CreateReview(c)))
-	r.Post("/shops/create", m.AdminsOnly(h.CreateShop(c)))
-	r.Post("/users/create", h.CreateUser(c, pendingList))
-
-	// Deleting
-	r.Delete("/products/{id}", m.AdminsOnly(h.DeleteProduct(d)))
-	r.Delete("/reviews/{id}", m.AdminsOnly(h.DeleteReview(d)))
-	r.Delete("/shops/{id}", m.AdminsOnly(h.DeleteShop(d)))
-	r.Delete("/users/{id}", m.RequireLogin(h.DeleteUser(d, session, db, pendingList, validatedList)))
+	// Cart
+	cart := cart.Handler{DB: db}
+	r.Get("/cart", m.RequireLogin(cart.Get()))
+	r.Post("/cart/add/{quantity}", m.RequireLogin(cart.Add()))
+	r.Get("/cart/brand/{brand}", m.RequireLogin(cart.FilterByBrand()))
+	r.Get("/cart/category/{category}", m.RequireLogin(cart.FilterByCategory()))
+	r.Get("/cart/discount/{min}/{max}", m.RequireLogin(cart.FilterByDiscount()))
+	r.Get("/cart/checkout", m.RequireLogin(cart.Checkout()))
+	r.Get("/cart/products", m.RequireLogin(cart.Products()))
+	r.Delete("/cart/remove/{id}/{quantity}", m.RequireLogin(cart.Remove()))
+	r.Get("/cart/reset", m.RequireLogin(cart.Reset()))
+	r.Get("/cart/size", m.RequireLogin(cart.Size()))
+	r.Get("/cart/taxes/{min}/{max}", m.RequireLogin(cart.FilterByTaxes()))
+	r.Get("/cart/total/{min}/{max}", m.RequireLogin(cart.FilterByTotal()))
+	r.Get("/cart/type/{type}", m.RequireLogin(cart.FilterByType()))
+	r.Get("/cart/weight/{min}/{max}", m.RequireLogin(cart.FilterByWeight()))
 
 	// Home
-	r.Get("/", h.Home(tracker))
-
-	// Listing
-	r.Get("/products", h.GetProducts(l))
-	r.Get("/products/{id}", h.GetProductByID(l))
-	r.Get("/reviews", h.GetReviews(l))
-	r.Get("/reviews/{id}", h.GetReviewByID(l))
-	r.Get("/shops", h.GetShops(l))
-	r.Get("/shops/{id}", h.GetShopByID(l))
-	r.Get("/users", h.GetUsers(l))
-	r.Get("/users/{id}", h.GetUserByID(l))
+	r.Get("/", Home(tracker))
 
 	// Ordering
-	r.Get("/orders", m.AdminsOnly(h.GetOrder(db)))
-	r.Delete("/order/{id}", m.AdminsOnly(h.DeleteOrder(db)))
-	r.Post("/order/new", m.RequireLogin(h.NewOrder(db)))
+	r.Get("/orders", m.AdminsOnly(ordering.GetOrder(db)))
+	r.Delete("/order/{id}", m.AdminsOnly(ordering.DeleteOrder(db)))
+	r.Post("/order/new", m.RequireLogin(ordering.NewOrder(db)))
 
-	// Searching
-	r.Get("/products/search/{query}", h.SearchProduct(s))
-	r.Get("/shops/search/{query}", h.SearchShop(s))
-	r.Get("/users/search/{query}", h.SearchUser(s))
+	// Product
+	r.Post("/products/create", m.AdminsOnly(product.Create(p)))
+	r.Delete("/products/{id}", m.AdminsOnly(product.Delete(p)))
+	r.Get("/products", product.Get(p))
+	r.Get("/products/{id}", product.GetByID(p))
+	r.Get("/products/search/{query}", product.Search(p))
+	r.Put("/products/{id}", m.AdminsOnly(product.Update(p)))
 
-	// Shopping
-	r.Get("/cart", m.RequireLogin(h.CartGet(db)))
-	r.Post("/cart/add/{quantity}", m.RequireLogin(h.CartAdd(db)))
-	r.Get("/cart/brand/{brand}", m.RequireLogin(h.CartFilterByBrand(db)))
-	r.Get("/cart/category/{category}", m.RequireLogin(h.CartFilterByCategory(db)))
-	r.Get("/cart/discount/{min}/{max}", m.RequireLogin(h.CartFilterByDiscount(db)))
-	r.Get("/cart/checkout", m.RequireLogin(h.CartCheckout(db)))
-	r.Get("/cart/products", m.RequireLogin(h.CartProducts(db)))
-	r.Delete("/cart/remove/{id}/{quantity}", m.RequireLogin(h.CartRemove(db)))
-	r.Get("/cart/reset", m.RequireLogin(h.CartReset(db)))
-	r.Get("/cart/size", m.RequireLogin(h.CartSize(db)))
-	r.Get("/cart/taxes/{min}/{max}", m.RequireLogin(h.CartFilterByTaxes(db)))
-	r.Get("/cart/total/{min}/{max}", m.RequireLogin(h.CartFilterByTotal(db)))
-	r.Get("/cart/type/{type}", m.RequireLogin(h.CartFilterByType(db)))
-	r.Get("/cart/weight/{min}/{max}", m.RequireLogin(h.CartFilterByWeight(db)))
+	// Review
+	r.Post("/reviews/create", m.RequireLogin(review.Create(rev)))
+	r.Delete("/reviews/{id}", m.AdminsOnly(review.Delete(rev)))
+	r.Get("/reviews", review.Get(rev))
+	r.Get("/reviews/{id}", review.GetByID(rev))
+
+	// Shop
+	r.Post("/shops/create", m.AdminsOnly(shop.Create(s)))
+	r.Delete("/shops/{id}", m.AdminsOnly(shop.Delete(s)))
+	r.Get("/shops", shop.Get(s))
+	r.Get("/shops/{id}", shop.GetByID(s))
+	r.Get("/shops/search/{query}", shop.Search(s))
+	r.Put("/shops/{id}", m.AdminsOnly(shop.Update(s)))
 
 	// Stripe
-	r.Get("/stripe/balance", m.AdminsOnly(h.StripeGetBalance()))
-	r.Get("/stripe/event/{event}", m.AdminsOnly(h.StripeGetEvent()))
-	r.Get("/stripe/transactions/{txID}", m.AdminsOnly(h.StripeGetTxBalance()))
-	r.Get("/stripe/events", m.AdminsOnly(h.StripeListEvents()))
-	r.Get("/stripe/transactions", m.AdminsOnly(h.StripeListTxs()))
+	stripe := stripe.Handler{}
+	r.Get("/stripe/balance", m.AdminsOnly(stripe.GetBalance()))
+	r.Get("/stripe/event/{event}", m.AdminsOnly(stripe.GetEvent()))
+	r.Get("/stripe/transactions/{txID}", m.AdminsOnly(stripe.GetTxBalance()))
+	r.Get("/stripe/events", m.AdminsOnly(stripe.ListEvents()))
+	r.Get("/stripe/transactions", m.AdminsOnly(stripe.ListTxs()))
 
 	// Tracking
-	r.Get("/tracker", m.AdminsOnly(h.GetHits(tracker)))
-	r.Delete("/tracker/{id}", m.AdminsOnly(h.DeleteHit(tracker)))
-	r.Get("/tracker/search/{search}", m.AdminsOnly(h.SearchHit(tracker)))
-	r.Get("/tracker/{field}/{value}", m.AdminsOnly(h.SearchHitByField(tracker)))
+	r.Get("/tracker", m.AdminsOnly(tracking.GetHits(tracker)))
+	r.Delete("/tracker/{id}", m.AdminsOnly(tracking.DeleteHit(tracker)))
+	r.Get("/tracker/search/{search}", m.AdminsOnly(tracking.SearchHit(tracker)))
+	r.Get("/tracker/{field}/{value}", m.AdminsOnly(tracking.SearchHitByField(tracker)))
 
-	// Updating
-	r.Put("/products/{id}", m.AdminsOnly(h.UpdateProduct(u)))
-	r.Put("/shops/{id}", m.AdminsOnly(h.UpdateShop(u)))
-	r.Put("/users/{id}", m.RequireLogin(h.UpdateUser(u)))
-
-	// Users
-	r.Get("/users/{id}/qrcode", h.QRCode(l))
+	// User
+	r.Post("/users/create", user.Create(u, pendingList))
+	r.Delete("/users/{id}", m.RequireLogin(user.Delete(db, u, session, pendingList, validatedList)))
+	r.Get("/users", user.Get(u))
+	r.Get("/users/{id}", user.GetByID(u))
+	r.Get("/users/search/{query}", user.Search(u))
+	r.Put("/users/{id}", m.RequireLogin(user.Update(u)))
+	r.Get("/users/{id}/qrcode", user.QRCode(u))
+	// Account
+	r.Post("/settings/email", m.RequireLogin(account.ChangeEmail(db, pendingList)))
+	r.Post("/settings/password", m.RequireLogin(account.ChangePassword(a)))
+	r.Get("/verification/{token}", account.SendEmailValidation(pendingList, validatedList))
+	r.Get("/verification/{token}/{email}/{id}", account.ValidateEmailChange(a, validatedList))
 
 	http.Handle("/", r)
 
