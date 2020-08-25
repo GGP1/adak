@@ -6,6 +6,7 @@ import (
 
 	"github.com/GGP1/palo/pkg/model"
 	"github.com/GGP1/palo/pkg/shopping/ordering"
+
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 )
@@ -50,33 +51,47 @@ func NewService(r Repository, db *sqlx.DB) Service {
 	return &service{r, db}
 }
 
-// GetProducts lists all the products stored in the database.
+// GetProducts returns a list with all the products stored in the database.
 func (s *service) GetProducts(ctx context.Context) ([]model.Product, error) {
 	var (
 		products []model.Product
-		result   []model.Product
+		list     []model.Product
 	)
+
+	ch := make(chan model.Product)
+	errCh := make(chan error)
 
 	if err := s.DB.Select(&products, "SELECT * FROM products"); err != nil {
 		return nil, errors.Wrap(err, "products not found")
 	}
 
 	for _, product := range products {
-		var reviews []model.Review
+		go func(product model.Product) {
+			var reviews []model.Review
 
-		if err := s.DB.Select(&reviews, "SELECT * FROM reviews WHERE product_id=$1", product.ID); err != nil {
-			return nil, errors.Wrap(err, "error fetching reviews")
-		}
+			if err := s.DB.Select(&reviews, "SELECT * FROM reviews WHERE product_id=$1", product.ID); err != nil {
+				errCh <- errors.Wrap(err, "error fetching reviews")
+			}
 
-		product.Reviews = reviews
+			product.Reviews = reviews
 
-		result = append(result, product)
+			ch <- product
+		}(product)
 	}
 
-	return result, nil
+	select {
+	case p := <-ch:
+		list = append(list, p)
+	case err := <-errCh:
+		return nil, err
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
+
+	return list, nil
 }
 
-// GetProductByID lists the product requested from the database.
+// GetProductByID retrieves the product requested from the database.
 func (s *service) GetProductByID(ctx context.Context, id string) (model.Product, error) {
 	var (
 		product model.Product
@@ -96,7 +111,7 @@ func (s *service) GetProductByID(ctx context.Context, id string) (model.Product,
 	return product, nil
 }
 
-// GetReviews lists all the reviews stored in the database.
+// GetReviews returns a list with all the reviews stored in the database.
 func (s *service) GetReviews(ctx context.Context) ([]model.Review, error) {
 	var reviews []model.Review
 
@@ -107,7 +122,7 @@ func (s *service) GetReviews(ctx context.Context) ([]model.Review, error) {
 	return reviews, nil
 }
 
-// GetReviewByID lists the review requested from the database.
+// GetReviewByID retrieves the review requested from the database.
 func (s *service) GetReviewByID(ctx context.Context, id string) (model.Review, error) {
 	var review model.Review
 
@@ -118,47 +133,61 @@ func (s *service) GetReviewByID(ctx context.Context, id string) (model.Review, e
 	return review, nil
 }
 
-// GetShops lists all the shops stored in the database.
+// GetShops returns a list with all the shops stored in the database.
 func (s *service) GetShops(ctx context.Context) ([]model.Shop, error) {
 	var (
-		shops  []model.Shop
-		result []model.Shop
+		shops []model.Shop
+		list  []model.Shop
 	)
+
+	ch := make(chan model.Shop)
+	errCh := make(chan error)
 
 	if err := s.DB.SelectContext(ctx, &shops, "SELECT * FROM shops"); err != nil {
 		return nil, errors.Wrap(err, "shops not found")
 	}
 
 	for _, shop := range shops {
-		var (
-			location model.Location
-			reviews  []model.Review
-			products []model.Product
-		)
+		go func(shop model.Shop) {
+			var (
+				location model.Location
+				reviews  []model.Review
+				products []model.Product
+			)
 
-		if err := s.DB.GetContext(ctx, &location, "SELECT * FROM locations WHERE shop_id=$1", shop.ID); err != nil {
-			return nil, errors.Wrap(err, "location not found")
-		}
+			if err := s.DB.GetContext(ctx, &location, "SELECT * FROM locations WHERE shop_id=$1", shop.ID); err != nil {
+				errCh <- errors.Wrap(err, "location not found")
+			}
 
-		if err := s.DB.SelectContext(ctx, &reviews, "SELECT * FROM reviews WHERE shop_id=$1", shop.ID); err != nil {
-			return nil, errors.Wrap(err, "reviews not found")
-		}
+			if err := s.DB.SelectContext(ctx, &reviews, "SELECT * FROM reviews WHERE shop_id=$1", shop.ID); err != nil {
+				errCh <- errors.Wrap(err, "reviews not found")
+			}
 
-		if err := s.DB.SelectContext(ctx, &products, "SELECT * FROM products WHERE shop_id=$1", shop.ID); err != nil {
-			return nil, errors.Wrap(err, "products not found")
-		}
+			if err := s.DB.SelectContext(ctx, &products, "SELECT * FROM products WHERE shop_id=$1", shop.ID); err != nil {
+				errCh <- errors.Wrap(err, "products not found")
+			}
 
-		shop.Location = location
-		shop.Reviews = reviews
-		shop.Products = products
+			shop.Location = location
+			shop.Reviews = reviews
+			shop.Products = products
 
-		result = append(result, shop)
+			ch <- shop
+		}(shop)
 	}
 
-	return result, nil
+	select {
+	case s := <-ch:
+		list = append(list, s)
+	case err := <-errCh:
+		return nil, err
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
+
+	return list, nil
 }
 
-// GetShopByID lists the shop requested from the database.
+// GetShopByID retrieves the shop requested from the database.
 func (s *service) GetShopByID(ctx context.Context, id string) (model.Shop, error) {
 	var (
 		shop     model.Shop
@@ -190,39 +219,53 @@ func (s *service) GetShopByID(ctx context.Context, id string) (model.Shop, error
 	return shop, nil
 }
 
-// GetUsers lists all the users stored in the database.
+// GetUsers returns a list with all the users stored in the database.
 func (s *service) GetUsers(ctx context.Context) ([]model.User, error) {
 	var (
-		users  []model.User
-		result []model.User
+		users []model.User
+		list  []model.User
 	)
+
+	ch := make(chan model.User)
+	errCh := make(chan error)
 
 	if err := s.DB.SelectContext(ctx, &users, "SELECT * FROM users"); err != nil {
 		return nil, errors.Wrap(err, "users not found")
 	}
 
 	for _, user := range users {
-		var reviews []model.Review
+		go func(user model.User) {
+			var reviews []model.Review
 
-		orders, err := ordering.GetByUserID(ctx, s.DB, user.ID)
-		if err != nil {
-			return nil, err
-		}
+			orders, err := ordering.GetByUserID(ctx, s.DB, user.ID)
+			if err != nil {
+				errCh <- err
+			}
 
-		if err := s.DB.SelectContext(ctx, &reviews, "SELECT * FROM reviews WHERE user_id=$1", user.ID); err != nil {
-			return nil, errors.Wrap(err, "error fetching reviews")
-		}
+			if err := s.DB.SelectContext(ctx, &reviews, "SELECT * FROM reviews WHERE user_id=$1", user.ID); err != nil {
+				errCh <- errors.Wrap(err, "error fetching reviews")
+			}
 
-		user.Orders = orders
-		user.Reviews = reviews
+			user.Orders = orders
+			user.Reviews = reviews
 
-		result = append(result, user)
+			ch <- user
+		}(user)
 	}
 
-	return result, nil
+	select {
+	case u := <-ch:
+		list = append(list, u)
+	case err := <-errCh:
+		return nil, err
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
+
+	return list, nil
 }
 
-// GetUserByID lists the user requested from the database.
+// GetUserByID retrieves the user requested from the database.
 func (s *service) GetUserByID(ctx context.Context, id string) (model.User, error) {
 	var (
 		user    model.User
