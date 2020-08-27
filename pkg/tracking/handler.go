@@ -8,14 +8,19 @@ import (
 	"github.com/go-chi/chi"
 )
 
+// Handler handles tracking endpoints.
+type Handler struct {
+	TrackerSv Tracker
+}
+
 // DeleteHit prints the hit with the specified day.
-func DeleteHit(t Tracker) http.HandlerFunc {
+func (h *Handler) DeleteHit() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
 
 		ctx := r.Context()
 
-		if err := t.Delete(ctx, id); err != nil {
+		if err := h.TrackerSv.Delete(ctx, id); err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
@@ -25,13 +30,13 @@ func DeleteHit(t Tracker) http.HandlerFunc {
 }
 
 // GetHits retrieves total amount of hits stored.
-func GetHits(t Tracker) http.HandlerFunc {
+func (h *Handler) GetHits() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
-		hits, err := t.Get(ctx)
+		hits, err := h.TrackerSv.Get(ctx)
 		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
+			response.Error(w, r, http.StatusNotFound, err)
 			return
 		}
 
@@ -40,15 +45,15 @@ func GetHits(t Tracker) http.HandlerFunc {
 }
 
 // SearchHit returns the hits that matched with the search.
-func SearchHit(t Tracker) http.HandlerFunc {
+func (h *Handler) SearchHit() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		search := chi.URLParam(r, "search")
+		query := chi.URLParam(r, "query")
 
 		ctx := r.Context()
 
-		hits, err := t.Search(ctx, search)
+		hits, err := h.TrackerSv.Search(ctx, query)
 		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
+			response.Error(w, r, http.StatusNotFound, err)
 			return
 		}
 
@@ -57,14 +62,14 @@ func SearchHit(t Tracker) http.HandlerFunc {
 }
 
 // SearchHitByField returns the hits that matched with the search.
-func SearchHitByField(t Tracker) http.HandlerFunc {
+func (h *Handler) SearchHitByField() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		field := chi.URLParam(r, "field")
 		value := chi.URLParam(r, "value")
 
 		ctx := r.Context()
 
-		hits, err := t.SearchByField(ctx, field, value)
+		hits, err := h.TrackerSv.SearchByField(ctx, field, value)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/GGP1/palo/internal/token"
+
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 )

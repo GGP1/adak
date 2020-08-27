@@ -7,7 +7,9 @@ import (
 	"regexp"
 	"testing"
 
+	"github.com/GGP1/palo/internal/cfg"
 	"github.com/GGP1/palo/pkg/user"
+	"github.com/jmoiron/sqlx"
 )
 
 func TestUsersHandler(t *testing.T) {
@@ -16,13 +18,21 @@ func TestUsersHandler(t *testing.T) {
 }
 
 func list(t *testing.T) {
+	db, err := sqlx.Open("postgres", cfg.DBURL)
+	if err != nil {
+		t.Error("couldn't open the database")
+	}
+
 	repo := *new(user.Repository)
+	service := user.NewService(repo, db)
 
 	req := httptest.NewRequest("GET", "localhost:4000/users", nil)
 	rec := httptest.NewRecorder()
 
-	handler := user.Get(repo)
-	handler(rec, req)
+	handler := user.Handler{Service: service}
+
+	handle := handler.Get()
+	handle(rec, req)
 
 	res := rec.Result()
 	defer res.Body.Close()

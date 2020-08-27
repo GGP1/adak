@@ -1,0 +1,970 @@
+# Check API objects on api/openapi-spec/objects/objects.yml
+openapi: 3.0.0
+info:
+  title: Palo API
+
+paths: 
+  #Auth
+  /login:
+    post:
+      summary: Authenticates users.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: You logged in.
+          content: text/html
+        '401':
+          description: 
+            please verify your email before logging in
+            invalid {field}
+          content: text/plain
+  /logout:
+    get:
+      summary: Logs out users.
+      responses:
+        '200':
+          description: You are now logged out.
+          content: text/html
+        '400':
+          description: you cannot log out without a session
+          content: text/plain
+  # Cart
+  /cart:
+    get:
+      summary: Returns a cart.
+      reponses:
+        '200':
+          description: A cart object.
+          content: application/json
+        '404':
+          description: 
+            couldn't find the cart
+            couldn't find the products
+          content: text/plain
+  /cart/add/{quantity}:
+    post:
+      summary: Adds products to the cart.
+      parameters:
+        - name: quantity
+          in: path
+          required: true
+          description: The number of products to be added to the cart.
+          schema:
+            type: integer
+            format: int
+            minimum: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: cart procut object
+      responses:
+        '200':
+          description: A product object.
+          content: application/json
+        '400':
+          description: please insert a valid quantity
+          content: text/plain
+        '500':
+          description:
+            couldn't find the cart
+            couldn't create the product
+            couldn't update the product
+            couldn't update the cart
+          content: text/plain
+  /cart/brand/{brand}:
+    get:
+      summary: Get cart products by brand.
+      parameters:
+        - name: brand
+          in: path
+          required: true
+          description: The brand of the products.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Product objects.
+          content: application/json
+        '404':
+          description: no products found
+          content: text/plain
+  /cart/category/{category}:
+    get:
+      summary: Get cart products by category.
+      parameters:
+        - name: category
+          in: path
+          required: true
+          description: The category of the products.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Product objects.
+          content: application/json
+        '404':
+          description: no products found
+          content: text/plain
+  /cart/discount/{min}/{max}:
+    get:
+      summary: Returns cart products.
+      parameters:
+        - name: min
+          in: path
+          required: true
+          description: The minimum percentage of discount.
+          schema:
+            type: float
+            format: float64
+            minimum: 0.01
+        - name: max
+          in: path
+          required: true
+          description: The maximum percentage of discount.
+          schema:
+            type: float
+            format: float64
+            minimum: 0.01
+      responses:
+        '200':
+          description: Product objects.
+          content: application/json
+        '404':
+          description: no products found
+          content: text/plain
+  /cart/checkout:
+    get:
+      summary: Returns the cart total.
+      reponses:
+        '200':
+          description: A float64.
+          content: application/json
+        '404':
+          description: couldn't find the cart
+          content: text/plain
+  /cart/products:
+    get:
+      summary: Returns a list of the cart products.
+      reponses:
+        '200':
+          description: A slice of cart products.
+          content: application/json
+        '404':
+          description: 
+            couldn't find the cart
+            cart is empty
+          content: text/plain
+  /cart/remove/{id}/{quantity}:
+    delete:
+      summary: Deletes a product from the cart.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The id of the product.
+          schema:
+            type: string
+        - name: quantity
+          in: path
+          required: true
+          description: The number of products to be deleted from the cart.
+          schema:
+            type: integer
+            format: int
+            minimum: 1
+      reponses:
+        '200':
+          description: Successfully removed the product from the cart.
+          content: application/json
+        '500':
+          description: 
+            couldn't find the cart
+            product not found
+            couldn't delete the product
+            couldn't delete the cart products
+            couldn't reset the cart
+          content: text/plain
+  /cart/reset:
+     get:
+      summary: Reset cart values to default.
+      reponses:
+        '200':
+          description: Cart reseted.
+          content: text/html
+        '500':
+          description:
+            couldn't delete the cart products
+            couldn't reset the cart
+          content: text/plain
+  /cart/size:
+    get:
+      summary: Returns the size of the cart.
+      responses:
+        '200':
+          description: An integer.
+          content: application/json
+        '404':
+          description: couldn't find the cart
+          content: text/plain
+  /cart/taxes/{min}/{max}:
+    get:
+      summary: Returns cart products.
+      parameters:
+        - name: min
+          in: path
+          required: true
+          description: The minimum percentage of taxes.
+          schema:
+            type: float
+            format: float64
+            minimum: 0.01
+        - name: max
+          in: path
+          required: true
+          description: The maximum percentage of taxes.
+          schema:
+            type: float
+            format: float64
+            minimum: 0.01
+      responses:
+        '200':
+          description: Product objects.
+          content: application/json
+        '404':
+          description: no products found
+          content: text/plain
+  /cart/total/{min}/{max}:
+    get:
+      summary: Returns cart products.
+      parameters:
+        - name: min
+          in: path
+          required: true
+          description: The minimum total.
+          schema:
+            type: float
+            format: float64
+            minimum: 0.01
+        - name: max
+          in: path
+          required: true
+          description: The maximum total.
+          schema:
+            type: float
+            format: float64
+            minimum: 0.01
+      responses:
+        '200':
+          description: Product objects.
+          content: application/json
+        '404':
+          description: no products found
+          content: text/plain
+  /cart/type/{type}:
+    get:
+      summary: Get cart products by type.
+      parameters:
+        - name: type
+          in: path
+          required: true
+          description: The type of the products.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Product objects.
+          content: application/json
+        '404':
+          description: no products found
+          content: text/plain
+  /cart/weight/{min}/{max}:
+    get:
+      summary: Returns cart products.
+      parameters:
+        - name: min
+          in: path
+          required: true
+          description: The minimum weight.
+          schema:
+            type: float
+            format: float64
+            minimum: 0.01
+        - name: max
+          in: path
+          required: true
+          description: The maximum weight.
+          schema:
+            type: float
+            format: float64
+            minimum: 0.01
+      responses:
+        '200':
+          description: Product objects.
+          content: application/json
+        '404':
+          description: no products found
+          content: text/plain
+  # Home
+  /home:
+    get:
+      summary: API welcome endpoint.
+      reponses:
+        '200':
+          description: Welcome to the palo home page.
+          content: text/html
+  # Ordering
+  /orders:
+    get:
+      summary: Returns a list of orders.
+      reponses:
+        '200':
+          description: A slice of orders.
+          content: application/json
+        '404':
+          description: 
+            couldn't find the orders
+            couldn't find the order cart
+            couldn't find order products
+          content: text/plain
+  /order/{id}:
+    delete:
+      summary: Deletes an order.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Order id.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The order has been deleted successfully.
+          content: text/html
+        '500':
+          description:
+            couldn't delete the order
+            couldn't delete the order cart
+            couldn't delete the order products
+          content: text/plain
+  /order/new:
+    post:
+      summary: Creates a new order.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: orderParams object
+      responses:
+        '200':
+          description: Thanks for your purchase! Your products will be delivered on {date}.
+          content: text/html
+        '400':
+          description: past dates are not valid
+          content: text/plain
+        '500':
+          description:
+            couldn't find the cart
+            couldn't find the products
+            ordering 0 products is not permitted
+            couldn't create order products
+            couldn't create the order
+            couldn't create the order cart
+            couldn't reset the cart
+          content: text/plain
+  # Product
+  /products:
+    get:
+      summary: A list of products.
+      reponses:
+        '200':
+          description: A slice of products.
+          content: application/json
+        '404':
+          description: 
+            couldn't find the orders
+            couldn't find the order cart
+            couldn't find order products
+          content: text/plain
+  /products/create:
+    post:
+      summary: Create a product.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: product object
+      responses:
+        '200':
+          description: A product object.
+          content: application/json
+        '500':
+          description: 
+            couldn't create the product
+            invalid {field}
+          content: text/plain
+  /products/{id}:
+    delete:
+      summary: Deletes a product.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Product id.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Product deleted successfully.
+          content: text/html
+        '500':
+          description: couldn't delete the product
+          content: text/plain
+    get:
+      summary: Returns a product by id.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Product id.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: A product object.
+          content: application/json
+        '404':
+          description:
+            product not found
+            couldn't find the reviews
+          content: text/plain
+    put:
+      summary: Updates a product.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Product id.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: A product object.
+          content: application/json
+        '500':
+          description: couldn't update the product
+          content: text/plain
+  /products/search/{query}:
+    get:
+      summary: Returns a list of products.
+      parameters:
+        - name: query
+          in: path
+          required: true
+          description: Search query.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: A slice of products.
+          content: application/json
+        '404':
+          description:
+            couldn't find the products
+            couldn't find the reviews
+          content: text/plain
+  # Review
+  /reviews:
+    get:
+      summary: A list of reviews.
+      reponses:
+        '200':
+          description: A slice of reviews.
+          content:
+            application/json
+        '404':
+          description: reviews not found
+          content: text/plain
+  /reviews/create:
+    post:
+      summary: Create a review.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: review object
+      responses:
+        '200':
+          description: A review object.
+          content: application/json
+        '500':
+          description: couldn't create the review
+          content: text/plain
+  /reviews/{id}:
+    delete:
+      summary: Deletes a review.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Review id.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Review deleted successfully.
+          content: text/html
+        '500':
+          description: couldn't delete the review
+          content: text/plain
+    get:
+      summary: Returns a review by id.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Review id.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: A review object.
+          content: application/json
+        '404':
+          description: review not found
+          content: text/plain
+  # Shop
+  /shops:
+    get:
+      summary: A list of shops.
+      reponses:
+        '200':
+          description: A slice of shops.
+          content: application/json
+        '404':
+          description: 
+            shops not found
+            location not found
+            reviews not found
+            products not found
+          content: text/plain
+  /shops/create:
+    post:
+      summary: Create a shop.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: shop object
+      responses:
+        '200':
+          description: A shop object.
+          content: application/json
+        '500':
+          description: 
+            couldn't create the shop
+            couldn't create the location
+          content: text/plain
+  /shops/{id}:
+    delete:
+      summary: Deletes a shop.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Shop id.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Shop deleted successfully.
+          content: text/html
+        '500':
+          description:
+            couldn't delete the shop
+          content: text/plain
+    get:
+      summary: Returns a shop by id.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Shop id.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: A shop object.
+          content:
+            application/json
+        '404':
+          description:
+            shops not found
+            location not found
+            reviews not found
+            products not found
+          content: text/plain
+    put:
+      summary: Updates a shop.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Shop id.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: A shop object.
+          content:
+            application/json
+        '500':
+          description: couldn't update the shop
+          content: text/plain
+  /shops/search/{query}:
+    get:
+      summary: Returns a list of shops.
+      parameters:
+        - name: query
+          in: path
+          required: true
+          description: Search query.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: A slice of shops.
+          content: application/json
+        '404':
+          description:
+            couldn't find shops
+            location not found
+            reviews not found
+            products not found
+          content: text/plain
+  # Stripe
+  /tracker:
+    get:
+      summary: Returns a list of hits.
+      responses:
+        '200':
+          description: A slice of hits.
+          content: application/json
+        '404':
+          description: couldn't find the hits
+          content: text/plain
+  /tracker/{id}:
+    delete:
+        summary: Returns a list of hits.
+        parameters:
+          - name: id
+            in: path
+            required: true
+            description: Hit id.
+            schema:
+              type: string
+        responses:
+          '200':
+            description: A hit object.
+            content: application/json
+          '500':
+            description: couldn't delete the hit
+            content: text/plain
+  /tracker/search/{query}:
+    get:
+      summary: Returns a list of hits.
+      parameters:
+        - name: query
+          in: path
+          required: true
+          description: Search query.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: A slice of hits.
+          content: application/json
+        '404':
+          description: no hits found
+          content: text/plain
+  /tracker/{field}/{value}:
+    get:
+      summary: Returns a list of hits.
+      parameters:
+        - name: field
+          in: path
+          required: true
+          description: Hit field.
+          schema:
+            type: string
+        - name: value
+          in: path
+          required: true
+          description: Hit value.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: A slice of hits.
+          content: application/json
+        '404':
+          description: no hits found
+          content: text/plain
+  # User
+  /users:
+    get:
+      summary: A list of users.
+      reponses:
+        '200':
+          description: A slice of users.
+          content:
+            application/json
+        '404':
+          description: 
+            users not found
+            couldn't find the orders
+            couldn't find the order cart
+            couldn't find order products
+            couldn't find the reviews
+          content: text/plain
+  /users/create:
+    post:
+      summary: Create a user.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: user object
+      responses:
+        '200':
+          description: Your account was successfully created. Please validate your email to start using Palo.
+          content:
+            text/html
+        '500':
+          description: 
+            could not generate the jwt token
+            couldn't add the email
+            failed sending validation email
+          content: text/plain
+  /users/{id}:
+    delete:
+      summary: Deletes a user.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: User id.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: User deleted successfully.
+          content: text/html
+        '401':
+          description: not allowed to delete others users.
+          content: text/plain
+        '404':
+          description: user not found
+          content: text/plain
+        '500':
+          description: 
+            couldn't delete the email
+            couldn't delete the cart
+            couldn't delete the user
+          content: text/plain
+    get:
+      summary: Returns a user by id.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: User id.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: A user object.
+          content: application/json
+        '404':
+          description:
+            user not found
+            couldn't find the reviews
+          content: text/plain
+    put:
+      summary: Updates a user.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: User id.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: User updated successfully.
+          content: text/html
+        '401':
+          description: not allowed to update others user
+          content: text/plain
+        '500':
+          description: couldn't update the user
+          content: text/plain
+  /users/search/{query}:
+    get:
+      summary: Returns a list of users.
+      parameters:
+        - name: query
+          in: path
+          required: true
+          description: Search query.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: A slice of users.
+          content:
+            application/json
+        '404':
+          description:
+            users not found
+            couldn't find the reviews
+          content: text/plain
+  /users/{id}/qrcode:
+    get:
+      summary: Returns a qrcode with the user id.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: User id.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: A png image.
+          content: image/png
+        '500':
+          description: qrcode content too long to encode
+          content: text/plain
+  # Account
+  /settings/email:
+    post:
+      summary: Sends an email to confirm user email changing.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+      responses:
+        '200':
+          description: We sent you an email to confirm that it is you.
+          content:
+            text/html
+        '400':
+          description: email is already taken
+          content: text/plain
+        '500':
+          description: 
+            could not generate the jwt token
+            failed sending confirmation email
+          content: text/plain
+  /settings/password:
+    post:
+      summary: Changes user password.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                old_password:
+                  type: string
+                new_password:
+                  type: string
+      responses:
+        '200':
+          description: Password changed successfully.
+          content:
+            text/html
+        '500':
+          description: 
+            invalid email
+            invalid old password
+            couldn't generate the password hash
+            couldn't change the password
+          content: text/plain
+  /verification/{token}:
+    get:
+      summary: Send email to validate the ownership of the email.
+      parameters:
+        - name: token
+          in: path
+          required: true
+          description: User token.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: You have successfully validated your email!
+          content: text/html
+        '404':
+          description: email not found
+          content: text/plain
+        '500':
+          description: 
+            couldn't add the email
+            couldn't remove the email
+            email validation failed
+          content: text/plain
+  /verification/{token}/{email}/{id}:
+    get:
+      summary: Changes user email.
+      parameters:
+        - name: token
+          in: path
+          required: true
+          description: User token.
+          schema:
+            type: string
+        - name: email
+          in: path
+          required: true
+          description: User new email.
+          schema:
+            type: string
+        - name: token
+          in: path
+          required: true
+          description: User id.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: You have successfully changed your email!
+          content: text/html
+        '500':
+          description: 
+            invalid email
+            couldn't change the email
+          content: text/plain

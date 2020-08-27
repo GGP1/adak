@@ -16,11 +16,11 @@ type Product struct {
 	Category    string          `json:"category"`
 	Type        string          `json:"type"`
 	Description string          `json:"description"`
-	Weight      float32         `json:"weight"`
-	Discount    float32         `json:"discount"`
-	Taxes       float32         `json:"taxes"`
-	Subtotal    float32         `json:"subtotal"`
-	Total       float32         `json:"total"`
+	Weight      float64         `json:"weight"`
+	Discount    float64         `json:"discount"`
+	Taxes       float64         `json:"taxes"`
+	Subtotal    float64         `json:"subtotal"`
+	Total       float64         `json:"total"`
 	Reviews     []review.Review `json:"reviews,omitempty"`
 	CreatedAt   time.Time       `json:"created_at" db:"created_at"`
 	UpdatedAt   time.Time       `json:"updated_at" db:"updated_at"`

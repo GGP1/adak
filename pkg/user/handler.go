@@ -15,8 +15,13 @@ import (
 	"github.com/pkg/errors"
 )
 
+// Handler handles user endpoints.
+type Handler struct {
+	Service Service
+}
+
 // Create creates a new user and saves it.
-func Create(u Service, pendingList email.Emailer) http.HandlerFunc {
+func (h *Handler) Create(pendingList email.Emailer) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var (
 			user User
@@ -43,10 +48,6 @@ func Create(u Service, pendingList email.Emailer) http.HandlerFunc {
 		errCh := make(chan error)
 
 		go email.SendValidation(ctx, user.Username, user.Email, token, errCh)
-		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
-			return
-		}
 
 		select {
 		case <-ctx.Done():
@@ -54,7 +55,7 @@ func Create(u Service, pendingList email.Emailer) http.HandlerFunc {
 		case <-errCh:
 			response.Error(w, r, http.StatusInternalServerError, errors.Wrap(<-errCh, "failed sending validation email"))
 		default:
-			if err = u.Create(ctx, &user); err != nil {
+			if err = h.Service.Create(ctx, &user); err != nil {
 				response.Error(w, r, http.StatusBadRequest, err)
 			}
 
@@ -64,14 +65,13 @@ func Create(u Service, pendingList email.Emailer) http.HandlerFunc {
 }
 
 // Delete removes a user.
-func Delete(db *sqlx.DB, u Service, s auth.Session, pendingList, validatedList email.Emailer) http.HandlerFunc {
+func (h *Handler) Delete(db *sqlx.DB, s auth.Session, pendingList, validatedList email.Emailer) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
 		uID, _ := r.Cookie("UID")
 
 		var (
-			user User
-			ctx  = r.Context()
+			ctx = r.Context()
 		)
 
 		// Check if it's the same user
@@ -86,8 +86,9 @@ func Delete(db *sqlx.DB, u Service, s auth.Session, pendingList, validatedList e
 			return
 		}
 
-		if err := db.GetContext(ctx, &user, "SELECT * FROM users WHERE id=$1", userID); err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
+		user, err := h.Service.GetByID(ctx, userID)
+		if err != nil {
+			response.Error(w, r, http.StatusNotFound, err)
 			return
 		}
 
@@ -101,7 +102,7 @@ func Delete(db *sqlx.DB, u Service, s auth.Session, pendingList, validatedList e
 			return
 		}
 
-		if err := u.Delete(ctx, id); err != nil {
+		if err := h.Service.Delete(ctx, id); err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
@@ -113,13 +114,13 @@ func Delete(db *sqlx.DB, u Service, s auth.Session, pendingList, validatedList e
 }
 
 // Get lists all the users.
-func Get(u Service) http.HandlerFunc {
+func (h *Handler) Get() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
-		users, err := u.Get(ctx)
+		users, err := h.Service.Get(ctx)
 		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
+			response.Error(w, r, http.StatusNotFound, err)
 			return
 		}
 
@@ -128,13 +129,13 @@ func Get(u Service) http.HandlerFunc {
 }
 
 // GetByID lists the user with the id requested.
-func GetByID(u Service) http.HandlerFunc {
+func (h *Handler) GetByID() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
 
 		ctx := r.Context()
 
-		user, err := u.GetByID(ctx, id)
+		user, err := h.Service.GetByID(ctx, id)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
@@ -145,7 +146,7 @@ func GetByID(u Service) http.HandlerFunc {
 }
 
 // QRCode shows the user id in a qrcode format.
-func QRCode(u Service) http.HandlerFunc {
+func (h *Handler) QRCode() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
 
@@ -154,7 +155,7 @@ func QRCode(u Service) http.HandlerFunc {
 			ctx  = r.Context()
 		)
 
-		user, err := u.GetByID(ctx, id)
+		user, err := h.Service.GetByID(ctx, id)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
@@ -171,15 +172,15 @@ func QRCode(u Service) http.HandlerFunc {
 }
 
 // Search looks for the products with the given value.
-func Search(u Service) http.HandlerFunc {
+func (h *Handler) Search() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		query := chi.URLParam(r, "query")
 
 		ctx := r.Context()
 
-		users, err := u.Search(ctx, query)
+		users, err := h.Service.Search(ctx, query)
 		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
+			response.Error(w, r, http.StatusNotFound, err)
 			return
 		}
 
@@ -188,7 +189,7 @@ func Search(u Service) http.HandlerFunc {
 }
 
 // Update updates the user with the given id.
-func Update(u Service) http.HandlerFunc {
+func (h *Handler) Update() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
 		uID, _ := r.Cookie("UID")
@@ -216,7 +217,7 @@ func Update(u Service) http.HandlerFunc {
 		}
 		defer r.Body.Close()
 
-		if err := u.Update(ctx, &user, id); err != nil {
+		if err := h.Service.Update(ctx, &user, id); err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}

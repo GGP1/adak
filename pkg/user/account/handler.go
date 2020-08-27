@@ -8,23 +8,80 @@ import (
 	"github.com/GGP1/palo/internal/token"
 	"github.com/GGP1/palo/pkg/email"
 	"github.com/GGP1/palo/pkg/user"
-	"github.com/jmoiron/sqlx"
+
 	"github.com/pkg/errors"
 
 	"github.com/go-chi/chi"
 )
 
+// Handler handles account endpoints.
+type Handler struct {
+	Service Service
+}
+
 type changeEmail struct {
 	Email string `json:"email"`
 }
 
-// ChangeEmail takes the new email and sends an email confirmation.
-func ChangeEmail(db *sqlx.DB, validatedList email.Emailer) http.HandlerFunc {
+// ChangeEmail changes the user email to the specified one.
+func (h *Handler) ChangeEmail(validatedList email.Emailer) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		token := chi.URLParam(r, "token")
+		email := chi.URLParam(r, "email")
+		id := chi.URLParam(r, "id")
+
+		ctx := r.Context()
+
+		if err := h.Service.ChangeEmail(ctx, id, email, token, validatedList); err != nil {
+			response.Error(w, r, http.StatusInternalServerError, err)
+			return
+		}
+
+		response.HTMLText(w, r, http.StatusOK, "You have successfully changed your email!")
+	}
+}
+
+type changePassword struct {
+	OldPassword string `json:"old_password"`
+	NewPassword string `json:"new_password"`
+}
+
+// ChangePassword updates the user password.
+func (h *Handler) ChangePassword() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		uID, _ := r.Cookie("UID")
+
+		var (
+			changePass changePassword
+			ctx        = r.Context()
+		)
+
+		userID, err := token.ParseFixedJWT(uID.Value)
+		if err != nil {
+			response.Error(w, r, http.StatusInternalServerError, err)
+		}
+
+		if err := json.NewDecoder(r.Body).Decode(&changePass); err != nil {
+			response.Error(w, r, http.StatusBadRequest, err)
+			return
+		}
+		defer r.Body.Close()
+
+		if err := h.Service.ChangePassword(ctx, userID, changePass.OldPassword, changePass.NewPassword); err != nil {
+			response.Error(w, r, http.StatusInternalServerError, err)
+			return
+		}
+
+		response.HTMLText(w, r, http.StatusOK, "Password changed successfully.")
+	}
+}
+
+// SendChangeConfirmation takes the new email and sends an email confirmation.
+func (h *Handler) SendChangeConfirmation(u user.Service, validatedList email.Emailer) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var (
-			new  changeEmail
-			user user.User
-			ctx  = r.Context()
+			new changeEmail
+			ctx = r.Context()
 		)
 
 		if err := json.NewDecoder(r.Body).Decode(&new); err != nil {
@@ -50,9 +107,9 @@ func ChangeEmail(db *sqlx.DB, validatedList email.Emailer) http.HandlerFunc {
 			return
 		}
 
-		err = db.GetContext(ctx, &user, "SELECT id, username, email FROM users WHERE id=$1", userID)
+		user, err := u.GetByID(ctx, userID)
 		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
+			response.Error(w, r, http.StatusNotFound, err)
 			return
 		}
 
@@ -76,44 +133,9 @@ func ChangeEmail(db *sqlx.DB, validatedList email.Emailer) http.HandlerFunc {
 	}
 }
 
-type changePassword struct {
-	OldPassword string `json:"old_password"`
-	NewPassword string `json:"new_password"`
-}
-
-// ChangePassword updates the user password.
-func ChangePassword(a Service) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		uID, _ := r.Cookie("UID")
-
-		var (
-			changePass changePassword
-			ctx        = r.Context()
-		)
-
-		userID, err := token.ParseFixedJWT(uID.Value)
-		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
-		}
-
-		if err := json.NewDecoder(r.Body).Decode(&changePass); err != nil {
-			response.Error(w, r, http.StatusBadRequest, err)
-			return
-		}
-		defer r.Body.Close()
-
-		if err := a.ChangePassword(ctx, userID, changePass.OldPassword, changePass.NewPassword); err != nil {
-			response.Error(w, r, http.StatusBadRequest, err)
-			return
-		}
-
-		response.HTMLText(w, r, http.StatusOK, "Password changed successfully.")
-	}
-}
-
 // SendEmailValidation saves the user email into the validated list.
 // Once in the validated list, the user is able to log in.
-func SendEmailValidation(pendingList, validatedList email.Emailer) http.HandlerFunc {
+func (h *Handler) SendEmailValidation(pendingList, validatedList email.Emailer) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		token := chi.URLParam(r, "token")
 
@@ -124,7 +146,7 @@ func SendEmailValidation(pendingList, validatedList email.Emailer) http.HandlerF
 
 		pList, err := pendingList.Read(ctx)
 		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
+			response.Error(w, r, http.StatusNotFound, err)
 			return
 		}
 
@@ -145,28 +167,10 @@ func SendEmailValidation(pendingList, validatedList email.Emailer) http.HandlerF
 		}
 
 		if !validated {
-			response.Error(w, r, http.StatusInternalServerError, errors.New("error: email validation failed"))
+			response.Error(w, r, http.StatusInternalServerError, errors.New("email validation failed"))
 			return
 		}
 
 		response.HTMLText(w, r, http.StatusOK, "You have successfully validated your email!")
-	}
-}
-
-// ValidateEmailChange changes the user email to the specified one.
-func ValidateEmailChange(a Service, validatedList email.Emailer) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		token := chi.URLParam(r, "token")
-		email := chi.URLParam(r, "email")
-		id := chi.URLParam(r, "id")
-
-		ctx := r.Context()
-
-		if err := a.ChangeEmail(ctx, id, email, token, validatedList); err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
-			return
-		}
-
-		response.HTMLText(w, r, http.StatusOK, "You have successfully changed your email!")
 	}
 }

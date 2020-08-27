@@ -8,16 +8,15 @@ import (
 	"github.com/GGP1/palo/internal/token"
 
 	"github.com/go-chi/chi"
-	"github.com/jmoiron/sqlx"
 )
 
-// Reviews handles reviews routes.
-type Reviews struct {
-	DB *sqlx.DB
+// Handler handles reviews endpoints.
+type Handler struct {
+	Service Service
 }
 
 // Create creates a new review and saves it.
-func Create(rev Service) http.HandlerFunc {
+func (h *Handler) Create() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		uID, _ := r.Cookie("UID")
 
@@ -38,7 +37,7 @@ func Create(rev Service) http.HandlerFunc {
 		}
 		defer r.Body.Close()
 
-		if err := rev.Create(ctx, &review, userID); err != nil {
+		if err := h.Service.Create(ctx, &review, userID); err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
@@ -48,13 +47,13 @@ func Create(rev Service) http.HandlerFunc {
 }
 
 // Delete removes a review.
-func Delete(rev Service) http.HandlerFunc {
+func (h *Handler) Delete() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
 
 		ctx := r.Context()
 
-		if err := rev.Delete(ctx, id); err != nil {
+		if err := h.Service.Delete(ctx, id); err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
@@ -64,13 +63,13 @@ func Delete(rev Service) http.HandlerFunc {
 }
 
 // Get lists all the reviews.
-func Get(rev Service) http.HandlerFunc {
+func (h *Handler) Get() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
-		reviews, err := rev.Get(ctx)
+		reviews, err := h.Service.Get(ctx)
 		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
+			response.Error(w, r, http.StatusNotFound, err)
 			return
 		}
 
@@ -79,15 +78,15 @@ func Get(rev Service) http.HandlerFunc {
 }
 
 // GetByID lists the review with the id requested.
-func GetByID(rev Service) http.HandlerFunc {
+func (h *Handler) GetByID() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
 
 		ctx := r.Context()
 
-		review, err := rev.GetByID(ctx, id)
+		review, err := h.Service.GetByID(ctx, id)
 		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
+			response.Error(w, r, http.StatusNotFound, err)
 			return
 		}
 

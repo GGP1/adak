@@ -6,6 +6,7 @@ import (
 
 	"github.com/GGP1/palo/internal/token"
 	"github.com/GGP1/palo/pkg/review"
+
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 )
@@ -95,7 +96,7 @@ func (s *service) Get(ctx context.Context) ([]Product, error) {
 			var reviews []review.Review
 
 			if err := s.DB.Select(&reviews, "SELECT * FROM reviews WHERE product_id=$1", product.ID); err != nil {
-				errCh <- errors.Wrap(err, "error fetching reviews")
+				errCh <- errors.Wrap(err, "couldn't find the reviews")
 			}
 
 			product.Reviews = reviews
@@ -128,7 +129,7 @@ func (s *service) GetByID(ctx context.Context, id string) (Product, error) {
 	}
 
 	if err := s.DB.SelectContext(ctx, &reviews, "SELECT * FROM reviews WHERE product_id=$1", id); err != nil {
-		return Product{}, errors.Wrap(err, "error fetching reviews")
+		return Product{}, errors.Wrap(err, "couldn't find the reviews")
 	}
 
 	product.Reviews = reviews
@@ -159,7 +160,7 @@ func (s *service) Search(ctx context.Context, search string) ([]Product, error) 
 			var reviews []review.Review
 
 			if err := s.DB.SelectContext(ctx, &reviews, "SELECT * FROM reviews WHERE product_id=$1", product.ID); err != nil {
-				errCh <- errors.Wrap(err, "error fetching reviews")
+				errCh <- errors.Wrap(err, "couldn't find the reviews")
 			}
 
 			product.Reviews = reviews

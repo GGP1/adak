@@ -7,6 +7,7 @@ import (
 	"github.com/GGP1/palo/internal/token"
 	"github.com/GGP1/palo/pkg/product"
 	"github.com/GGP1/palo/pkg/review"
+
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 )
@@ -66,7 +67,7 @@ func (s *service) Create(ctx context.Context, shop *Shop) error {
 	_, err = s.DB.ExecContext(ctx, lQuery, id, shop.Location.Country, shop.Location.State,
 		shop.Location.ZipCode, shop.Location.City, shop.Location.Address)
 	if err != nil {
-		return errors.Wrap(err, "couldn't create the shop")
+		return errors.Wrap(err, "couldn't create the location")
 	}
 
 	return nil

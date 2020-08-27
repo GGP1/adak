@@ -1,0 +1,169 @@
+# Cart
+cart:
+  id: string
+  counter: integer
+  weight: float64
+  discount: float64
+  taxes: float64
+  subtotal: float64
+  total: float64
+  products:
+    type: array
+    object: CartProduct
+
+cartProduct:
+  id: string
+  cart_id: string
+  quantity: integer
+  brand: string
+  category: string
+  type: string
+  description: string
+  weight: float64
+  discount: float64
+  taxes: float64
+  subtotal: float64
+  total: float64
+
+# Ordering
+order:
+  id: string
+  user_id: string
+  currency: string
+  address: string
+  city: string
+  state: string
+  zip_code: string
+  country: string
+  status: string
+  ordered_at: time
+  delivery_date: time
+  cart_id: string
+  cart: OrderCart
+  products:
+    type: array
+    object: OrderProduct
+
+orderCart:
+  order_id: string
+  counter: integer
+  weight: float64
+  discount: float64
+  taxes: float64
+  subtotal: float64
+  total: float64
+
+orderParams:
+  currency: string
+  country: string
+  state: string
+  zip_code: string
+  city: string
+  address: string
+  date: 
+    year: integer
+    month: integer
+    day: integer
+    hour: integer
+    minutes: integer
+  card: Card
+
+orderProduct:
+  product_id: string
+  order_id: string
+  quantity: integer
+  brand: string
+  category: string
+  type: string
+  description: string
+  weight: float64
+  discount: float64
+  taxes: float64
+  subtotal: float64
+  total: float64
+
+# Product
+product:
+  id: string
+  shop: string
+  stock: string
+  brand: string
+  category: string
+  type: string
+  description: string
+  weight: float64
+  discount: float64
+  taxes: float64
+  subtotal: float64
+  total: float64
+  reviews:
+    type: array
+    object: Review
+  created_at: time
+  updated_at: time
+
+# Review
+review:
+  id: string
+  stars: integer
+  comments: string
+  user_id: string
+  product_id: string
+  shop_id: string
+  created_at: time
+  updated_at: time
+
+# Shop
+shop:
+  id: string
+  name: string
+  location: Location
+  reviews:
+    type: array
+    object: Review
+  products:
+    type: array
+    object: Product
+  created_at: time
+  updated_at: time
+
+location:
+  shop_id: string
+  country: string
+  state: string
+  zip_code: string
+  city: string
+  address: string
+
+# Stripe
+card:
+  number: string
+  exp_month: string
+  exp_year: string
+  cvc: string
+
+# Tracking
+hit:
+  id: string
+  footprint: string
+  path: string
+  url: string
+  language: string
+  user_agent: string
+  referer: string
+  date: time
+
+# User
+user:
+  id: string
+  username: string
+  email: string
+  password: string
+  orders:
+    type: array
+    object: Order
+  reviews:
+    type: array
+    object: Review
+  created_at: time
+  updated_at: time

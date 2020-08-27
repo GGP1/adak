@@ -127,7 +127,7 @@ func (s *service) Get(ctx context.Context) ([]ListUser, error) {
 			}
 
 			if err := s.DB.SelectContext(ctx, &reviews, "SELECT * FROM reviews WHERE user_id=$1", user.ID); err != nil {
-				errCh <- errors.Wrap(err, "error fetching reviews")
+				errCh <- errors.Wrap(err, "couldn't find the reviews")
 			}
 
 			user.Orders = orders
@@ -161,7 +161,7 @@ func (s *service) GetByID(ctx context.Context, id string) (ListUser, error) {
 	}
 
 	if err := s.DB.SelectContext(ctx, &reviews, "SELECT * FROM reviews WHERE user_id=$1", id); err != nil {
-		return ListUser{}, errors.Wrap(err, "error fetching reviews")
+		return ListUser{}, errors.Wrap(err, "couldn't find the reviews")
 	}
 
 	orders, err := ordering.GetByUserID(ctx, s.DB, id)
@@ -189,7 +189,7 @@ func (s *service) Search(ctx context.Context, search string) ([]ListUser, error)
 	@@ to_tsquery($1)`
 
 	if err := s.DB.SelectContext(ctx, &users, q, search); err != nil {
-		return nil, errors.Wrap(err, "couldn't find users")
+		return nil, errors.Wrap(err, "users not found")
 	}
 
 	for _, user := range users {
@@ -202,7 +202,7 @@ func (s *service) Search(ctx context.Context, search string) ([]ListUser, error)
 			}
 
 			if err := s.DB.SelectContext(ctx, &reviews, "SELECT * FROM reviews WHERE user_id=$1", user.ID); err != nil {
-				errCh <- errors.Wrap(err, "error fetching reviews")
+				errCh <- errors.Wrap(err, "couldn't find the reviews")
 			}
 
 			user.Orders = orders

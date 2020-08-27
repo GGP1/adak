@@ -36,14 +36,19 @@ type date struct {
 	Minutes int `json:"minutes"`
 }
 
-// DeleteOrder deletes an order.
-func DeleteOrder(db *sqlx.DB) http.HandlerFunc {
+// Handler handles ordering endpoints.
+type Handler struct {
+	DB *sqlx.DB
+}
+
+// Delete deletes an order.
+func (h *Handler) Delete() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
 
 		ctx := r.Context()
 
-		if err := Delete(ctx, db, id); err != nil {
+		if err := Delete(ctx, h.DB, id); err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
@@ -52,14 +57,14 @@ func DeleteOrder(db *sqlx.DB) http.HandlerFunc {
 	}
 }
 
-// GetOrder finds all the stored orders.
-func GetOrder(db *sqlx.DB) http.HandlerFunc {
+// Get finds all the stored orders.
+func (h *Handler) Get() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
-		orders, err := Get(ctx, db)
+		orders, err := Get(ctx, h.DB)
 		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
+			response.Error(w, r, http.StatusNotFound, err)
 			return
 		}
 
@@ -67,8 +72,8 @@ func GetOrder(db *sqlx.DB) http.HandlerFunc {
 	}
 }
 
-// NewOrder creates a new order.
-func NewOrder(db *sqlx.DB) http.HandlerFunc {
+// New creates a new order.
+func (h *Handler) New() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		cID, _ := r.Cookie("CID")
 		uID, _ := r.Cookie("UID")
@@ -102,13 +107,13 @@ func NewOrder(db *sqlx.DB) http.HandlerFunc {
 			return
 		}
 
-		cart, err := cart.Get(ctx, db, cID.Value)
+		cart, err := cart.Get(ctx, h.DB, cID.Value)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
 
-		order, err := New(ctx, db, userID, o.Currency, o.Address, o.City, o.Country, o.State, o.ZipCode, deliveryDate, cart)
+		order, err := New(ctx, h.DB, userID, o.Currency, o.Address, o.City, o.Country, o.State, o.ZipCode, deliveryDate, cart)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
@@ -122,7 +127,7 @@ func NewOrder(db *sqlx.DB) http.HandlerFunc {
 
 		order.Status = PaidState
 
-		_, err = db.ExecContext(ctx, "UPDATE orders SET status=$2 WHERE id=$1", order.ID, order.Status)
+		_, err = h.DB.ExecContext(ctx, "UPDATE orders SET status=$2 WHERE id=$1", order.ID, order.Status)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return

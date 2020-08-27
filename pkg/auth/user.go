@@ -2,6 +2,7 @@ package auth
 
 import (
 	"github.com/GGP1/palo/pkg/email"
+
 	"github.com/pkg/errors"
 )
 

@@ -9,8 +9,13 @@ import (
 	"github.com/go-chi/chi"
 )
 
+// Handler handles product endpoints.
+type Handler struct {
+	Service Service
+}
+
 // Create creates a new product and saves it.
-func Create(p Service) http.HandlerFunc {
+func (h *Handler) Create() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var (
 			product Product
@@ -23,7 +28,7 @@ func Create(p Service) http.HandlerFunc {
 		}
 		defer r.Body.Close()
 
-		if err := p.Create(ctx, &product); err != nil {
+		if err := h.Service.Create(ctx, &product); err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
@@ -33,13 +38,13 @@ func Create(p Service) http.HandlerFunc {
 }
 
 // Delete removes a product.
-func Delete(p Service) http.HandlerFunc {
+func (h *Handler) Delete() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
 
 		ctx := r.Context()
 
-		if err := p.Delete(ctx, id); err != nil {
+		if err := h.Service.Delete(ctx, id); err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
@@ -49,11 +54,11 @@ func Delete(p Service) http.HandlerFunc {
 }
 
 // Get lists all the products.
-func Get(p Service) http.HandlerFunc {
+func (h *Handler) Get() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
-		products, err := p.Get(ctx)
+		products, err := h.Service.Get(ctx)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
@@ -64,15 +69,15 @@ func Get(p Service) http.HandlerFunc {
 }
 
 // GetByID lists the product with the id requested.
-func GetByID(p Service) http.HandlerFunc {
+func (h *Handler) GetByID() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
 
 		ctx := r.Context()
 
-		product, err := p.GetByID(ctx, id)
+		product, err := h.Service.GetByID(ctx, id)
 		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
+			response.Error(w, r, http.StatusNotFound, err)
 			return
 		}
 
@@ -81,15 +86,15 @@ func GetByID(p Service) http.HandlerFunc {
 }
 
 // Search looks for the products with the given value.
-func Search(p Service) http.HandlerFunc {
+func (h *Handler) Search() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		query := chi.URLParam(r, "query")
 
 		ctx := r.Context()
 
-		products, err := p.Search(ctx, query)
+		products, err := h.Service.Search(ctx, query)
 		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
+			response.Error(w, r, http.StatusNotFound, err)
 			return
 		}
 
@@ -98,7 +103,7 @@ func Search(p Service) http.HandlerFunc {
 }
 
 // Update updates the product with the given id.
-func Update(p Service) http.HandlerFunc {
+func (h *Handler) Update() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
 
@@ -113,7 +118,7 @@ func Update(p Service) http.HandlerFunc {
 		}
 		defer r.Body.Close()
 
-		if err := p.Update(ctx, &product, id); err != nil {
+		if err := h.Service.Update(ctx, &product, id); err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}

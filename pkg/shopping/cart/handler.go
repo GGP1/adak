@@ -33,7 +33,7 @@ func (h *Handler) Add() http.HandlerFunc {
 		}
 
 		if quantity == 0 {
-			response.Error(w, r, http.StatusBadRequest, errors.New("error: please insert a valid quantity"))
+			response.Error(w, r, http.StatusBadRequest, errors.New("please insert a valid quantity"))
 			return
 		}
 
@@ -64,7 +64,7 @@ func (h *Handler) Checkout() http.HandlerFunc {
 
 		checkout, err := Checkout(ctx, h.DB, c.Value)
 		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
+			response.Error(w, r, http.StatusNotFound, err)
 			return
 		}
 
@@ -262,7 +262,7 @@ func (h *Handler) Products() http.HandlerFunc {
 
 		items, err := Products(ctx, h.DB, c.Value)
 		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
+			response.Error(w, r, http.StatusNotFound, err)
 			return
 		}
 
@@ -319,7 +319,7 @@ func (h *Handler) Size() http.HandlerFunc {
 
 		size, err := Size(ctx, h.DB, c.Value)
 		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
+			response.Error(w, r, http.StatusNotFound, err)
 			return
 		}
 

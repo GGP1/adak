@@ -32,8 +32,8 @@ type Hitter struct {
 	salt string
 }
 
-// NewTracker returns a new user tracker.
-func NewTracker(db *sqlx.DB, salt string) Tracker {
+// NewService returns a new user tracker.
+func NewService(db *sqlx.DB, salt string) Tracker {
 	return &Hitter{
 		DB:   db,
 		salt: salt,
@@ -85,7 +85,7 @@ func (h *Hitter) Hit(ctx context.Context, r *http.Request) error {
 }
 
 // Search looks for a value and returns a slice of the hits that contain that value.
-func (h *Hitter) Search(ctx context.Context, value string) ([]Hit, error) {
+func (h *Hitter) Search(ctx context.Context, query string) ([]Hit, error) {
 	var hits []Hit
 
 	q := `SELECT * FROM hits WHERE
@@ -94,7 +94,7 @@ func (h *Hitter) Search(ctx context.Context, value string) ([]Hit, error) {
 	language || ' ' || referer || ' ' || 
 	user_agent || ' ' || date) @@ to_tsquery($1)`
 
-	if err := h.DB.SelectContext(ctx, &hits, q, value); err != nil {
+	if err := h.DB.SelectContext(ctx, &hits, q, query); err != nil {
 		return nil, errors.New("no hits found")
 	}
 
@@ -105,7 +105,7 @@ func (h *Hitter) Search(ctx context.Context, value string) ([]Hit, error) {
 func (h *Hitter) SearchByField(ctx context.Context, field, value string) ([]Hit, error) {
 	var hits []Hit
 
-	q := `SELECT * FROM hist WHERE CONTAINS($1, '$2')`
+	q := `SELECT * FROM hits WHERE CONTAINS($1, '$2')`
 
 	if err := h.DB.SelectContext(ctx, &hits, q, field, value); err != nil {
 		return nil, errors.New("no hits found")

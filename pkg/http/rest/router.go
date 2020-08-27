@@ -34,19 +34,19 @@ func NewRouter(db *sqlx.DB) http.Handler {
 	uRepo := *new(user.Repository)
 
 	// Services
-	a := account.NewService(aRepo, db)
-	p := product.NewService(pRepo, db)
-	rev := review.NewService(rRepo, db)
-	s := shop.NewService(sRepo, db)
-	u := user.NewService(uRepo, db)
+	accountService := account.NewService(aRepo, db)
+	productService := product.NewService(pRepo, db)
+	reviewService := review.NewService(rRepo, db)
+	shopService := shop.NewService(sRepo, db)
+	userService := user.NewService(uRepo, db)
 
 	// -- Auth session --
 	session := auth.NewSession(db)
 	// -- Email lists --
-	pendingList := email.NewList(db, "pending_list")
-	validatedList := email.NewList(db, "validated_list")
-	// -- Tracker --
-	tracker := tracking.NewTracker(db, "")
+	pendingList := email.NewService(db, "pending_list")
+	validatedList := email.NewService(db, "validated_list")
+	// -- Tracking --
+	trackingService := tracking.NewService(db, "")
 
 	// Middlewares
 	r.Use(m.AllowCrossOrigin)
@@ -75,34 +75,38 @@ func NewRouter(db *sqlx.DB) http.Handler {
 	r.Get("/cart/weight/{min}/{max}", m.RequireLogin(cart.FilterByWeight()))
 
 	// Home
-	r.Get("/", Home(tracker))
+	r.Get("/", Home(trackingService))
 
 	// Ordering
-	r.Get("/orders", m.AdminsOnly(ordering.GetOrder(db)))
-	r.Delete("/order/{id}", m.AdminsOnly(ordering.DeleteOrder(db)))
-	r.Post("/order/new", m.RequireLogin(ordering.NewOrder(db)))
+	order := ordering.Handler{DB: db}
+	r.Get("/orders", m.AdminsOnly(order.Get()))
+	r.Delete("/order/{id}", m.AdminsOnly(order.Delete()))
+	r.Post("/order/new", m.RequireLogin(order.New()))
 
 	// Product
-	r.Post("/products/create", m.AdminsOnly(product.Create(p)))
-	r.Delete("/products/{id}", m.AdminsOnly(product.Delete(p)))
-	r.Get("/products", product.Get(p))
-	r.Get("/products/{id}", product.GetByID(p))
-	r.Get("/products/search/{query}", product.Search(p))
-	r.Put("/products/{id}", m.AdminsOnly(product.Update(p)))
+	product := product.Handler{Service: productService}
+	r.Post("/products/create", m.AdminsOnly(product.Create()))
+	r.Delete("/products/{id}", m.AdminsOnly(product.Delete()))
+	r.Get("/products", product.Get())
+	r.Get("/products/{id}", product.GetByID())
+	r.Get("/products/search/{query}", product.Search())
+	r.Put("/products/{id}", m.AdminsOnly(product.Update()))
 
 	// Review
-	r.Post("/reviews/create", m.RequireLogin(review.Create(rev)))
-	r.Delete("/reviews/{id}", m.AdminsOnly(review.Delete(rev)))
-	r.Get("/reviews", review.Get(rev))
-	r.Get("/reviews/{id}", review.GetByID(rev))
+	review := review.Handler{Service: reviewService}
+	r.Post("/reviews/create", m.RequireLogin(review.Create()))
+	r.Delete("/reviews/{id}", m.AdminsOnly(review.Delete()))
+	r.Get("/reviews", review.Get())
+	r.Get("/reviews/{id}", review.GetByID())
 
 	// Shop
-	r.Post("/shops/create", m.AdminsOnly(shop.Create(s)))
-	r.Delete("/shops/{id}", m.AdminsOnly(shop.Delete(s)))
-	r.Get("/shops", shop.Get(s))
-	r.Get("/shops/{id}", shop.GetByID(s))
-	r.Get("/shops/search/{query}", shop.Search(s))
-	r.Put("/shops/{id}", m.AdminsOnly(shop.Update(s)))
+	shop := shop.Handler{Service: shopService}
+	r.Post("/shops/create", m.AdminsOnly(shop.Create()))
+	r.Delete("/shops/{id}", m.AdminsOnly(shop.Delete()))
+	r.Get("/shops", shop.Get())
+	r.Get("/shops/{id}", shop.GetByID())
+	r.Get("/shops/search/{query}", shop.Search())
+	r.Put("/shops/{id}", m.AdminsOnly(shop.Update()))
 
 	// Stripe
 	stripe := stripe.Handler{}
@@ -113,24 +117,27 @@ func NewRouter(db *sqlx.DB) http.Handler {
 	r.Get("/stripe/transactions", m.AdminsOnly(stripe.ListTxs()))
 
 	// Tracking
-	r.Get("/tracker", m.AdminsOnly(tracking.GetHits(tracker)))
-	r.Delete("/tracker/{id}", m.AdminsOnly(tracking.DeleteHit(tracker)))
-	r.Get("/tracker/search/{search}", m.AdminsOnly(tracking.SearchHit(tracker)))
-	r.Get("/tracker/{field}/{value}", m.AdminsOnly(tracking.SearchHitByField(tracker)))
+	tracker := tracking.Handler{TrackerSv: trackingService}
+	r.Get("/tracker", m.AdminsOnly(tracker.GetHits()))
+	r.Delete("/tracker/{id}", m.AdminsOnly(tracker.DeleteHit()))
+	r.Get("/tracker/search/{query}", m.AdminsOnly(tracker.SearchHit()))
+	r.Get("/tracker/{field}/{value}", m.AdminsOnly(tracker.SearchHitByField()))
 
 	// User
-	r.Post("/users/create", user.Create(u, pendingList))
-	r.Delete("/users/{id}", m.RequireLogin(user.Delete(db, u, session, pendingList, validatedList)))
-	r.Get("/users", user.Get(u))
-	r.Get("/users/{id}", user.GetByID(u))
-	r.Get("/users/search/{query}", user.Search(u))
-	r.Put("/users/{id}", m.RequireLogin(user.Update(u)))
-	r.Get("/users/{id}/qrcode", user.QRCode(u))
+	user := user.Handler{Service: userService}
+	r.Post("/users/create", user.Create(pendingList))
+	r.Delete("/users/{id}", m.RequireLogin(user.Delete(db, session, pendingList, validatedList)))
+	r.Get("/users", user.Get())
+	r.Get("/users/{id}", user.GetByID())
+	r.Get("/users/search/{query}", user.Search())
+	r.Put("/users/{id}", m.RequireLogin(user.Update()))
+	r.Get("/users/{id}/qrcode", user.QRCode())
 	// Account
-	r.Post("/settings/email", m.RequireLogin(account.ChangeEmail(db, pendingList)))
-	r.Post("/settings/password", m.RequireLogin(account.ChangePassword(a)))
+	account := account.Handler{Service: accountService}
+	r.Post("/settings/email", m.RequireLogin(account.SendChangeConfirmation(userService, pendingList)))
+	r.Post("/settings/password", m.RequireLogin(account.ChangePassword()))
 	r.Get("/verification/{token}", account.SendEmailValidation(pendingList, validatedList))
-	r.Get("/verification/{token}/{email}/{id}", account.ValidateEmailChange(a, validatedList))
+	r.Get("/verification/{token}/{email}/{id}", account.ChangeEmail(validatedList))
 
 	http.Handle("/", r)
 

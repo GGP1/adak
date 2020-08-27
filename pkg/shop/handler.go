@@ -9,8 +9,13 @@ import (
 	"github.com/go-chi/chi"
 )
 
+// Handler handles shop endpoints.
+type Handler struct {
+	Service Service
+}
+
 // Create creates a new shop and saves it.
-func Create(s Service) http.HandlerFunc {
+func (h *Handler) Create() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var (
 			shop *Shop
@@ -23,7 +28,7 @@ func Create(s Service) http.HandlerFunc {
 		}
 		defer r.Body.Close()
 
-		if err := s.Create(ctx, shop); err != nil {
+		if err := h.Service.Create(ctx, shop); err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
@@ -33,13 +38,13 @@ func Create(s Service) http.HandlerFunc {
 }
 
 // Delete removes a shop.
-func Delete(s Service) http.HandlerFunc {
+func (h *Handler) Delete() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
 
 		ctx := r.Context()
 
-		if err := s.Delete(ctx, id); err != nil {
+		if err := h.Service.Delete(ctx, id); err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
@@ -49,13 +54,13 @@ func Delete(s Service) http.HandlerFunc {
 }
 
 // Get lists all the shops.
-func Get(s Service) http.HandlerFunc {
+func (h *Handler) Get() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
-		shops, err := s.Get(ctx)
+		shops, err := h.Service.Get(ctx)
 		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
+			response.Error(w, r, http.StatusNotFound, err)
 			return
 		}
 
@@ -64,15 +69,15 @@ func Get(s Service) http.HandlerFunc {
 }
 
 // GetByID lists the shop with the id requested.
-func GetByID(s Service) http.HandlerFunc {
+func (h *Handler) GetByID() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
 
 		ctx := r.Context()
 
-		shop, err := s.GetByID(ctx, id)
+		shop, err := h.Service.GetByID(ctx, id)
 		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
+			response.Error(w, r, http.StatusNotFound, err)
 			return
 		}
 
@@ -81,15 +86,15 @@ func GetByID(s Service) http.HandlerFunc {
 }
 
 // Search looks for the products with the given value.
-func Search(s Service) http.HandlerFunc {
+func (h *Handler) Search() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		query := chi.URLParam(r, "query")
 
 		ctx := r.Context()
 
-		shops, err := s.Search(ctx, query)
+		shops, err := h.Service.Search(ctx, query)
 		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
+			response.Error(w, r, http.StatusNotFound, err)
 			return
 		}
 
@@ -98,7 +103,7 @@ func Search(s Service) http.HandlerFunc {
 }
 
 // Update updates the shop with the given id.
-func Update(s Service) http.HandlerFunc {
+func (h *Handler) Update() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
 
@@ -113,7 +118,7 @@ func Update(s Service) http.HandlerFunc {
 		}
 		defer r.Body.Close()
 
-		if err := s.Update(ctx, shop, id); err != nil {
+		if err := h.Service.Update(ctx, shop, id); err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}

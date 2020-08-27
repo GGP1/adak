@@ -28,8 +28,8 @@ type List struct {
 	Token     string `json:"token"`
 }
 
-// NewList creates the email list service.
-func NewList(db *sqlx.DB, tableName string) Emailer {
+// NewService creates the email list service.
+func NewService(db *sqlx.DB, tableName string) Emailer {
 	return &List{
 		DB:        db,
 		tableName: tableName,
@@ -49,7 +49,7 @@ func (l *List) Add(ctx context.Context, email, token string) error {
 
 	_, err := l.DB.ExecContext(ctx, q, l.Email, l.Token)
 	if err != nil {
-		return fmt.Errorf("couldn't create the %s list", l.tableName)
+		return fmt.Errorf("couldn't add email to the %s list", l.tableName)
 	}
 
 	return nil
