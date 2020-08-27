@@ -58,6 +58,7 @@ func JSON(w http.ResponseWriter, r *http.Request, status int, v interface{}) {
 
 // Error is the function used to send error resposes.
 func Error(w http.ResponseWriter, r *http.Request, status int, err error) {
+	e := fmt.Sprintf("status: %d\nerror: %v", status, err)
 	// Set content type, statusCode and write the error
-	http.Error(w, err.Error(), status)
+	http.Error(w, e, status)
 }
