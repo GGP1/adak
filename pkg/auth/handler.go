@@ -5,13 +5,12 @@ import (
 	"net/http"
 
 	"github.com/GGP1/palo/internal/response"
-	"github.com/GGP1/palo/pkg/email"
 
 	"github.com/pkg/errors"
 )
 
 // Login takes a user credentials and authenticates it.
-func Login(s Session, validatedList email.Emailer) http.HandlerFunc {
+func Login(s Session) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if s.AlreadyLoggedIn(w, r) {
 			http.Redirect(w, r, "/", http.StatusSeeOther)
@@ -31,12 +30,6 @@ func Login(s Session, validatedList email.Emailer) http.HandlerFunc {
 
 		if err := user.Validate(); err != nil {
 			response.Error(w, r, http.StatusBadRequest, err)
-			return
-		}
-
-		// Check if the email is validated
-		if err := validatedList.Seek(ctx, user.Email); err != nil {
-			response.Error(w, r, http.StatusUnauthorized, errors.Wrap(err, "please verify your email before logging in"))
 			return
 		}
 

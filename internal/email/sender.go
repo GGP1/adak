@@ -20,6 +20,7 @@ import (
 type Items struct {
 	ID       string
 	Name     string
+	Email    string
 	Token    string
 	NewEmail string
 }
@@ -34,6 +35,7 @@ func SendValidation(ctx context.Context, username, email, token string, errCh ch
 	subject := "Validation email"
 	items := Items{
 		Name:  username,
+		Email: email,
 		Token: token,
 	}
 
@@ -48,7 +50,7 @@ func SendValidation(ctx context.Context, username, email, token string, errCh ch
 		message += fmt.Sprintf("%s: %s\r\n", k, v)
 	}
 
-	t, err := template.ParseFiles("../pkg/email/templates/validation.html")
+	t, err := template.ParseFiles("../internal/email/templates/validation.html")
 	if err != nil {
 		errCh <- err
 	}
@@ -99,7 +101,7 @@ func SendChangeConfirmation(id, username, email, newEmail, token string, errCh c
 		message += fmt.Sprintf("%s: %s\r\n", k, v)
 	}
 
-	t, err := template.ParseFiles("../pkg/email/templates/changeEmail.html")
+	t, err := template.ParseFiles("../internal/email/templates/changeEmail.html")
 	if err != nil {
 		errCh <- err
 	}
