@@ -6,7 +6,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/GGP1/palo/pkg/email"
+	"github.com/GGP1/palo/internal/email"
 	"github.com/GGP1/palo/pkg/review"
 	"github.com/GGP1/palo/pkg/shopping/ordering"
 
@@ -17,15 +17,17 @@ import (
 // User represents platform customers.
 // Each user has a unique cart.
 type User struct {
-	ID        string           `json:"id"`
-	CartID    string           `json:"cart_id" db:"cart_id"`
-	Username  string           `json:"username"`
-	Email     string           `json:"email"`
-	Password  string           `json:"password"`
-	Orders    []ordering.Order `json:"orders,omitempty"`
-	Reviews   []review.Review  `json:"reviews,omitempty"`
-	CreatedAt time.Time        `json:"created_at" db:"created_at"`
-	UpdatedAt time.Time        `json:"updated_at" db:"updated_at"`
+	ID               string           `json:"id"`
+	CartID           string           `json:"cart_id" db:"cart_id"`
+	Username         string           `json:"username"`
+	Email            string           `json:"email"`
+	Password         string           `json:"password"`
+	EmailVerifiedAt  time.Time        `json:"-" db:"email_verified_at"`
+	ConfirmationCode string           `json:"-" db:"confirmation_code"`
+	Orders           []ordering.Order `json:"orders,omitempty"`
+	Reviews          []review.Review  `json:"reviews,omitempty"`
+	CreatedAt        time.Time        `json:"created_at" db:"created_at"`
+	UpdatedAt        time.Time        `json:"updated_at" db:"updated_at"`
 }
 
 // ListUser is the structure used to list users.
@@ -40,7 +42,6 @@ type ListUser struct {
 
 // UpdateUser is the structure used to update users.
 type UpdateUser struct {
-	Email    string `json:"email"`
 	Username string `json:"username"`
 }
 

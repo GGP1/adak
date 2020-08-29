@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/GGP1/palo/internal/email"
 	"github.com/GGP1/palo/internal/response"
 	"github.com/GGP1/palo/internal/token"
 	"github.com/GGP1/palo/pkg/auth"
-	"github.com/GGP1/palo/pkg/email"
 	"github.com/GGP1/palo/pkg/shopping/cart"
 
 	"github.com/go-chi/chi"
@@ -21,7 +21,7 @@ type Handler struct {
 }
 
 // Create creates a new user and saves it.
-func (h *Handler) Create(pendingList email.Emailer) http.HandlerFunc {
+func (h *Handler) Create() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var (
 			user User
@@ -34,20 +34,16 @@ func (h *Handler) Create(pendingList email.Emailer) http.HandlerFunc {
 		}
 		defer r.Body.Close()
 
-		token, err := token.GenerateJWT(user.Email)
-		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, errors.Wrap(err, "could not generate the jwt token"))
+		if err := user.Validate(""); err != nil {
+			response.Error(w, r, http.StatusBadRequest, err)
 			return
 		}
 
-		if err := pendingList.Add(ctx, user.Email, token); err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
-			return
-		}
+		cCode := token.GenerateRunes(20)
 
 		errCh := make(chan error)
 
-		go email.SendValidation(ctx, user.Username, user.Email, token, errCh)
+		go email.SendValidation(ctx, user.Username, user.Email, cCode, errCh)
 
 		select {
 		case <-ctx.Done():
@@ -55,8 +51,9 @@ func (h *Handler) Create(pendingList email.Emailer) http.HandlerFunc {
 		case <-errCh:
 			response.Error(w, r, http.StatusInternalServerError, errors.Wrap(<-errCh, "failed sending validation email"))
 		default:
-			if err = h.Service.Create(ctx, &user); err != nil {
+			if err := h.Service.Create(ctx, &user); err != nil {
 				response.Error(w, r, http.StatusBadRequest, err)
+				return
 			}
 
 			response.HTMLText(w, r, http.StatusCreated, "Your account was successfully created.\nPlease validate your email to start using Palo.")
@@ -65,7 +62,7 @@ func (h *Handler) Create(pendingList email.Emailer) http.HandlerFunc {
 }
 
 // Delete removes a user.
-func (h *Handler) Delete(db *sqlx.DB, s auth.Session, pendingList, validatedList email.Emailer) http.HandlerFunc {
+func (h *Handler) Delete(db *sqlx.DB, s auth.Session) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
 		uID, _ := r.Cookie("UID")
@@ -82,11 +79,6 @@ func (h *Handler) Delete(db *sqlx.DB, s auth.Session, pendingList, validatedList
 		user, err := h.Service.GetByID(ctx, id)
 		if err != nil {
 			response.Error(w, r, http.StatusNotFound, err)
-			return
-		}
-
-		if err := validatedList.Remove(ctx, user.Email); err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
 

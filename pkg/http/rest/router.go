@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	"github.com/GGP1/palo/pkg/auth"
-	"github.com/GGP1/palo/pkg/email"
 	"github.com/GGP1/palo/pkg/product"
 	"github.com/GGP1/palo/pkg/review"
 	"github.com/GGP1/palo/pkg/shop"
@@ -42,19 +41,17 @@ func NewRouter(db *sqlx.DB) http.Handler {
 
 	// -- Auth session --
 	session := auth.NewSession(db)
-	// -- Email lists --
-	pendingList := email.NewService(db, "pending_list")
-	validatedList := email.NewService(db, "validated_list")
 	// -- Tracking --
 	trackingService := tracking.NewService(db, "")
 
 	// Middlewares
-	r.Use(m.AllowCrossOrigin)
+	r.Use(m.AccessControl)
+	r.Use(m.Secure)
 	r.Use(m.LimitRate)
 	r.Use(m.LogFormatter)
 
 	// Auth
-	r.Post("/login", auth.Login(session, validatedList))
+	r.Post("/login", auth.Login(session))
 	r.Get("/logout", m.RequireLogin(auth.Logout(session)))
 
 	// Cart
@@ -127,8 +124,8 @@ func NewRouter(db *sqlx.DB) http.Handler {
 
 	// User
 	user := user.Handler{Service: userService}
-	r.Post("/users/create", user.Create(pendingList))
-	r.Delete("/users/{id}", m.RequireLogin(user.Delete(db, session, pendingList, validatedList)))
+	r.Post("/users/create", user.Create())
+	r.Delete("/users/{id}", m.RequireLogin(user.Delete(db, session)))
 	r.Get("/users", user.Get())
 	r.Get("/users/{id}", user.GetByID())
 	r.Get("/users/search/{query}", user.Search())
@@ -136,10 +133,10 @@ func NewRouter(db *sqlx.DB) http.Handler {
 	r.Get("/users/{id}/qrcode", user.QRCode())
 	// Account
 	account := account.Handler{Service: accountService}
-	r.Post("/settings/email", m.RequireLogin(account.SendChangeConfirmation(userService, pendingList)))
+	r.Post("/settings/email", m.RequireLogin(account.SendChangeConfirmation(userService)))
 	r.Post("/settings/password", m.RequireLogin(account.ChangePassword()))
-	r.Get("/verification/{token}", account.SendEmailValidation(pendingList, validatedList))
-	r.Get("/verification/{token}/{email}/{id}", account.ChangeEmail(validatedList))
+	r.Get("/verification/{email}/{token}", account.SendEmailValidation(userService))
+	r.Get("/verification/{token}/{email}/{id}", account.ChangeEmail())
 
 	http.Handle("/", r)
 

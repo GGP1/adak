@@ -38,8 +38,10 @@ CREATE TABLE IF NOT EXISTS users
     username text NOT NULL,
     email text NOT NULL,
     password text NOT NULL,
+    email_verified_at timestamp,
+    confirmation_code text,
     created_at timestamp with time zone DEFAULT NOW(),
-    updated_at timestamp with time zone,
+    updated_at timestamp DEFAULT NULL,
     CONSTRAINT users_pkey PRIMARY KEY (id)
 );
 
@@ -187,16 +189,4 @@ CREATE TABLE IF NOT EXISTS order_products
     subtotal numeric,
     total numeric
 );
-
-CREATE TABLE IF NOT EXISTS pending_list
-(
-    email text NOT NULL,
-    token text NOT NULL
-);
-
-CREATE TABLE IF NOT EXISTS validated_list
-(
-    email text NOT NULL,
-    token text NOT NULL
-)
 `

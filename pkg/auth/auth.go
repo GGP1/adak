@@ -81,14 +81,15 @@ func (session *session) Clean() {
 func (session *session) Login(ctx context.Context, w http.ResponseWriter, email, password string) error {
 	var user User
 
-	q := `SELECT id, cart_id, username, email, password FROM users WHERE email=$1`
+	q := `SELECT id, cart_id, username, email, password, email_verified_at FROM users WHERE email=$1`
 
+	// Check if the email exists and if it is verified
 	if err := session.DB.GetContext(ctx, &user, q, email); err != nil {
-		return errors.Wrap(err, "invalid email")
+		return errors.New("invalid email")
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
-		return errors.Wrap(err, "invalid password")
+		return errors.New("invalid password")
 	}
 
 	for _, admin := range adminList {

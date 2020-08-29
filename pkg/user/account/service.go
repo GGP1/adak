@@ -2,8 +2,8 @@ package account
 
 import (
 	"context"
+	"time"
 
-	"github.com/GGP1/palo/pkg/email"
 	"github.com/GGP1/palo/pkg/user"
 
 	"github.com/jmoiron/sqlx"
@@ -13,14 +13,16 @@ import (
 
 // Repository provides access to the storage.
 type Repository interface {
-	ChangeEmail(ctx context.Context, id, newEmail, token string, validatedList email.Emailer) error
+	ChangeEmail(ctx context.Context, id, newEmail, token string) error
 	ChangePassword(ctx context.Context, id, oldPass, newPass string) error
+	ValidateUserEmail(ctx context.Context, id, confirmationCode string, verifiedAt time.Time) error
 }
 
 // Service provides user account operations.
 type Service interface {
-	ChangeEmail(ctx context.Context, id, newEmail, token string, validatedList email.Emailer) error
+	ChangeEmail(ctx context.Context, id, newEmail, token string) error
 	ChangePassword(ctx context.Context, id, oldPass, newPass string) error
+	ValidateUserEmail(ctx context.Context, id, confirmationCode string, verifiedAt time.Time) error
 }
 
 type service struct {
@@ -34,21 +36,11 @@ func NewService(r Repository, db *sqlx.DB) Service {
 }
 
 // Change changes the user email.
-func (s *service) ChangeEmail(ctx context.Context, id, newEmail, token string, validatedList email.Emailer) error {
+func (s *service) ChangeEmail(ctx context.Context, id, newEmail, token string) error {
 	var user user.User
 
 	if err := s.DB.SelectContext(ctx, &user, "SELECT * FROM users WHERE id=?", id); err != nil {
 		return errors.Wrap(err, "invalid email")
-	}
-
-	if err := validatedList.Remove(ctx, user.Email); err != nil {
-		return err
-	}
-
-	user.Email = newEmail
-
-	if err := validatedList.Add(ctx, newEmail, token); err != nil {
-		return err
 	}
 
 	_, err := s.DB.ExecContext(ctx, "UPDATE users set email=$2 WHERE id=$1", id, newEmail)
@@ -77,9 +69,21 @@ func (s *service) ChangePassword(ctx context.Context, id, oldPass, newPass strin
 	}
 	user.Password = string(newPassHash)
 
-	_, err = s.DB.ExecContext(ctx, "UPDATE users SET password=$1", user.Password)
+	_, err = s.DB.ExecContext(ctx, "UPDATE users SET password=$2 WHERE id=$1", user.ID, user.Password)
 	if err != nil {
 		return errors.Wrap(err, "couldn't change the password")
+	}
+
+	return nil
+}
+
+// ValidateUserEmail sets the time when the user validated its email and the token he received.
+func (s *service) ValidateUserEmail(ctx context.Context, id, confirmationCode string, verifiedAt time.Time) error {
+	q := "UPDATE users SET email_verified_at=$2, confirmation_code=$3 WHERE id=$1"
+
+	_, err := s.DB.ExecContext(ctx, q, id, verifiedAt, confirmationCode)
+	if err != nil {
+		return errors.Wrap(err, "couldn't validate the user")
 	}
 
 	return nil

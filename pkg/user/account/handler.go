@@ -3,10 +3,11 @@ package account
 import (
 	"encoding/json"
 	"net/http"
+	"time"
 
+	"github.com/GGP1/palo/internal/email"
 	"github.com/GGP1/palo/internal/response"
 	"github.com/GGP1/palo/internal/token"
-	"github.com/GGP1/palo/pkg/email"
 	"github.com/GGP1/palo/pkg/user"
 
 	"github.com/pkg/errors"
@@ -24,7 +25,7 @@ type changeEmail struct {
 }
 
 // ChangeEmail changes the user email to the specified one.
-func (h *Handler) ChangeEmail(validatedList email.Emailer) http.HandlerFunc {
+func (h *Handler) ChangeEmail() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		token := chi.URLParam(r, "token")
 		email := chi.URLParam(r, "email")
@@ -32,7 +33,7 @@ func (h *Handler) ChangeEmail(validatedList email.Emailer) http.HandlerFunc {
 
 		ctx := r.Context()
 
-		if err := h.Service.ChangeEmail(ctx, id, email, token, validatedList); err != nil {
+		if err := h.Service.ChangeEmail(ctx, id, email, token); err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
@@ -77,7 +78,7 @@ func (h *Handler) ChangePassword() http.HandlerFunc {
 }
 
 // SendChangeConfirmation takes the new email and sends an email confirmation.
-func (h *Handler) SendChangeConfirmation(u user.Service, validatedList email.Emailer) http.HandlerFunc {
+func (h *Handler) SendChangeConfirmation(u user.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var (
 			new changeEmail
@@ -95,9 +96,10 @@ func (h *Handler) SendChangeConfirmation(u user.Service, validatedList email.Ema
 			return
 		}
 
-		exists := validatedList.Exists(ctx, new.Email)
-		if exists {
+		_, err := u.GetByEmail(ctx, new.Email)
+		if err == nil {
 			response.Error(w, r, http.StatusBadRequest, errors.New("email is already taken"))
+			return
 		}
 
 		uID, _ := r.Cookie("UID")
@@ -135,39 +137,21 @@ func (h *Handler) SendChangeConfirmation(u user.Service, validatedList email.Ema
 
 // SendEmailValidation saves the user email into the validated list.
 // Once in the validated list, the user is able to log in.
-func (h *Handler) SendEmailValidation(pendingList, validatedList email.Emailer) http.HandlerFunc {
+func (h *Handler) SendEmailValidation(u user.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		email := chi.URLParam(r, "email")
 		token := chi.URLParam(r, "token")
 
-		var (
-			validated bool
-			ctx       = r.Context()
-		)
+		var ctx = r.Context()
 
-		pList, err := pendingList.Read(ctx)
+		usr, err := u.GetByEmail(ctx, email)
 		if err != nil {
 			response.Error(w, r, http.StatusNotFound, err)
 			return
 		}
 
-		for _, v := range pList {
-			if v.Token == token {
-				if err := validatedList.Add(ctx, v.Email, v.Token); err != nil {
-					response.Error(w, r, http.StatusInternalServerError, err)
-					return
-				}
-
-				if err := pendingList.Remove(ctx, v.Email); err != nil {
-					response.Error(w, r, http.StatusInternalServerError, err)
-					return
-				}
-
-				validated = true
-			}
-		}
-
-		if !validated {
-			response.Error(w, r, http.StatusInternalServerError, errors.New("email validation failed"))
+		if err := h.Service.ValidateUserEmail(ctx, usr.ID, token, time.Now()); err != nil {
+			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
 

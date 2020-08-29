@@ -19,6 +19,7 @@ type Repository interface {
 	Create(ctx context.Context, user *User) error
 	Delete(ctx context.Context, id string) error
 	Get(ctx context.Context) ([]ListUser, error)
+	GetByEmail(ctx context.Context, email string) (User, error)
 	GetByID(ctx context.Context, id string) (ListUser, error)
 	Search(ctx context.Context, search string) ([]ListUser, error)
 	Update(ctx context.Context, u *UpdateUser, id string) error
@@ -29,6 +30,7 @@ type Service interface {
 	Create(ctx context.Context, user *User) error
 	Delete(ctx context.Context, id string) error
 	Get(ctx context.Context) ([]ListUser, error)
+	GetByEmail(ctx context.Context, email string) (User, error)
 	GetByID(ctx context.Context, id string) (ListUser, error)
 	Search(ctx context.Context, search string) ([]ListUser, error)
 	Update(ctx context.Context, u *UpdateUser, id string) error
@@ -54,11 +56,7 @@ func (s *service) Create(ctx context.Context, user *User) error {
 	(id, cart_id, username, email, password, created_at, updated_at)
 	VALUES ($1, $2, $3, $4, $5, $6, $7)`
 
-	if err := user.Validate(""); err != nil {
-		return err
-	}
-
-	err := s.DB.GetContext(ctx, &user, "SELECT email FROM users WHERE email=$1", user.Email)
+	_, err := s.GetByEmail(ctx, user.Email)
 	if err == nil {
 		return errors.New("email is already taken")
 	}
@@ -149,6 +147,17 @@ func (s *service) Get(ctx context.Context) ([]ListUser, error) {
 	return list, nil
 }
 
+// GetByEmail retrieves the user requested from the database.
+func (s *service) GetByEmail(ctx context.Context, email string) (User, error) {
+	var user User
+
+	if err := s.DB.GetContext(ctx, &user, "SELECT id, email, username FROM users WHERE email=$1", email); err != nil {
+		return User{}, errors.Wrap(err, "user not found")
+	}
+
+	return user, nil
+}
+
 // GetByID retrieves the user requested from the database.
 func (s *service) GetByID(ctx context.Context, id string) (ListUser, error) {
 	var (
@@ -225,9 +234,7 @@ func (s *service) Search(ctx context.Context, search string) ([]ListUser, error)
 
 // Update sets new values for an already existing user.
 func (s *service) Update(ctx context.Context, u *UpdateUser, id string) error {
-	q := `UPDATE users SET email=$2, username=$3 WHERE id=$1`
-
-	_, err := s.DB.ExecContext(ctx, q, id, u.Email, u.Username)
+	_, err := s.DB.ExecContext(ctx, "UPDATE users SET username=$2 WHERE id=$1", id, u.Username)
 	if err != nil {
 		return errors.Wrap(err, "couldn't update the user")
 	}
