@@ -74,19 +74,12 @@ func (h *Handler) Delete(db *sqlx.DB, s auth.Session, pendingList, validatedList
 			ctx = r.Context()
 		)
 
-		// Check if it's the same user
-		userID, err := token.ParseFixedJWT(uID.Value)
-		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
+		if err := token.CheckPermits(id, uID.Value); err != nil {
+			response.Error(w, r, http.StatusUnauthorized, err)
 			return
 		}
 
-		if userID != id {
-			response.Error(w, r, http.StatusUnauthorized, errors.New("not allowed to delete others user"))
-			return
-		}
-
-		user, err := h.Service.GetByID(ctx, userID)
+		user, err := h.Service.GetByID(ctx, id)
 		if err != nil {
 			response.Error(w, r, http.StatusNotFound, err)
 			return
@@ -199,15 +192,8 @@ func (h *Handler) Update() http.HandlerFunc {
 			ctx  = r.Context()
 		)
 
-		// Check if it's the same user
-		userID, err := token.ParseFixedJWT(uID.Value)
-		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
-			return
-		}
-
-		if userID != id {
-			response.Error(w, r, http.StatusUnauthorized, errors.New("not allowed to update others user"))
+		if err := token.CheckPermits(id, uID.Value); err != nil {
+			response.Error(w, r, http.StatusUnauthorized, err)
 			return
 		}
 

@@ -72,7 +72,47 @@ func (h *Handler) Get() http.HandlerFunc {
 	}
 }
 
-// New creates a new order.
+// GetByID retrieves all the orders from the user.
+func (h *Handler) GetByID() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		id := chi.URLParam(r, "id")
+
+		ctx := r.Context()
+
+		order, err := GetByID(ctx, h.DB, id)
+		if err != nil {
+			response.Error(w, r, http.StatusNotFound, err)
+			return
+		}
+
+		response.JSON(w, r, http.StatusOK, order)
+	}
+}
+
+// GetByUserID retrieves all the orders from the user.
+func (h *Handler) GetByUserID() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		id := chi.URLParam(r, "id")
+		uID, _ := r.Cookie("UID")
+
+		ctx := r.Context()
+
+		if err := token.CheckPermits(id, uID.Value); err != nil {
+			response.Error(w, r, http.StatusUnauthorized, err)
+			return
+		}
+
+		orders, err := GetByUserID(ctx, h.DB, id)
+		if err != nil {
+			response.Error(w, r, http.StatusNotFound, err)
+			return
+		}
+
+		response.JSON(w, r, http.StatusOK, orders)
+	}
+}
+
+// New creates a new order and the payment intent.
 func (h *Handler) New() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		cID, _ := r.Cookie("CID")
@@ -94,12 +134,14 @@ func (h *Handler) New() http.HandlerFunc {
 			return
 		}
 
+		// Parse jwt to take the user id
 		userID, err := token.ParseFixedJWT(uID.Value)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
 
+		// Format date
 		deliveryDate := time.Date(o.Date.Year, time.Month(o.Date.Month), o.Date.Day, o.Date.Hour, o.Date.Minutes, 0, 0, time.Local)
 
 		if deliveryDate.Sub(time.Now()) < 0 {
@@ -125,10 +167,7 @@ func (h *Handler) New() http.HandlerFunc {
 			return
 		}
 
-		order.Status = PaidState
-
-		_, err = h.DB.ExecContext(ctx, "UPDATE orders SET status=$2 WHERE id=$1", order.ID, order.Status)
-		if err != nil {
+		if err := UpdateStatus(ctx, h.DB, order.ID, PaidState); err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
