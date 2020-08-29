@@ -1,4 +1,4 @@
-# Check API objects on api/openapi-spec/objects/objects.yml
+# Check API objects on api/openapi-spec/objects.yml
 openapi: 3.0.0
 info:
   title: Palo API
@@ -358,6 +358,48 @@ paths:
             couldn't delete the order cart
             couldn't delete the order products
           content: text/plain
+    get:
+      summary: Returns an order by id.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Order id.
+          schema:
+            type: string 
+      responses:
+        '200':
+          description: An order object.
+          content: application/json
+        '404':
+          description:
+            order not found
+            order cart not found
+            order products not found
+          content: text/plain
+  /order/user/{id}:
+    get:
+      summary: Returns the list of orders from a user.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: User id.
+          schema:
+            type: string 
+      responses:
+        '200':
+          description: A list of orders.
+          content: application/json
+        '401':
+          description: it is not allowed to perform this action on third party accounts
+          content: text/plain
+        '404':
+          description:
+            couldn't find the order
+            couldn't find the order cart
+            couldn't find the order products
+          content: text/plain
   /order/new:
     post:
       summary: Creates a new order.
@@ -368,7 +410,7 @@ paths:
             schema:
               type: orderParams object
       responses:
-        '200':
+        '201':
           description: Thanks for your purchase! Your products will be delivered on {date}.
           content: text/html
         '400':
@@ -408,7 +450,7 @@ paths:
             schema:
               type: product object
       responses:
-        '200':
+        '201':
           description: A product object.
           content: application/json
         '500':
@@ -508,7 +550,7 @@ paths:
             schema:
               type: review object
       responses:
-        '200':
+        '201':
           description: A review object.
           content: application/json
         '500':
@@ -572,7 +614,7 @@ paths:
             schema:
               type: shop object
       responses:
-        '200':
+        '201':
           description: A shop object.
           content: application/json
         '500':
@@ -752,7 +794,7 @@ paths:
             schema:
               type: user object
       responses:
-        '200':
+        '201':
           description: Your account was successfully created. Please validate your email to start using Palo.
           content:
             text/html
@@ -777,7 +819,7 @@ paths:
           description: User deleted successfully.
           content: text/html
         '401':
-          description: not allowed to delete others users.
+          description: it is not allowed to perform this action on third party accounts
           content: text/plain
         '404':
           description: user not found
@@ -820,7 +862,7 @@ paths:
           description: User updated successfully.
           content: text/html
         '401':
-          description: not allowed to update others user
+          description: it is not allowed to perform this action on third party accounts
           content: text/plain
         '500':
           description: couldn't update the user

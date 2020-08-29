@@ -81,6 +81,8 @@ func NewRouter(db *sqlx.DB) http.Handler {
 	order := ordering.Handler{DB: db}
 	r.Get("/orders", m.AdminsOnly(order.Get()))
 	r.Delete("/order/{id}", m.AdminsOnly(order.Delete()))
+	r.Get("/order/{id}", m.AdminsOnly(order.GetByID()))
+	r.Get("/order/user/{id}", m.RequireLogin(order.GetByUserID()))
 	r.Post("/order/new", m.RequireLogin(order.New()))
 
 	// Product
