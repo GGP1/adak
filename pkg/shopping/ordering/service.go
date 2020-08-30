@@ -132,7 +132,7 @@ func Get(ctx context.Context, db *sqlx.DB) ([]Order, error) {
 		}
 
 		if err := db.SelectContext(ctx, &products, "SELECT * FROM order_products WHERE order_id=$1", order.ID); err != nil {
-			return nil, errors.Wrap(err, "couldn't find order products")
+			return nil, errors.Wrap(err, "couldn't find the order products")
 		}
 
 		order.Cart = cart
@@ -153,15 +153,15 @@ func GetByID(ctx context.Context, db *sqlx.DB, orderID string) (Order, error) {
 	)
 
 	if err := db.GetContext(ctx, "SELECT * FROM orders WHERE id=$1", orderID); err != nil {
-		return Order{}, errors.Wrap(err, "order not found")
+		return Order{}, errors.Wrap(err, "couldn't find the order")
 	}
 
 	if err := db.GetContext(ctx, &cart, "SELECT * FROM order_carts WHERE order_id=$1", order.ID); err != nil {
-		return Order{}, errors.Wrap(err, "order cart not found")
+		return Order{}, errors.Wrap(err, "couldn't find the order cart")
 	}
 
 	if err := db.SelectContext(ctx, &products, "SELECT * FROM order_products WHERE order_id=$1", order.ID); err != nil {
-		return Order{}, errors.Wrap(err, "order products not found")
+		return Order{}, errors.Wrap(err, "couldn't find the order products")
 	}
 
 	order.Cart = cart
@@ -192,7 +192,7 @@ func GetByUserID(ctx context.Context, db *sqlx.DB, userID string) ([]Order, erro
 		}
 
 		if err := db.SelectContext(ctx, &products, "SELECT * FROM order_products WHERE order_id=$1", order.ID); err != nil {
-			return nil, errors.Wrap(err, "couldn't find order products")
+			return nil, errors.Wrap(err, "couldn't find the order products")
 		}
 
 		order.Cart = cart

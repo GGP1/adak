@@ -42,13 +42,14 @@ func Add(ctx context.Context, db *sqlx.DB, cartID string, p *Product, quantity i
 		return nil, errors.Wrap(err, "couldn't find the cart")
 	}
 
+	// percentages -> numeric values
 	taxes := ((p.Subtotal / 100) * p.Taxes)
 	discount := ((p.Subtotal / 100) * p.Discount)
 
 	p.CartID = cartID
 	p.Total = p.Total + p.Subtotal + taxes - discount
 
-	// math.Ceil(x*100)/100 is used to round float numbers
+	// math.Ceil(x*100)/100 is used to round floats
 	for i := 0; i < quantity; i++ {
 		cart.Counter++
 		p.Quantity++
@@ -122,7 +123,7 @@ func Get(ctx context.Context, db *sqlx.DB, cartID string) (Cart, error) {
 	}
 
 	if err := db.SelectContext(ctx, &products, "SELECT * FROM cart_products WHERE cart_id=$1", cartID); err != nil {
-		return Cart{}, errors.Wrap(err, "couldn't find cart products")
+		return Cart{}, errors.Wrap(err, "couldn't find the cart products")
 	}
 
 	cart.Products = products
@@ -160,7 +161,7 @@ func Remove(ctx context.Context, db *sqlx.DB, cartID string, pID string, quantit
 	}
 
 	if err := db.GetContext(ctx, &p, "SELECT * FROM cart_products WHERE id = $1 AND cart_id=$2", pID, cartID); err != nil {
-		return errors.New("product not found")
+		return errors.New("couldn't find the product")
 	}
 
 	if quantity > p.Quantity {

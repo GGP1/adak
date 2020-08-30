@@ -73,7 +73,7 @@ func (s *service) Get(ctx context.Context) ([]Review, error) {
 	var reviews []Review
 
 	if err := s.DB.SelectContext(ctx, &reviews, "SELECT * FROM reviews"); err != nil {
-		return nil, errors.Wrap(err, "reviews not found")
+		return nil, errors.Wrap(err, "couldn't find the reviews")
 	}
 
 	return reviews, nil
@@ -84,7 +84,7 @@ func (s *service) GetByID(ctx context.Context, id string) (Review, error) {
 	var review Review
 
 	if err := s.DB.GetContext(ctx, &review, "SELECT * FROM reviews WHERE id=$1", id); err != nil {
-		return Review{}, errors.Wrap(err, "review not found")
+		return Review{}, errors.Wrap(err, "couldn't find the review")
 	}
 
 	return review, nil

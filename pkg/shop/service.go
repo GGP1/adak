@@ -94,7 +94,7 @@ func (s *service) Get(ctx context.Context) ([]Shop, error) {
 	errCh := make(chan error)
 
 	if err := s.DB.SelectContext(ctx, &shops, "SELECT * FROM shops"); err != nil {
-		return nil, errors.Wrap(err, "shops not found")
+		return nil, errors.Wrap(err, "couldn't find the shops")
 	}
 
 	for _, shop := range shops {
@@ -106,15 +106,15 @@ func (s *service) Get(ctx context.Context) ([]Shop, error) {
 			)
 
 			if err := s.DB.GetContext(ctx, &location, "SELECT * FROM locations WHERE shop_id=$1", shop.ID); err != nil {
-				errCh <- errors.Wrap(err, "location not found")
+				errCh <- errors.Wrap(err, "couldn't find the location")
 			}
 
 			if err := s.DB.SelectContext(ctx, &reviews, "SELECT * FROM reviews WHERE shop_id=$1", shop.ID); err != nil {
-				errCh <- errors.Wrap(err, "reviews not found")
+				errCh <- errors.Wrap(err, "couldn't find the reviews")
 			}
 
 			if err := s.DB.SelectContext(ctx, &products, "SELECT * FROM products WHERE shop_id=$1", shop.ID); err != nil {
-				errCh <- errors.Wrap(err, "products not found")
+				errCh <- errors.Wrap(err, "couldn't find the products")
 			}
 
 			shop.Location = location
@@ -147,19 +147,19 @@ func (s *service) GetByID(ctx context.Context, id string) (Shop, error) {
 	)
 
 	if err := s.DB.GetContext(ctx, &shop, "SELECT * FROM shops WHERE id=$1", id); err != nil {
-		return Shop{}, errors.Wrap(err, "shop not found")
+		return Shop{}, errors.Wrap(err, "couldn't find the shop")
 	}
 
 	if err := s.DB.GetContext(ctx, &location, "SELECT * FROM locations WHERE shop_id=$1", id); err != nil {
-		return Shop{}, errors.Wrap(err, "location not found")
+		return Shop{}, errors.Wrap(err, "couldn't find the location")
 	}
 
 	if err := s.DB.SelectContext(ctx, &reviews, "SELECT * FROM reviews WHERE shop_id=$1", id); err != nil {
-		return Shop{}, errors.Wrap(err, "reviews not found")
+		return Shop{}, errors.Wrap(err, "couldn't find the reviews")
 	}
 
 	if err := s.DB.SelectContext(ctx, &products, "SELECT * FROM products WHERE shop_id=$1", id); err != nil {
-		return Shop{}, errors.Wrap(err, "products not found")
+		return Shop{}, errors.Wrap(err, "couldn't find the products")
 	}
 
 	shop.Location = location
@@ -195,15 +195,15 @@ func (s *service) Search(ctx context.Context, search string) ([]Shop, error) {
 			)
 
 			if err := s.DB.GetContext(ctx, &location, "SELECT * FROM locations WHERE shop_id=$1", shop.ID); err != nil {
-				errCh <- errors.Wrap(err, "location not found")
+				errCh <- errors.Wrap(err, "couldn't find the location")
 			}
 
 			if err := s.DB.SelectContext(ctx, &reviews, "SELECT * FROM reviews WHERE shop_id=$1", shop.ID); err != nil {
-				errCh <- errors.Wrap(err, "reviews not found")
+				errCh <- errors.Wrap(err, "couldn't find the reviews")
 			}
 
 			if err := s.DB.SelectContext(ctx, &products, "SELECT * FROM products WHERE shop_id=$1", shop.ID); err != nil {
-				errCh <- errors.Wrap(err, "products not found")
+				errCh <- errors.Wrap(err, "couldn't find the products")
 			}
 
 			shop.Location = location

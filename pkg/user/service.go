@@ -112,7 +112,7 @@ func (s *service) Get(ctx context.Context) ([]ListUser, error) {
 	errCh := make(chan error)
 
 	if err := s.DB.SelectContext(ctx, &users, "SELECT id, cart_id, username, email FROM users"); err != nil {
-		return nil, errors.Wrap(err, "users not found")
+		return nil, errors.Wrap(err, "couldn't find the users")
 	}
 
 	for _, user := range users {
@@ -152,7 +152,7 @@ func (s *service) GetByEmail(ctx context.Context, email string) (User, error) {
 	var user User
 
 	if err := s.DB.GetContext(ctx, &user, "SELECT id, email, username FROM users WHERE email=$1", email); err != nil {
-		return User{}, errors.Wrap(err, "user not found")
+		return User{}, errors.Wrap(err, "couldn't find the user")
 	}
 
 	return user, nil
@@ -166,7 +166,7 @@ func (s *service) GetByID(ctx context.Context, id string) (ListUser, error) {
 	)
 
 	if err := s.DB.GetContext(ctx, &user, "SELECT id, cart_id, username, email FROM users WHERE id=$1", id); err != nil {
-		return ListUser{}, errors.Wrap(err, "user not found")
+		return ListUser{}, errors.Wrap(err, "couldn't find the user")
 	}
 
 	if err := s.DB.SelectContext(ctx, &reviews, "SELECT * FROM reviews WHERE user_id=$1", id); err != nil {
@@ -198,7 +198,7 @@ func (s *service) Search(ctx context.Context, search string) ([]ListUser, error)
 	@@ to_tsquery($1)`
 
 	if err := s.DB.SelectContext(ctx, &users, q, search); err != nil {
-		return nil, errors.Wrap(err, "users not found")
+		return nil, errors.Wrap(err, "couldn't find the users")
 	}
 
 	for _, user := range users {

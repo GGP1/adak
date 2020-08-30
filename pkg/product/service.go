@@ -2,6 +2,7 @@ package product
 
 import (
 	"context"
+	"math"
 	"time"
 
 	"github.com/GGP1/palo/internal/token"
@@ -54,9 +55,16 @@ func (s *service) Create(ctx context.Context, p *Product) error {
 	id := token.GenerateRunes(35)
 	p.CreatedAt = time.Now()
 
+	// percentages -> numeric values
 	taxes := ((p.Subtotal / 100) * p.Taxes)
 	discount := ((p.Subtotal / 100) * p.Discount)
-	p.Total = p.Subtotal + taxes - discount
+
+	// round floats
+	p.Weight = math.Ceil(p.Weight*100) / 100
+	p.Discount = math.Ceil(discount*100) / 100
+	p.Taxes = math.Ceil(taxes*100) / 100
+	p.Subtotal = math.Ceil(p.Subtotal*100) / 100
+	p.Total = p.Subtotal + p.Taxes - p.Discount
 
 	_, err := s.DB.ExecContext(ctx, q, id, p.ShopID, p.Stock, p.Brand, p.Category, p.Type, p.Description,
 		p.Weight, p.Discount, p.Taxes, p.Subtotal, p.Total, p.CreatedAt, p.UpdatedAt)
@@ -88,7 +96,7 @@ func (s *service) Get(ctx context.Context) ([]Product, error) {
 	errCh := make(chan error)
 
 	if err := s.DB.Select(&products, "SELECT * FROM products"); err != nil {
-		return nil, errors.Wrap(err, "products not found")
+		return nil, errors.Wrap(err, "couldn't find the products")
 	}
 
 	for _, product := range products {
@@ -125,7 +133,7 @@ func (s *service) GetByID(ctx context.Context, id string) (Product, error) {
 	)
 
 	if err := s.DB.GetContext(ctx, &product, "SELECT * FROM products WHERE id=$1", id); err != nil {
-		return Product{}, errors.Wrap(err, "product not found")
+		return Product{}, errors.Wrap(err, "couldn't find the product")
 	}
 
 	if err := s.DB.SelectContext(ctx, &reviews, "SELECT * FROM reviews WHERE product_id=$1", id); err != nil {
@@ -152,7 +160,7 @@ func (s *service) Search(ctx context.Context, search string) ([]Product, error) 
 	@@ to_tsquery($1)`
 
 	if err := s.DB.SelectContext(ctx, &products, q, search); err != nil {
-		return nil, errors.Wrap(err, "couldn't find products")
+		return nil, errors.Wrap(err, "couldn't find the products")
 	}
 
 	for _, product := range products {

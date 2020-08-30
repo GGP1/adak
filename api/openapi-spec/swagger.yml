@@ -191,7 +191,7 @@ paths:
         '500':
           description: 
             couldn't find the cart
-            product not found
+            couldn't find the product
             couldn't delete the product
             couldn't delete the cart products
             couldn't reset the cart
@@ -373,9 +373,9 @@ paths:
           content: application/json
         '404':
           description:
-            order not found
-            order cart not found
-            order products not found
+            couldn't find the order
+            order couldn't find the cart
+            order couldn't find the products
           content: text/plain
   /order/user/{id}:
     get:
@@ -490,7 +490,7 @@ paths:
           content: application/json
         '404':
           description:
-            product not found
+            couldn't find the product
             couldn't find the reviews
           content: text/plain
     put:
@@ -538,7 +538,7 @@ paths:
           content:
             application/json
         '404':
-          description: reviews not found
+          description: couldn't find the reviews
           content: text/plain
   /reviews/create:
     post:
@@ -587,7 +587,7 @@ paths:
           description: A review object.
           content: application/json
         '404':
-          description: review not found
+          description: couldn't find the review
           content: text/plain
   # Shop
   /shops:
@@ -599,10 +599,10 @@ paths:
           content: application/json
         '404':
           description: 
-            shops not found
-            location not found
-            reviews not found
-            products not found
+            couldn't find the shops
+            couldn't find the location
+            couldn't find the reviews
+            couldn't find the products
           content: text/plain
   /shops/create:
     post:
@@ -656,10 +656,10 @@ paths:
             application/json
         '404':
           description:
-            shops not found
-            location not found
-            reviews not found
-            products not found
+            couldn't find the shops
+            couldn't find the location
+            couldn't find the reviews
+            couldn't find the products
           content: text/plain
     put:
       summary: Updates a shop.
@@ -695,9 +695,9 @@ paths:
         '404':
           description:
             couldn't find shops
-            location not found
-            reviews not found
-            products not found
+            couldn't find the location
+            couldn't find the reviews
+            couldn't find the products
           content: text/plain
   # Stripe
   /tracker:
@@ -778,7 +778,7 @@ paths:
             application/json
         '404':
           description: 
-            users not found
+            couldn't find the users
             couldn't find the orders
             couldn't find the order cart
             couldn't find order products
@@ -822,7 +822,7 @@ paths:
           description: it is not allowed to perform this action on third party accounts
           content: text/plain
         '404':
-          description: user not found
+          description: couldn't find the user
           content: text/plain
         '500':
           description: 
@@ -845,7 +845,7 @@ paths:
           content: application/json
         '404':
           description:
-            user not found
+            couldn't find the user
             couldn't find the reviews
           content: text/plain
     put:
@@ -884,7 +884,7 @@ paths:
             application/json
         '404':
           description:
-            users not found
+            couldn't find the users
             couldn't find the reviews
           content: text/plain
   /users/{id}/qrcode:
@@ -971,7 +971,7 @@ paths:
           description: You have successfully validated your email!
           content: text/html
         '404':
-          description: email not found
+          description: couldn't find the email
           content: text/plain
         '500':
           description: 
