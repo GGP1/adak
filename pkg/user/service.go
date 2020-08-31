@@ -16,7 +16,7 @@ import (
 
 // Repository provides access to the storage.
 type Repository interface {
-	Create(ctx context.Context, user *User) error
+	Create(ctx context.Context, user *AddUser) error
 	Delete(ctx context.Context, id string) error
 	Get(ctx context.Context) ([]ListUser, error)
 	GetByEmail(ctx context.Context, email string) (User, error)
@@ -27,7 +27,7 @@ type Repository interface {
 
 // Service provides user operations.
 type Service interface {
-	Create(ctx context.Context, user *User) error
+	Create(ctx context.Context, user *AddUser) error
 	Delete(ctx context.Context, id string) error
 	Get(ctx context.Context) ([]ListUser, error)
 	GetByEmail(ctx context.Context, email string) (User, error)
@@ -47,7 +47,7 @@ func NewService(r Repository, db *sqlx.DB) Service {
 }
 
 // Create creates a user.
-func (s *service) Create(ctx context.Context, user *User) error {
+func (s *service) Create(ctx context.Context, user *AddUser) error {
 	cartQuery := `INSERT INTO carts
 	(id, counter, weight, discount, taxes, subtotal, total)
 	VALUES ($1, $2, $3, $4, $5, $6, $7)`
@@ -59,6 +59,11 @@ func (s *service) Create(ctx context.Context, user *User) error {
 	_, err := s.GetByEmail(ctx, user.Email)
 	if err == nil {
 		return errors.New("email is already taken")
+	}
+
+	_, err = s.GetByUsername(ctx, user.Username)
+	if err == nil {
+		return errors.New("useraname is already taken")
 	}
 
 	hash, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
@@ -179,6 +184,17 @@ func (s *service) GetByID(ctx context.Context, id string) (ListUser, error) {
 	}
 
 	user.Orders = orders
+
+	return user, nil
+}
+
+// GetByUsername retrieves the user requested from the database.
+func (s *service) GetByUsername(ctx context.Context, username string) (User, error) {
+	var user User
+
+	if err := s.DB.GetContext(ctx, &user, "SELECT id FROM users WHERE username=$1", username); err != nil {
+		return User{}, errors.Wrap(err, "couldn't find the user")
+	}
 
 	return user, nil
 }

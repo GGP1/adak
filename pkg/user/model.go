@@ -3,7 +3,6 @@ package user
 import (
 	"fmt"
 	"image"
-	"strings"
 	"time"
 
 	"github.com/GGP1/palo/internal/email"
@@ -28,6 +27,17 @@ type User struct {
 	Reviews          []review.Review  `json:"reviews,omitempty"`
 	CreatedAt        time.Time        `json:"created_at" db:"created_at"`
 	UpdatedAt        time.Time        `json:"updated_at" db:"updated_at"`
+}
+
+// AddUser is used to create new users.
+type AddUser struct {
+	ID        string    `json:"id"`
+	CartID    string    `json:"cart_id" db:"cart_id"`
+	Username  string    `json:"username"`
+	Email     string    `json:"email"`
+	Password  string    `json:"password"`
+	CreatedAt time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`
 }
 
 // ListUser is the structure used to list users.
@@ -57,42 +67,39 @@ func (u *ListUser) QRCode() (image.Image, error) {
 	return img, nil
 }
 
-// Validate checks if the user inputs are correct.
-func (u *User) Validate(action string) error {
-	switch strings.ToLower(action) {
-	case "update":
-		if u.Username == "" {
-			return errors.New("username is required")
-		}
+// Validate checks if inputs when creating a user are correct.
+func (u *AddUser) Validate() error {
+	if u.Username == "" {
+		return errors.New("username is required")
+	}
 
-		if u.Email == "" {
-			return errors.New("email is required")
-		}
+	if len(u.Username) >= 20 {
+		return errors.New("username must be less than or equal to 20 characters long")
+	}
 
-		if err := email.Validate(u.Email); err != nil {
-			return err
-		}
+	if u.Password == "" {
+		return errors.New("password is required")
+	}
 
-	default:
-		if u.Username == "" {
-			return errors.New("username is required")
-		}
+	if len(u.Password) < 6 {
+		return errors.New("password must be greater than 6 characters long")
+	}
 
-		if u.Password == "" {
-			return errors.New("password is required")
-		}
+	if u.Email == "" {
+		return errors.New("email is required")
+	}
 
-		if len(u.Password) < 6 {
-			return errors.New("password must be equal or greater than 6 characters")
-		}
+	if err := email.Validate(u.Email); err != nil {
+		return err
+	}
 
-		if u.Email == "" {
-			return errors.New("email is required")
-		}
+	return nil
+}
 
-		if err := email.Validate(u.Email); err != nil {
-			return err
-		}
+// Validate checks if inputs when updating a user are correct.
+func (u *UpdateUser) Validate() error {
+	if u.Username == "" {
+		return errors.New("username is required")
 	}
 
 	return nil

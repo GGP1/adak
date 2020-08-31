@@ -24,7 +24,7 @@ type Handler struct {
 func (h *Handler) Create() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var (
-			user User
+			user AddUser
 			ctx  = r.Context()
 		)
 
@@ -34,7 +34,7 @@ func (h *Handler) Create() http.HandlerFunc {
 		}
 		defer r.Body.Close()
 
-		if err := user.Validate(""); err != nil {
+		if err := user.Validate(); err != nil {
 			response.Error(w, r, http.StatusBadRequest, err)
 			return
 		}
@@ -56,7 +56,7 @@ func (h *Handler) Create() http.HandlerFunc {
 				return
 			}
 
-			response.HTMLText(w, r, http.StatusCreated, "Your account was successfully created.\nPlease validate your email to start using Palo.")
+			response.HTMLText(w, r, http.StatusCreated, "Your account was successfully created.\nWe've sent you an email to validate your account.")
 		}
 	}
 }
@@ -194,6 +194,11 @@ func (h *Handler) Update() http.HandlerFunc {
 			return
 		}
 		defer r.Body.Close()
+
+		if err := user.Validate(); err != nil {
+			response.Error(w, r, http.StatusBadRequest, err)
+			return
+		}
 
 		if err := h.Service.Update(ctx, &user, id); err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
