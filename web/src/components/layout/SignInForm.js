@@ -24,7 +24,7 @@ class SignInForm extends Component {
     // Check if component is mounted
     this._isMounted = true;
     // Load all the users from the database
-    const res = await axios.get('http://localhost:4000/users');
+    const res = await axios.get('http://localhost:4000/cart');
     this.setState({
       users: {
         email: res.data.map(user => user.email),

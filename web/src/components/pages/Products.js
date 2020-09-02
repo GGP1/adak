@@ -1,30 +1,24 @@
-import React, { Component } from 'react'
+import React, { useState, useEffect } from 'react'
 import axios from 'axios'
 
-// Subcomponents
-import Product from '../subcomponents/Product'
+import { IterateProducts } from '../subcomponents/Iterations/Iterations'
 
-class Products extends Component {
-    state = {
-        products: []
-    }
+function Products() {
+    const [products, setProducts] = useState([])
 
-    async componentDidMount() {
-        const res = await axios.get('http://localhost:4000/products')
-        this.setState({
-            products: res.data
-        })
-    }
+    useEffect(() => {
+        async function getProducts() {
+            const res = await axios.get('http://localhost:4000/products')
+            setProducts(res.data)
+        }
+        getProducts();
+    }, [])
 
-    render() {
-        return (
-            <div className="container">
-                {this.state.products.map(product => (
-                    <Product props={product} />
-                ))}
-            </div>
-        )
-    }
+    return (
+        <div className="container">
+            <IterateProducts products={products} />
+        </div>
+    )
 }
 
 export default Products;

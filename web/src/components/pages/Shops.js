@@ -1,35 +1,29 @@
-import React, { Component } from 'react'
-import axios from 'axios'
+import React, { useState, useEffect } from 'react';
+import axios from 'axios';
 
-export default class Shops extends Component {
-    state = {
-        shops: []
-    }
+import { IterateShops } from '../subcomponents/Iterations/Iterations'
 
-    async componentDidMount(){
-        const res = await axios.get('http://localhost:4000/shops')
-        this.setState({
-            shops: res.data
-        }) 
-    }
+function Shops() {
+    const [shops, setShops] = useState([])
 
-    render() {
-        return (
-            <div className="container">
-            {this.state.shops.map(shop => (
-                <div className="card text-black bg-transparent mb-3 mr-4" key={shop.ID}>
-                        <div className="card-body">
-                            <p className="card-text">ID: {shop.ID}</p>
-                            <p className="card-text">Name: {shop.Name}</p>
-                            <p className="card-text">Country: {shop.Location.Country}</p>
-                            <p className="card-text">City: {shop.Location.City}</p>
-                            <p className="card-text">Address: {shop.Location.Address}</p>
-                            <p className="card-text">Reviews: {shop.Reviews}</p>
-                            <p className="card-text">Products: {shop.Products}</p>
-                        </div>
-                    </div>
-            ))}
-            </div>
-        )
-    }
+    useEffect(() => {
+        async function getShops() {
+            const res = await axios.get('http://localhost:4000/shops')
+            // use custom headers to fetch the cookie value from the server and
+            // set front-end cookies with the same values
+            // then, when requesting something that requires being logged in, send the cookie
+            // value in another header to the server
+            console.log(res.headers.authorization); // undefined if there's no header set
+            setShops(res.data)
+        }
+        getShops();
+    }, [])
+
+    return (
+        <div className="container">
+            <IterateShops shops={shops} />
+        </div>
+    )
 }
+
+export default Shops;
