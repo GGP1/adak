@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import axios from 'axios';
 import { Redirect } from "react-router-dom";
+import axios from 'axios';
+import cookies from 'js-cookie';
 
 // material-ui
 import Avatar from '@material-ui/core/Avatar';
@@ -63,11 +64,11 @@ const useStyles = makeStyles((theme) => ({
 
 function Login() {
     const classes = useStyles();
+    const [loggedIn, setLoggedIn] = useState(false)
     const [state, setState] = useState({
         email: "",
         password: ""
     });
-    const [loggedIn, setLoggedIn] = useState(false);
 
     const handleChange = (e) => {
         const { name, value } = e.target
@@ -75,7 +76,7 @@ function Login() {
             ...prevState,
             [name]: value
         }))
-    }
+    };
 
     const login = async (e) => {
         e.preventDefault();
@@ -85,9 +86,17 @@ function Login() {
                 password: state.password,
             };
 
-            const res = await axios.post('http://localhost:4000/login', user, { mode: 'no-cors', crossDomain: true });
+            const res = await axios.post("http://localhost:4000/login", user)
 
             if (res.status === 200) {
+                cookies.set("UID", res.headers.uid, {secure: false, sameSite: "None"})
+                cookies.set("CID", res.headers.cid, {secure: false, sameSite: "None"})
+                cookies.set("SID", res.headers.sid, {secure: false, sameSite: "None"})
+
+                if (res.headers.aid !== undefined && res.headers.aid !== "") {
+                    cookies.set("AID", res.headers.aid, {secure: false, sameSite: "None"})
+                }
+
                 setLoggedIn(true)
             } else {
                 console.log("An error ocurred"); // Create and display a modal that says that an error ocurred
@@ -97,7 +106,13 @@ function Login() {
         }
     }
 
-    if (loggedIn === true) { // this need to be done with auth cookies
+    if (cookies.get("UID") !== undefined || "") {
+        return (
+            <Redirect to="/" />
+        )
+    }
+
+    if (loggedIn === false) { 
         return (
             <Redirect to="/" />
         )

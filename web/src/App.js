@@ -9,6 +9,7 @@ import Navbar from './components/layout/Navbar';
 // Pages
 import Login from './components/pages/Login';
 import Main from './components/pages/Main';
+import Orders from './components/pages/Orders';
 import Payment from './components/pages/Payment';
 import Products from './components/pages/Products';
 import Register from './components/pages/Register';
@@ -26,6 +27,8 @@ function App() {
         <Route exact path="/" component={Main} />
 
         <Route exact path="/login" component={Login} />
+
+        <Route exact path="/orders" component={Orders} />
 
         <Route exact path="/payment" component={Payment} /> {/* not working */}
 

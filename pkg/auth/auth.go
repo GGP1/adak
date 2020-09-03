@@ -96,12 +96,14 @@ func (session *session) Login(ctx context.Context, w http.ResponseWriter, email,
 		if admin == user.Email {
 			admID := token.GenerateRunes(8)
 			setCookie(w, "AID", admID, "/", session.length)
+			w.Header().Set("AID", admID)
 		}
 	}
 
 	// -SID- used to add the user to the session map
 	sID := token.GenerateRunes(27)
 	setCookie(w, "SID", sID, "/", session.length)
+	w.Header().Set("SID", sID)
 
 	session.Lock()
 	session.store[sID] = userInfo{user.Email, time.Now()}
@@ -113,9 +115,11 @@ func (session *session) Login(ctx context.Context, w http.ResponseWriter, email,
 		return errors.Wrap(err, "failed generating a jwt token")
 	}
 	setCookie(w, "UID", userID, "/", session.length)
+	w.Header().Set("UID", userID)
 
 	// -CID- used to identify wich cart belongs to each user
 	setCookie(w, "CID", user.CartID, "/", session.length)
+	w.Header().Set("CID", user.CartID)
 
 	return nil
 }
@@ -161,6 +165,7 @@ func setCookie(w http.ResponseWriter, name, value, path string, lenght int) {
 		Domain:   "127.0.0.1",
 		Secure:   false,
 		HttpOnly: true,
+		SameSite: 3,
 		MaxAge:   lenght,
 	})
 }

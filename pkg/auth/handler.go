@@ -39,7 +39,6 @@ func Login(s Session) http.HandlerFunc {
 		}
 
 		response.HTMLText(w, r, http.StatusOK, "You logged in!")
-
 	}
 }
 
