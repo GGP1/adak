@@ -11,7 +11,7 @@ func AdminsOnly(f http.HandlerFunc) http.HandlerFunc {
 		adm := r.Header.Get("AID")
 		aID, _ := r.Cookie("AID")
 
-		if adm == "" && aID.Value == "" {
+		if adm == "" && aID.Value == "" || adm != aID.Value {
 			http.Error(w, "404 page not found", http.StatusNotFound)
 			return
 		}
