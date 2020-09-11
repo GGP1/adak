@@ -9,10 +9,14 @@ import (
 func AdminsOnly(f http.HandlerFunc) http.HandlerFunc {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		adm := r.Header.Get("AID")
-		aID, _ := r.Cookie("AID")
+		aID, err := r.Cookie("AID")
+		if err != nil {
+			http.Error(w, "404 page not found", http.StatusUnauthorized)
+			return
+		}
 
-		if adm == "" && aID.Value == "" || adm != aID.Value {
-			http.Error(w, "404 page not found", http.StatusNotFound)
+		if adm == "" && aID.Value == "" {
+			http.Error(w, "404 page not found", http.StatusUnauthorized)
 			return
 		}
 
