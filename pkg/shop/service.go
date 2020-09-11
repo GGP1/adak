@@ -7,6 +7,7 @@ import (
 	"github.com/GGP1/palo/internal/token"
 	"github.com/GGP1/palo/pkg/product"
 	"github.com/GGP1/palo/pkg/review"
+	"github.com/go-playground/validator"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
@@ -52,7 +53,7 @@ func (s *service) Create(ctx context.Context, shop *Shop) error {
 	(shop_id, country, state, zip_code, city, address)
 	VALUES ($1, $2, $3, $4, $5, $6)`
 
-	if err := shop.Validate(); err != nil {
+	if err := validator.New().StructCtx(ctx, shop); err != nil {
 		return err
 	}
 
@@ -85,53 +86,17 @@ func (s *service) Delete(ctx context.Context, id string) error {
 
 // Get returns a list with all the shops stored in the database.
 func (s *service) Get(ctx context.Context) ([]Shop, error) {
-	var (
-		shops []Shop
-		list  []Shop
-	)
-
-	ch := make(chan Shop)
-	errCh := make(chan error)
+	var shops []Shop
 
 	if err := s.DB.SelectContext(ctx, &shops, "SELECT * FROM shops"); err != nil {
 		return nil, errors.Wrap(err, "couldn't find the shops")
 	}
 
-	for _, shop := range shops {
-		go func(shop Shop) {
-			var (
-				location Location
-				reviews  []review.Review
-				products []product.Product
-			)
+	ch, errCh := make(chan Shop), make(chan error)
 
-			if err := s.DB.GetContext(ctx, &location, "SELECT * FROM locations WHERE shop_id=$1", shop.ID); err != nil {
-				errCh <- errors.Wrap(err, "couldn't find the location")
-			}
-
-			if err := s.DB.SelectContext(ctx, &reviews, "SELECT * FROM reviews WHERE shop_id=$1", shop.ID); err != nil {
-				errCh <- errors.Wrap(err, "couldn't find the reviews")
-			}
-
-			if err := s.DB.SelectContext(ctx, &products, "SELECT * FROM products WHERE shop_id=$1", shop.ID); err != nil {
-				errCh <- errors.Wrap(err, "couldn't find the products")
-			}
-
-			shop.Location = location
-			shop.Reviews = reviews
-			shop.Products = products
-
-			ch <- shop
-		}(shop)
-	}
-
-	select {
-	case s := <-ch:
-		list = append(list, s)
-	case err := <-errCh:
+	list, err := getRelationships(ctx, s.DB, shops, ch, errCh)
+	if err != nil {
 		return nil, err
-	case <-ctx.Done():
-		return nil, ctx.Err()
 	}
 
 	return list, nil
@@ -171,13 +136,7 @@ func (s *service) GetByID(ctx context.Context, id string) (Shop, error) {
 
 // Search looks for the shops that contain the value specified. (Only text fields)
 func (s *service) Search(ctx context.Context, search string) ([]Shop, error) {
-	var (
-		shops []Shop
-		list  []Shop
-	)
-
-	ch := make(chan Shop)
-	errCh := make(chan error)
+	var shops []Shop
 
 	q := `SELECT * FROM shops WHERE
 	to_tsvector(id || ' ' || name) @@ to_tsquery($1)`
@@ -186,41 +145,11 @@ func (s *service) Search(ctx context.Context, search string) ([]Shop, error) {
 		return nil, errors.Wrap(err, "couldn't find shops")
 	}
 
-	for _, shop := range shops {
-		go func(shop Shop) {
-			var (
-				location Location
-				reviews  []review.Review
-				products []product.Product
-			)
+	ch, errCh := make(chan Shop), make(chan error)
 
-			if err := s.DB.GetContext(ctx, &location, "SELECT * FROM locations WHERE shop_id=$1", shop.ID); err != nil {
-				errCh <- errors.Wrap(err, "couldn't find the location")
-			}
-
-			if err := s.DB.SelectContext(ctx, &reviews, "SELECT * FROM reviews WHERE shop_id=$1", shop.ID); err != nil {
-				errCh <- errors.Wrap(err, "couldn't find the reviews")
-			}
-
-			if err := s.DB.SelectContext(ctx, &products, "SELECT * FROM products WHERE shop_id=$1", shop.ID); err != nil {
-				errCh <- errors.Wrap(err, "couldn't find the products")
-			}
-
-			shop.Location = location
-			shop.Reviews = reviews
-			shop.Products = products
-
-			ch <- shop
-		}(shop)
-	}
-
-	select {
-	case s := <-ch:
-		list = append(list, s)
-	case err := <-errCh:
+	list, err := getRelationships(ctx, s.DB, shops, ch, errCh)
+	if err != nil {
 		return nil, err
-	case <-ctx.Done():
-		return nil, ctx.Err()
 	}
 
 	return list, nil
@@ -238,4 +167,46 @@ func (s *service) Update(ctx context.Context, shop *Shop, id string) error {
 	}
 
 	return nil
+}
+
+func getRelationships(ctx context.Context, db *sqlx.DB, shops []Shop, ch chan Shop, errCh chan error) ([]Shop, error) {
+	var list []Shop
+
+	for _, shop := range shops {
+		go func(shop Shop) {
+			var (
+				location Location
+				reviews  []review.Review
+				products []product.Product
+			)
+
+			if err := db.GetContext(ctx, &location, "SELECT * FROM locations WHERE shop_id=$1", shop.ID); err != nil {
+				errCh <- errors.Wrap(err, "couldn't find the location")
+			}
+
+			if err := db.Select(&reviews, "SELECT * FROM reviews WHERE shop_id=$1", shop.ID); err != nil {
+				errCh <- errors.Wrap(err, "couldn't find the reviews")
+			}
+
+			if err := db.Select(&products, "SELECT * FROM products WHERE shop_id=$1", shop.ID); err != nil {
+				errCh <- errors.Wrap(err, "couldn't find the products")
+			}
+
+			shop.Location = location
+			shop.Products = products
+			shop.Reviews = reviews
+
+			ch <- shop
+		}(shop)
+	}
+
+	for i := 0; i < len(shops); i++ {
+		select {
+		case shop := <-ch:
+			list = append(list, shop)
+		case err := <-errCh:
+			return nil, err
+		}
+	}
+	return list, nil
 }

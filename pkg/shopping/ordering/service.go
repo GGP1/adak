@@ -112,33 +112,17 @@ func Delete(ctx context.Context, db *sqlx.DB, orderID string) error {
 
 // Get retrieves all the orders.
 func Get(ctx context.Context, db *sqlx.DB) ([]Order, error) {
-	var (
-		orders []Order
-		list   []Order
-	)
+	var orders []Order
 
 	if err := db.SelectContext(ctx, &orders, "SELECT * FROM orders"); err != nil {
 		return nil, errors.Wrap(err, "couldn't find the orders")
 	}
 
-	for _, order := range orders {
-		var (
-			cart     OrderCart
-			products []OrderProduct
-		)
+	ch, errCh := make(chan Order), make(chan error)
 
-		if err := db.GetContext(ctx, &cart, "SELECT * FROM order_carts WHERE order_id=$1", order.ID); err != nil {
-			return nil, errors.Wrap(err, "couldn't find the order cart")
-		}
-
-		if err := db.SelectContext(ctx, &products, "SELECT * FROM order_products WHERE order_id=$1", order.ID); err != nil {
-			return nil, errors.Wrap(err, "couldn't find the order products")
-		}
-
-		order.Cart = cart
-		order.Products = products
-
-		list = append(list, order)
+	list, err := getRelationships(ctx, db, orders, ch, errCh)
+	if err != nil {
+		return nil, err
 	}
 
 	return list, nil
@@ -172,33 +156,17 @@ func GetByID(ctx context.Context, db *sqlx.DB, orderID string) (Order, error) {
 
 // GetByUserID retrieves orders depending on the user requested.
 func GetByUserID(ctx context.Context, db *sqlx.DB, userID string) ([]Order, error) {
-	var (
-		orders []Order
-		list   []Order
-	)
+	var orders []Order
 
 	if err := db.SelectContext(ctx, &orders, "SELECT * FROM orders WHERE user_id=$1", userID); err != nil {
 		return nil, errors.Wrap(err, "couldn't find the orders")
 	}
 
-	for _, order := range orders {
-		var (
-			cart     OrderCart
-			products []OrderProduct
-		)
+	ch, errCh := make(chan Order), make(chan error)
 
-		if err := db.GetContext(ctx, &cart, "SELECT * FROM order_carts WHERE order_id=$1", order.ID); err != nil {
-			return nil, errors.Wrap(err, "couldn't find the order cart")
-		}
-
-		if err := db.SelectContext(ctx, &products, "SELECT * FROM order_products WHERE order_id=$1", order.ID); err != nil {
-			return nil, errors.Wrap(err, "couldn't find the order products")
-		}
-
-		order.Cart = cart
-		order.Products = products
-
-		list = append(list, order)
+	list, err := getRelationships(ctx, db, orders, ch, errCh)
+	if err != nil {
+		return nil, err
 	}
 
 	return list, nil
@@ -212,4 +180,49 @@ func UpdateStatus(ctx context.Context, db *sqlx.DB, oID, oStatus string) error {
 	}
 
 	return nil
+}
+
+func getRelationships(ctx context.Context, db *sqlx.DB, orders []Order, ch chan Order, errCh chan error) ([]Order, error) {
+	var list []Order
+
+	for _, order := range orders {
+		go func(order Order) {
+			var (
+				cart     OrderCart
+				products []OrderProduct
+			)
+
+			// Remove expired leaving a gap of 1 week to compute the shipping order
+			if order.DeliveryDate.Sub(time.Now().Add(time.Hour*168)) < 0 {
+				if err := Delete(ctx, db, order.ID); err != nil {
+					errCh <- err
+				}
+				return
+			}
+
+			if err := db.GetContext(ctx, &cart, "SELECT * FROM order_carts WHERE order_id=$1", order.ID); err != nil {
+				errCh <- errors.Wrap(err, "couldn't find the order cart")
+			}
+
+			if err := db.SelectContext(ctx, &products, "SELECT * FROM order_products WHERE order_id=$1", order.ID); err != nil {
+				errCh <- errors.Wrap(err, "couldn't find the order products")
+			}
+
+			order.Cart = cart
+			order.Products = products
+
+			ch <- order
+		}(order)
+	}
+
+	for i := 0; i < len(orders); i++ {
+		select {
+		case order := <-ch:
+			list = append(list, order)
+		case err := <-errCh:
+			return nil, err
+		}
+	}
+
+	return list, nil
 }

@@ -43,6 +43,10 @@ func (s *service) ChangeEmail(ctx context.Context, id, newEmail, token string) e
 		return errors.Wrap(err, "invalid email")
 	}
 
+	if user.CreatedAt.Add(72*time.Hour).Sub(time.Now()) < 0 {
+		return errors.New("accounts must be 3 days old to change email")
+	}
+
 	_, err := s.DB.ExecContext(ctx, "UPDATE users set email=$2 WHERE id=$1", id, newEmail)
 	if err != nil {
 		return errors.Wrap(err, "couldn't change the email")
@@ -55,8 +59,12 @@ func (s *service) ChangeEmail(ctx context.Context, id, newEmail, token string) e
 func (s *service) ChangePassword(ctx context.Context, id, oldPass, newPass string) error {
 	var user user.User
 
-	if err := s.DB.GetContext(ctx, &user, "SELECT password FROM users WHERE id=$1", id); err != nil {
+	if err := s.DB.GetContext(ctx, &user, "SELECT password, created_at FROM users WHERE id=$1", id); err != nil {
 		return errors.Wrap(err, "invalid email")
+	}
+
+	if user.CreatedAt.Add(72*time.Hour).Sub(time.Now()) < 0 {
+		return errors.New("accounts must be 3 days old to change password")
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(oldPass)); err != nil {

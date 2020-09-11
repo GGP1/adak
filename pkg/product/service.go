@@ -7,6 +7,7 @@ import (
 
 	"github.com/GGP1/palo/internal/token"
 	"github.com/GGP1/palo/pkg/review"
+	"github.com/go-playground/validator"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
@@ -48,7 +49,7 @@ func (s *service) Create(ctx context.Context, p *Product) error {
 	(id, shop_id, stock, brand, category, type, description, weight, discount, taxes, subtotal, total, created_at, updated_at)
 	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`
 
-	if err := p.Validate(); err != nil {
+	if err := validator.New().StructCtx(ctx, p); err != nil {
 		return err
 	}
 
@@ -87,39 +88,17 @@ func (s *service) Delete(ctx context.Context, id string) error {
 
 // Get returns a list with all the products stored in the database.
 func (s *service) Get(ctx context.Context) ([]Product, error) {
-	var (
-		products []Product
-		list     []Product
-	)
-
-	ch := make(chan Product)
-	errCh := make(chan error)
+	var products []Product
 
 	if err := s.DB.Select(&products, "SELECT * FROM products"); err != nil {
 		return nil, errors.Wrap(err, "couldn't find the products")
 	}
 
-	for _, product := range products {
-		go func(product Product) {
-			var reviews []review.Review
+	ch, errCh := make(chan Product), make(chan error)
 
-			if err := s.DB.Select(&reviews, "SELECT * FROM reviews WHERE product_id=$1", product.ID); err != nil {
-				errCh <- errors.Wrap(err, "couldn't find the reviews")
-			}
-
-			product.Reviews = reviews
-
-			ch <- product
-		}(product)
-	}
-
-	select {
-	case p := <-ch:
-		list = append(list, p)
-	case err := <-errCh:
+	list, err := getRelationships(ctx, s.DB, products, ch, errCh)
+	if err != nil {
 		return nil, err
-	case <-ctx.Done():
-		return nil, ctx.Err()
 	}
 
 	return list, nil
@@ -147,13 +126,7 @@ func (s *service) GetByID(ctx context.Context, id string) (Product, error) {
 
 // Search looks for the products that contain the value specified. (Only text fields)
 func (s *service) Search(ctx context.Context, search string) ([]Product, error) {
-	var (
-		products []Product
-		list     []Product
-	)
-
-	ch := make(chan Product)
-	errCh := make(chan error)
+	var products []Product
 
 	q := `SELECT * FROM products WHERE
 	to_tsvector(id || ' ' || shop_id || ' ' || brand || ' ' || type || ' ' || category || ' ' || description)
@@ -163,27 +136,11 @@ func (s *service) Search(ctx context.Context, search string) ([]Product, error) 
 		return nil, errors.Wrap(err, "couldn't find the products")
 	}
 
-	for _, product := range products {
-		go func(product Product) {
-			var reviews []review.Review
+	ch, errCh := make(chan Product), make(chan error)
 
-			if err := s.DB.SelectContext(ctx, &reviews, "SELECT * FROM reviews WHERE product_id=$1", product.ID); err != nil {
-				errCh <- errors.Wrap(err, "couldn't find the reviews")
-			}
-
-			product.Reviews = reviews
-
-			ch <- product
-		}(product)
-	}
-
-	select {
-	case p := <-ch:
-		list = append(list, p)
-	case err := <-errCh:
+	list, err := getRelationships(ctx, s.DB, products, ch, errCh)
+	if err != nil {
 		return nil, err
-	case <-ctx.Done():
-		return nil, ctx.Err()
 	}
 
 	return list, nil
@@ -202,4 +159,34 @@ func (s *service) Update(ctx context.Context, p *Product, id string) error {
 	}
 
 	return nil
+}
+
+func getRelationships(ctx context.Context, db *sqlx.DB, products []Product, ch chan Product, errCh chan error) ([]Product, error) {
+	var list []Product
+
+	for _, product := range products {
+		go func(product Product) {
+			var reviews []review.Review
+
+			if err := db.SelectContext(ctx, &reviews, "SELECT * FROM reviews WHERE product_id=$1", product.ID); err != nil {
+				errCh <- errors.Wrap(err, "couldn't find the reviews")
+			}
+
+			product.Reviews = reviews
+
+			ch <- product
+		}(product)
+	}
+
+	for i := 0; i < len(products); i++ {
+		select {
+		case p := <-ch:
+			list = append(list, p)
+		case err := <-errCh:
+			return nil, err
+		}
+	}
+
+	return list, nil
+
 }

@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/GGP1/palo/internal/token"
+	"github.com/go-playground/validator"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
@@ -42,15 +43,14 @@ func (s *service) Create(ctx context.Context, r *Review, userID string) error {
 	(id, stars, comment, user_id, product_id, shop_id, created_at, updated_at)
 	VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`
 
-	err := r.Validate()
-	if err != nil {
+	if err := validator.New().StructCtx(ctx, r); err != nil {
 		return err
 	}
 
 	id := token.GenerateRunes(30)
 	r.CreatedAt = time.Now()
 
-	_, err = s.DB.ExecContext(ctx, q, id, r.Stars, r.Comment, userID, r.ProductID, r.ShopID, r.CreatedAt, r.UpdatedAt)
+	_, err := s.DB.ExecContext(ctx, q, id, r.Stars, r.Comment, userID, r.ProductID, r.ShopID, r.CreatedAt, r.UpdatedAt)
 	if err != nil {
 		return errors.Wrap(err, "couldn't create the review")
 	}
