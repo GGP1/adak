@@ -108,45 +108,17 @@ func (s *service) Delete(ctx context.Context, id string) error {
 
 // Get returns a list with all the users stored in the database.
 func (s *service) Get(ctx context.Context) ([]ListUser, error) {
-	var (
-		users []ListUser
-		list  []ListUser
-	)
-
-	ch := make(chan ListUser)
-	errCh := make(chan error)
+	var users []ListUser
 
 	if err := s.DB.SelectContext(ctx, &users, "SELECT id, cart_id, username, email FROM users"); err != nil {
 		return nil, errors.Wrap(err, "couldn't find the users")
 	}
 
-	for _, user := range users {
-		go func(user ListUser) {
-			var reviews []review.Review
+	ch, errCh := make(chan ListUser), make(chan error)
 
-			orders, err := ordering.GetByUserID(ctx, s.DB, user.ID)
-			if err != nil {
-				errCh <- err
-			}
-
-			if err := s.DB.SelectContext(ctx, &reviews, "SELECT * FROM reviews WHERE user_id=$1", user.ID); err != nil {
-				errCh <- errors.Wrap(err, "couldn't find the reviews")
-			}
-
-			user.Orders = orders
-			user.Reviews = reviews
-
-			ch <- user
-		}(user)
-	}
-
-	select {
-	case u := <-ch:
-		list = append(list, u)
-	case err := <-errCh:
+	list, err := getRelationships(ctx, s.DB, users, ch, errCh)
+	if err != nil {
 		return nil, err
-	case <-ctx.Done():
-		return nil, ctx.Err()
 	}
 
 	return list, nil
@@ -201,13 +173,7 @@ func (s *service) GetByUsername(ctx context.Context, username string) (User, err
 
 // Search looks for the users that contain the value specified. (Only text fields)
 func (s *service) Search(ctx context.Context, search string) ([]ListUser, error) {
-	var (
-		users []ListUser
-		list  []ListUser
-	)
-
-	ch := make(chan ListUser)
-	errCh := make(chan error)
+	var users []ListUser
 
 	q := `SELECT * FROM users WHERE
 	to_tsvector(id || ' ' || username || ' ' || email) 
@@ -217,32 +183,11 @@ func (s *service) Search(ctx context.Context, search string) ([]ListUser, error)
 		return nil, errors.Wrap(err, "couldn't find the users")
 	}
 
-	for _, user := range users {
-		go func(user ListUser) {
-			var reviews []review.Review
+	ch, errCh := make(chan ListUser), make(chan error)
 
-			orders, err := ordering.GetByUserID(ctx, s.DB, user.ID)
-			if err != nil {
-				errCh <- err
-			}
-
-			if err := s.DB.SelectContext(ctx, &reviews, "SELECT * FROM reviews WHERE user_id=$1", user.ID); err != nil {
-				errCh <- errors.Wrap(err, "couldn't find the reviews")
-			}
-
-			user.Orders = orders
-			user.Reviews = reviews
-
-			ch <- user
-		}(user)
-	}
-	select {
-	case u := <-ch:
-		list = append(list, u)
-	case err := <-errCh:
+	list, err := getRelationships(ctx, s.DB, users, ch, errCh)
+	if err != nil {
 		return nil, err
-	case <-ctx.Done():
-		return nil, ctx.Err()
 	}
 
 	return list, nil
@@ -256,4 +201,41 @@ func (s *service) Update(ctx context.Context, u *UpdateUser, id string) error {
 	}
 
 	return nil
+}
+
+func getRelationships(ctx context.Context, db *sqlx.DB, users []ListUser, ch chan ListUser, errCh chan error) ([]ListUser, error) {
+	var list []ListUser
+
+	for _, user := range users {
+		go func(user ListUser) {
+			var (
+				reviews []review.Review
+				orders  []ordering.Order
+			)
+
+			if err := db.Select(&orders, "SELECT * FROM orders WHERE user_id=$1", user.ID); err != nil {
+				errCh <- errors.Wrap(err, "couldn't find the orders")
+			}
+
+			if err := db.Select(&reviews, "SELECT * FROM reviews WHERE user_id=$1", user.ID); err != nil {
+				errCh <- errors.Wrap(err, "couldn't find the reviews")
+			}
+
+			user.Orders = orders
+			user.Reviews = reviews
+
+			ch <- user
+		}(user)
+	}
+
+	for i := 0; i < len(users); i++ {
+		select {
+		case user := <-ch:
+			list = append(list, user)
+		case err := <-errCh:
+			return nil, err
+		}
+	}
+
+	return list, nil
 }

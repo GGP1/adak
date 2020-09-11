@@ -11,6 +11,7 @@ import (
 	"github.com/GGP1/palo/internal/token"
 	"github.com/GGP1/palo/pkg/shopping/cart"
 	"github.com/GGP1/palo/pkg/shopping/payment/stripe"
+	"github.com/go-playground/validator"
 
 	"github.com/go-chi/chi"
 	"github.com/jmoiron/sqlx"
@@ -18,22 +19,22 @@ import (
 
 // OrderParams holds the parameters for creating a order.
 type OrderParams struct {
-	Currency string      `json:"currency"`
-	Address  string      `json:"address"`
-	City     string      `json:"city"`
-	Country  string      `json:"country"`
-	State    string      `json:"state"`
-	ZipCode  string      `json:"zip_code"`
-	Date     date        `json:"date"`
-	Card     stripe.Card `json:"card"`
+	Currency string      `json:"currency" validate:"required"`
+	Address  string      `json:"address" validate:"required"`
+	City     string      `json:"city" validate:"required"`
+	Country  string      `json:"country" validate:"required"`
+	State    string      `json:"state" validate:"required"`
+	ZipCode  string      `json:"zip_code" validate:"required"`
+	Date     date        `json:"date" validate:"required"`
+	Card     stripe.Card `json:"card" validate:"required"`
 }
 
 type date struct {
-	Year    int `json:"year"`
-	Month   int `json:"month"`
-	Day     int `json:"day"`
-	Hour    int `json:"hour"`
-	Minutes int `json:"minutes"`
+	Year    int `json:"year" validate:"required,min=2020,max=2100"`
+	Month   int `json:"month" validate:"required,min=1,max=12"`
+	Day     int `json:"day" validate:"required,min=1,max=31"`
+	Hour    int `json:"hour" validate:"required,min=0,max=24"`
+	Minutes int `json:"minutes" validate:"required,min=0,max=60"`
 }
 
 // Handler handles ordering endpoints.
@@ -128,7 +129,7 @@ func (h *Handler) New() http.HandlerFunc {
 		}
 		defer r.Body.Close()
 
-		err := o.validate()
+		err := validator.New().StructCtx(ctx, o)
 		if err != nil {
 			response.Error(w, r, http.StatusBadRequest, err)
 			return
@@ -175,69 +176,4 @@ func (h *Handler) New() http.HandlerFunc {
 		respond := fmt.Sprintf("Thanks for your purchase! Your products will be delivered on %v.", order.DeliveryDate)
 		response.HTMLText(w, r, http.StatusCreated, respond)
 	}
-}
-
-// validate order input.
-func (o *OrderParams) validate() error {
-	if o.Address == "" {
-		return errors.New("address is required")
-	}
-
-	if o.Currency == "" {
-		return errors.New("currency is required")
-	}
-
-	if o.City == "" {
-		return errors.New("city is required")
-	}
-
-	if o.Country == "" {
-		return errors.New("country is required")
-	}
-
-	if o.State == "" {
-		return errors.New("state is required")
-	}
-
-	if o.ZipCode == "" {
-		return errors.New("zipcode is required")
-	}
-
-	if o.Card.Number == "" {
-		return errors.New("card number is required")
-	}
-
-	if o.Card.ExpMonth == "" || len(o.Card.ExpMonth) > 2 {
-		return errors.New("card expiration month is required")
-	}
-
-	if o.Card.ExpYear == "" || len(o.Card.ExpYear) > 5 {
-		return errors.New("invalid card expiration year")
-	}
-
-	if o.Card.CVC == "" || len(o.Card.CVC) > 3 {
-		return errors.New("invalid card cvc")
-	}
-
-	if o.Date.Year < 2020 || o.Date.Year > 2100 {
-		return errors.New("invalid year")
-	}
-
-	if o.Date.Month < 1 || o.Date.Month > 12 {
-		return errors.New("invalid month")
-	}
-
-	if o.Date.Day < 1 || o.Date.Day > 31 {
-		return errors.New("invalid day")
-	}
-
-	if o.Date.Hour < 1 || o.Date.Hour > 24 {
-		return errors.New("invalid hour")
-	}
-
-	if o.Date.Minutes < 1 || o.Date.Minutes > 60 {
-		return errors.New("invalid minutes")
-	}
-
-	return nil
 }

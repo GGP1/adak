@@ -6,6 +6,7 @@ import (
 
 	"github.com/GGP1/palo/internal/response"
 
+	"github.com/go-playground/validator"
 	"github.com/pkg/errors"
 )
 
@@ -28,7 +29,7 @@ func Login(s Session) http.HandlerFunc {
 		}
 		defer r.Body.Close()
 
-		if err := user.Validate(); err != nil {
+		if err := validator.New().StructCtx(ctx, user); err != nil {
 			response.Error(w, r, http.StatusBadRequest, err)
 			return
 		}

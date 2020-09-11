@@ -43,8 +43,8 @@ func (h *Handler) ChangeEmail() http.HandlerFunc {
 }
 
 type changePassword struct {
-	OldPassword string `json:"old_password"`
-	NewPassword string `json:"new_password"`
+	OldPassword string `json:"old_password" validate:"required"`
+	NewPassword string `json:"new_password" validate:"email,required"`
 }
 
 // ChangePassword updates the user password.
@@ -90,11 +90,6 @@ func (h *Handler) SendChangeConfirmation(u user.Service) http.HandlerFunc {
 			return
 		}
 		defer r.Body.Close()
-
-		if err := email.Validate(new.Email); err != nil {
-			response.Error(w, r, http.StatusBadRequest, err)
-			return
-		}
 
 		_, err := u.GetByEmail(ctx, new.Email)
 		if err == nil {

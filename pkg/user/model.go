@@ -5,7 +5,6 @@ import (
 	"image"
 	"time"
 
-	"github.com/GGP1/palo/internal/email"
 	"github.com/GGP1/palo/pkg/review"
 	"github.com/GGP1/palo/pkg/shopping/ordering"
 
@@ -16,10 +15,10 @@ import (
 // User represents platform customers.
 // Each user has a unique cart.
 type User struct {
-	ID               string           `json:"id"`
+	ID               string           `json:"id" validate:"unique"`
 	CartID           string           `json:"cart_id" db:"cart_id"`
 	Username         string           `json:"username"`
-	Email            string           `json:"email"`
+	Email            string           `json:"email" validate:"email"`
 	Password         string           `json:"password"`
 	EmailVerifiedAt  time.Time        `json:"-" db:"email_verified_at"`
 	ConfirmationCode string           `json:"-" db:"confirmation_code"`
@@ -33,9 +32,9 @@ type User struct {
 type AddUser struct {
 	ID        string    `json:"id"`
 	CartID    string    `json:"cart_id" db:"cart_id"`
-	Username  string    `json:"username"`
-	Email     string    `json:"email"`
-	Password  string    `json:"password"`
+	Username  string    `json:"username" validate:"required,max=25"`
+	Email     string    `json:"email" validate:"email,required"`
+	Password  string    `json:"password" validate:"required,min=6"`
 	CreatedAt time.Time `json:"created_at" db:"created_at"`
 	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`
 }
@@ -45,14 +44,14 @@ type ListUser struct {
 	ID       string           `json:"id"`
 	CartID   string           `json:"cart_id" db:"cart_id"`
 	Username string           `json:"username"`
-	Email    string           `json:"email"`
+	Email    string           `json:"email" validate:"email"`
 	Orders   []ordering.Order `json:"orders,omitempty"`
 	Reviews  []review.Review  `json:"reviews,omitempty"`
 }
 
 // UpdateUser is the structure used to update users.
 type UpdateUser struct {
-	Username string `json:"username"`
+	Username string `json:"username" validate:"required"`
 }
 
 // QRCode creates a QRCode with the link to the user profile.
@@ -65,42 +64,4 @@ func (u *ListUser) QRCode() (image.Image, error) {
 	img := qr.Image(256)
 
 	return img, nil
-}
-
-// Validate checks if inputs when creating a user are correct.
-func (u *AddUser) Validate() error {
-	if u.Username == "" {
-		return errors.New("username is required")
-	}
-
-	if len(u.Username) >= 20 {
-		return errors.New("username must be less than or equal to 20 characters long")
-	}
-
-	if u.Password == "" {
-		return errors.New("password is required")
-	}
-
-	if len(u.Password) < 6 {
-		return errors.New("password must be greater than 6 characters long")
-	}
-
-	if u.Email == "" {
-		return errors.New("email is required")
-	}
-
-	if err := email.Validate(u.Email); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// Validate checks if inputs when updating a user are correct.
-func (u *UpdateUser) Validate() error {
-	if u.Username == "" {
-		return errors.New("username is required")
-	}
-
-	return nil
 }

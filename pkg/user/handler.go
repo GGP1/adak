@@ -11,6 +11,7 @@ import (
 	"github.com/GGP1/palo/pkg/shopping/cart"
 
 	"github.com/go-chi/chi"
+	"github.com/go-playground/validator/v10"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 )
@@ -34,16 +35,15 @@ func (h *Handler) Create() http.HandlerFunc {
 		}
 		defer r.Body.Close()
 
-		if err := user.Validate(); err != nil {
+		if err := validator.New().StructCtx(ctx, user); err != nil {
 			response.Error(w, r, http.StatusBadRequest, err)
 			return
 		}
 
-		cCode := token.GenerateRunes(20)
-
+		confirmationCode := token.GenerateRunes(20)
 		errCh := make(chan error)
 
-		go email.SendValidation(ctx, user.Username, user.Email, cCode, errCh)
+		go email.SendValidation(ctx, user.Username, user.Email, confirmationCode, errCh)
 
 		select {
 		case <-ctx.Done():
@@ -195,7 +195,7 @@ func (h *Handler) Update() http.HandlerFunc {
 		}
 		defer r.Body.Close()
 
-		if err := user.Validate(); err != nil {
+		if err := validator.New().StructCtx(ctx, user); err != nil {
 			response.Error(w, r, http.StatusBadRequest, err)
 			return
 		}
