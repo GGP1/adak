@@ -5,7 +5,7 @@ import (
 )
 
 // RequireLogin verifies if the user is logged in.
-func RequireLogin(f http.HandlerFunc) http.HandlerFunc {
+func RequireLogin(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		_, err := r.Cookie("SID")
 		if err != nil {
@@ -13,6 +13,6 @@ func RequireLogin(f http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 
-		f(w, r)
+		next.ServeHTTP(w, r)
 	})
 }
