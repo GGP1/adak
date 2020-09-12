@@ -1,6 +1,4 @@
 .env
 TODO.txt
 
-internal/cfg
-
 pkg/auth/adminList.go

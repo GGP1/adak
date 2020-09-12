@@ -4,15 +4,17 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/GGP1/palo/internal/cfg"
+	"github.com/spf13/viper"
 
 	jwt "github.com/dgrijalva/jwt-go"
 	"github.com/pkg/errors"
 )
 
+var secretKey = []byte(viper.GetString("token.secretkey"))
+
 // GenerateJWT creates a new jwt token - changes over time -.
 func GenerateJWT(email string) (string, error) {
-	key := []byte(cfg.SecretKey)
+	key := secretKey
 
 	claim := jwt.MapClaims{
 		"email": email,
@@ -26,7 +28,7 @@ func GenerateJWT(email string) (string, error) {
 
 // GenerateFixedJWT creates a jwt token that does not vary.
 func GenerateFixedJWT(id string) (string, error) {
-	key := []byte(cfg.SecretKey)
+	key := secretKey
 
 	claim := jwt.MapClaims{
 		"id": id,
@@ -46,7 +48,7 @@ func ParseFixedJWT(tokenString string) (string, error) {
 			return nil, fmt.Errorf("Invalid token %v", token.Header["alg"])
 		}
 
-		return []byte(cfg.SecretKey), nil
+		return secretKey, nil
 	})
 	if err != nil {
 		return "", errors.Wrap(err, "failed parsing the token")

@@ -4,9 +4,9 @@ package storage
 
 import (
 	"context"
+	"fmt"
 
-	"github.com/GGP1/palo/internal/cfg"
-
+	"github.com/GGP1/palo/internal/config"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 )
@@ -14,8 +14,11 @@ import (
 // PostgresConnect creates a connection with the database using the postgres driver
 // and checks the existence of all the tables.
 // It returns a pointer to the sql.DB struct, the close function and an error.
-func PostgresConnect(ctx context.Context) (*sqlx.DB, func() error, error) {
-	db, err := sqlx.Open("postgres", cfg.DBURL)
+func PostgresConnect(ctx context.Context, c *config.DatabaseConfiguration) (*sqlx.DB, func() error, error) {
+	url := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=%s",
+		c.Username, c.Password, c.Host, c.Port, c.Name, c.SSLMode)
+
+	db, err := sqlx.Open("postgres", url)
 	if err != nil {
 		return nil, nil, errors.Wrap(err, "couldn't open the database")
 	}

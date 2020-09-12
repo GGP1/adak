@@ -10,8 +10,7 @@ import (
 	"html/template"
 	"net/mail"
 	"net/smtp"
-
-	"github.com/GGP1/palo/internal/cfg"
+	"os"
 
 	"github.com/pkg/errors"
 )
@@ -27,10 +26,16 @@ type Items struct {
 
 // SendValidation sends a validation email to the user.
 func SendValidation(ctx context.Context, username, email, token string, errCh chan error) {
-	// =================
+	var (
+		// Both os.Getenv and viper.GetString work
+		emailSender   = os.Getenv("EMAIL_SENDER")
+		emailPassword = os.Getenv("EMAIL_PASSWORD")
+		emailHost     = os.Getenv("EMAIL_HOST")
+		emailPort     = os.Getenv("EMAIL_PORT")
+	)
+
 	// 	Email content
-	// =================
-	from := mail.Address{Name: "Palo", Address: cfg.EmailSender}
+	from := mail.Address{Name: "Palo", Address: emailSender}
 	to := mail.Address{Name: username, Address: email}
 	subject := "Validation email"
 	items := Items{
@@ -62,25 +67,25 @@ func SendValidation(ctx context.Context, username, email, token string, errCh ch
 
 	message += buf.String()
 
-	// =================
 	// Connect to smtp
-	// =================
-	smtpHost := "smtp.gmail.com"
-	smtpPort := "587"
+	auth := smtp.PlainAuth("", emailSender, emailPassword, emailHost)
 
-	auth := smtp.PlainAuth("", cfg.EmailSender, cfg.EmailPassword, smtpHost)
-
-	if err = smtp.SendMail(smtpHost+":"+smtpPort, auth, from.Address, []string{to.Address}, []byte(message)); err != nil {
+	if err = smtp.SendMail(emailHost+":"+emailPort, auth, from.Address, []string{to.Address}, []byte(message)); err != nil {
 		errCh <- errors.Wrap(err, "couldn't send the email")
 	}
 }
 
 // SendChangeConfirmation sends a confirmation email to the user.
 func SendChangeConfirmation(id, username, email, newEmail, token string, errCh chan error) {
-	// =================
+	var (
+		emailSender   = os.Getenv("EMAIL_SENDER")
+		emailPassword = os.Getenv("EMAIL_PASSWORD")
+		emailHost     = os.Getenv("EMAIL_HOST")
+		emailPort     = os.Getenv("EMAIL_PORT")
+	)
+
 	// 	Email content
-	// =================
-	from := mail.Address{Name: "Palo", Address: cfg.EmailSender}
+	from := mail.Address{Name: "Palo", Address: emailSender}
 	to := mail.Address{Name: username, Address: email}
 	subject := "Email change confirmation"
 	items := Items{
@@ -113,15 +118,10 @@ func SendChangeConfirmation(id, username, email, newEmail, token string, errCh c
 
 	message += buf.String()
 
-	// =================
 	// Connect to smtp
-	// =================
-	smtpHost := "smtp.gmail.com"
-	smtpPort := "587"
+	auth := smtp.PlainAuth("", emailSender, emailPassword, emailHost)
 
-	auth := smtp.PlainAuth("", cfg.EmailSender, cfg.EmailPassword, smtpHost)
-
-	if err := smtp.SendMail(smtpHost+":"+smtpPort, auth, from.Address, []string{to.Address}, []byte(message)); err != nil {
+	if err := smtp.SendMail(emailHost+":"+emailPort, auth, from.Address, []string{to.Address}, []byte(message)); err != nil {
 		errCh <- errors.Wrap(err, "couldn't send the email")
 	}
 }

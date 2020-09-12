@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/GGP1/palo/cmd/server"
+	"github.com/GGP1/palo/internal/config"
 	"github.com/GGP1/palo/pkg/http/rest"
 	"github.com/GGP1/palo/pkg/storage"
 
@@ -19,7 +20,12 @@ func main() {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
-	db, close, err := storage.PostgresConnect(ctx)
+	conf, err := config.New()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	db, close, err := storage.PostgresConnect(ctx, &conf.Database)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -27,17 +33,7 @@ func main() {
 
 	router := rest.NewRouter(db)
 
-	configPath, err := server.ParseFlags()
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	srvConfig, err := server.NewConfig(configPath)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	srv := server.New(srvConfig, router)
+	srv := server.New(conf, router)
 
 	if err := srv.Start(); err != nil {
 		log.Fatal(err)

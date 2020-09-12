@@ -2,12 +2,14 @@ package rest_test
 
 import (
 	"errors"
+	"fmt"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"regexp"
 	"testing"
 
-	"github.com/GGP1/palo/internal/cfg"
+	"github.com/GGP1/palo/internal/config"
 	"github.com/GGP1/palo/pkg/user"
 	"github.com/jmoiron/sqlx"
 )
@@ -18,7 +20,15 @@ func TestUsersHandler(t *testing.T) {
 }
 
 func list(t *testing.T) {
-	db, err := sqlx.Open("postgres", cfg.DBURL)
+	c, err := config.New()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	url := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=%s",
+		c.Database.Username, c.Database.Password, c.Database.Host, c.Database.Port, c.Database.Name, c.Database.SSLMode)
+
+	db, err := sqlx.Open("postgres", url)
 	if err != nil {
 		t.Error("couldn't open the database")
 	}

@@ -2,10 +2,12 @@ package rest_test
 
 import (
 	"context"
+	"log"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	"github.com/GGP1/palo/internal/config"
 	"github.com/GGP1/palo/pkg/http/rest"
 	"github.com/GGP1/palo/pkg/storage"
 )
@@ -22,7 +24,12 @@ func TestRouting(t *testing.T) {
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	db, close, err := storage.PostgresConnect(ctx)
+	conf, err := config.New()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	db, close, err := storage.PostgresConnect(ctx, &conf.Database)
 	if err != nil {
 		t.Fatal("Database failed connecting")
 	}

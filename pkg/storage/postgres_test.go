@@ -1,10 +1,12 @@
 package storage_test
 
 import (
+	"fmt"
+	"log"
 	"reflect"
 	"testing"
 
-	"github.com/GGP1/palo/internal/cfg"
+	cfg "github.com/GGP1/palo/internal/config"
 
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"
@@ -17,11 +19,19 @@ const (
 )
 
 func TestPostgres(t *testing.T) {
+	c, err := cfg.New()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	url := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=%s",
+		c.Database.Username, c.Database.Password, c.Database.Host, c.Database.Port, c.Database.Name, c.Database.SSLMode)
+
 	t.Log("Given the need to test database connection.")
 	{
 		t.Logf("\tTest 0:\tWhen checking the database connection.")
 		{
-			db, err := sqlx.Open("postgres", cfg.DBURL)
+			db, err := sqlx.Open("postgres", url)
 			if err != nil {
 				t.Fatalf("\t%s\tShould be able to connect to the database: %v", failed, err)
 			}

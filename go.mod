@@ -8,9 +8,11 @@ require (
 	github.com/go-playground/validator v9.31.0+incompatible
 	github.com/go-playground/validator/v10 v10.3.0
 	github.com/jmoiron/sqlx v1.2.0
+	github.com/joho/godotenv v1.3.0
 	github.com/lib/pq v1.8.0 // direct
 	github.com/pkg/errors v0.9.1
 	github.com/skip2/go-qrcode v0.0.0-20200617195104-da1b6568686e
+	github.com/spf13/viper v1.7.1
 	github.com/stretchr/testify v1.6.1 // indirect
 	github.com/stripe/stripe-go v70.15.0+incompatible
 	golang.org/x/crypto v0.0.0-20200820211705-5c72a883971a
@@ -19,5 +21,5 @@ require (
 	golang.org/x/time v0.0.0-20200630173020-3af7569d3a1e
 	google.golang.org/appengine v1.6.6 // indirect
 	gopkg.in/go-playground/assert.v1 v1.2.1 // indirect
-	gopkg.in/yaml.v2 v2.3.0 // direct
+	gopkg.in/yaml.v2 v2.3.0 // indirect; direct
 )
