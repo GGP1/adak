@@ -4,5 +4,3 @@ TODO.txt
 internal/cfg
 
 pkg/auth/adminList.go
-
-/web/node_modules
