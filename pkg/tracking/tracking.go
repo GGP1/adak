@@ -94,6 +94,10 @@ func (h *Hitter) Search(ctx context.Context, query string) ([]Hit, error) {
 	language || ' ' || referer || ' ' || 
 	user_agent || ' ' || date) @@ to_tsquery($1)`
 
+	if strings.ContainsAny(query, ";-\\|@#~€¬<>_()[]}{¡'") {
+		return nil, errors.New("invalid search")
+	}
+
 	if err := h.DB.SelectContext(ctx, &hits, q, query); err != nil {
 		return nil, errors.New("no hits found")
 	}

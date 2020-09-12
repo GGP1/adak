@@ -41,7 +41,7 @@ func (h *Handler) Create() http.HandlerFunc {
 		}
 
 		confirmationCode := token.GenerateRunes(20)
-		errCh := make(chan error)
+		errCh := make(chan error, 1)
 
 		go email.SendValidation(ctx, user.Username, user.Email, confirmationCode, errCh)
 

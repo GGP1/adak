@@ -22,7 +22,7 @@ type Session interface {
 	Logout(w http.ResponseWriter, r *http.Request, c *http.Cookie)
 }
 
-type userInfo struct {
+type userData struct {
 	email    string
 	lastSeen time.Time
 }
@@ -31,7 +31,7 @@ type session struct {
 	sync.RWMutex
 
 	DB     *sqlx.DB
-	store  map[string]userInfo
+	store  map[string]userData
 	clean  time.Time
 	length int
 }
@@ -40,7 +40,7 @@ type session struct {
 func NewSession(db *sqlx.DB) Session {
 	return &session{
 		DB:     db,
-		store:  make(map[string]userInfo),
+		store:  make(map[string]userData),
 		clean:  time.Now(),
 		length: 0,
 	}
@@ -70,7 +70,7 @@ func (session *session) AlreadyLoggedIn(w http.ResponseWriter, r *http.Request) 
 // Clean deletes all the sessions that have expired.
 func (session *session) Clean() {
 	for key, value := range session.store {
-		if time.Now().Sub(value.lastSeen) > (time.Hour * 240) {
+		if time.Now().Sub(value.lastSeen) > (time.Hour * 120) {
 			delete(session.store, key)
 		}
 	}
@@ -96,17 +96,15 @@ func (session *session) Login(ctx context.Context, w http.ResponseWriter, email,
 		if admin == user.Email {
 			admID := token.GenerateRunes(8)
 			setCookie(w, "AID", admID, "/", session.length)
-			w.Header().Set("AID", admID)
 		}
 	}
 
 	// -SID- used to add the user to the session map
 	sID := token.GenerateRunes(27)
 	setCookie(w, "SID", sID, "/", session.length)
-	w.Header().Set("SID", sID)
 
 	session.Lock()
-	session.store[sID] = userInfo{user.Email, time.Now()}
+	session.store[sID] = userData{user.Email, time.Now()}
 	session.Unlock()
 
 	// -UID- used to deny users from making requests to other accounts
@@ -115,11 +113,9 @@ func (session *session) Login(ctx context.Context, w http.ResponseWriter, email,
 		return errors.Wrap(err, "failed generating a jwt token")
 	}
 	setCookie(w, "UID", userID, "/", session.length)
-	w.Header().Set("UID", userID)
 
 	// -CID- used to identify wich cart belongs to each user
 	setCookie(w, "CID", user.CartID, "/", session.length)
-	w.Header().Set("CID", user.CartID)
 
 	return nil
 }

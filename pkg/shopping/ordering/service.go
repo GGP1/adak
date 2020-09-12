@@ -22,7 +22,7 @@ const (
 )
 
 // New creates an order.
-func New(ctx context.Context, db *sqlx.DB, userID, currency, address, city, country, state, zipcode string, deliveryDate time.Time, c cart.Cart) (*Order, error) {
+func New(ctx context.Context, db *sqlx.DB, userID string, oParams OrderParams, deliveryDate time.Time, c cart.Cart) (*Order, error) {
 	orderQuery := `INSERT INTO orders
 	(id, user_id, currency, address, city, country, state, zip_code, status, ordered_at, delivery_date, cart_id)
 	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`
@@ -44,11 +44,11 @@ func New(ctx context.Context, db *sqlx.DB, userID, currency, address, city, coun
 	order := Order{
 		ID:           id,
 		UserID:       userID,
-		Currency:     currency,
-		Address:      address,
-		City:         city,
-		State:        state,
-		ZipCode:      zipcode,
+		Currency:     oParams.Currency,
+		Address:      oParams.Address,
+		City:         oParams.City,
+		State:        oParams.State,
+		ZipCode:      oParams.ZipCode,
 		Status:       PendingState,
 		OrderedAt:    time.Now(),
 		DeliveryDate: deliveryDate,
@@ -63,6 +63,7 @@ func New(ctx context.Context, db *sqlx.DB, userID, currency, address, city, coun
 		},
 	}
 
+	// Save order products
 	for _, product := range c.Products {
 		_, err := db.ExecContext(ctx, orderPQuery, product.ID, id, product.Quantity, product.Brand,
 			product.Category, product.Type, product.Description, product.Weight,
@@ -72,12 +73,14 @@ func New(ctx context.Context, db *sqlx.DB, userID, currency, address, city, coun
 		}
 	}
 
-	_, err := db.ExecContext(ctx, orderQuery, id, userID, currency, address, city, country,
-		state, zipcode, PendingState, time.Now(), deliveryDate, c.ID)
+	// Save order
+	_, err := db.ExecContext(ctx, orderQuery, id, userID, oParams.Currency, oParams.Address, oParams.City, oParams.Country,
+		oParams.State, oParams.ZipCode, PendingState, time.Now(), deliveryDate, c.ID)
 	if err != nil {
 		return nil, errors.Wrap(err, "couldn't create the order")
 	}
 
+	// Save order cart
 	_, err = db.ExecContext(ctx, orderCQuery, id, c.Counter, c.Weight, c.Discount,
 		c.Taxes, c.Subtotal, c.Total)
 	if err != nil {
@@ -118,9 +121,7 @@ func Get(ctx context.Context, db *sqlx.DB) ([]Order, error) {
 		return nil, errors.Wrap(err, "couldn't find the orders")
 	}
 
-	ch, errCh := make(chan Order), make(chan error)
-
-	list, err := getRelationships(ctx, db, orders, ch, errCh)
+	list, err := getRelationships(ctx, db, orders)
 	if err != nil {
 		return nil, err
 	}
@@ -162,9 +163,7 @@ func GetByUserID(ctx context.Context, db *sqlx.DB, userID string) ([]Order, erro
 		return nil, errors.Wrap(err, "couldn't find the orders")
 	}
 
-	ch, errCh := make(chan Order), make(chan error)
-
-	list, err := getRelationships(ctx, db, orders, ch, errCh)
+	list, err := getRelationships(ctx, db, orders)
 	if err != nil {
 		return nil, err
 	}
@@ -182,8 +181,10 @@ func UpdateStatus(ctx context.Context, db *sqlx.DB, oID, oStatus string) error {
 	return nil
 }
 
-func getRelationships(ctx context.Context, db *sqlx.DB, orders []Order, ch chan Order, errCh chan error) ([]Order, error) {
+func getRelationships(ctx context.Context, db *sqlx.DB, orders []Order) ([]Order, error) {
 	var list []Order
+
+	ch, errCh := make(chan Order), make(chan error, 1)
 
 	for _, order := range orders {
 		go func(order Order) {

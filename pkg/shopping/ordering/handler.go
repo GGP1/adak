@@ -120,16 +120,16 @@ func (h *Handler) New() http.HandlerFunc {
 		uID, _ := r.Cookie("UID")
 
 		var (
-			o   OrderParams
-			ctx = r.Context()
+			oParams OrderParams
+			ctx     = r.Context()
 		)
 
-		if err := json.NewDecoder(r.Body).Decode(&o); err != nil {
+		if err := json.NewDecoder(r.Body).Decode(&oParams); err != nil {
 			response.Error(w, r, http.StatusBadRequest, err)
 		}
 		defer r.Body.Close()
 
-		err := validator.New().StructCtx(ctx, o)
+		err := validator.New().StructCtx(ctx, oParams)
 		if err != nil {
 			response.Error(w, r, http.StatusBadRequest, err)
 			return
@@ -143,26 +143,29 @@ func (h *Handler) New() http.HandlerFunc {
 		}
 
 		// Format date
-		deliveryDate := time.Date(o.Date.Year, time.Month(o.Date.Month), o.Date.Day, o.Date.Hour, o.Date.Minutes, 0, 0, time.Local)
+		deliveryDate := time.Date(oParams.Date.Year, time.Month(oParams.Date.Month), oParams.Date.Day, oParams.Date.Hour, oParams.Date.Minutes, 0, 0, time.Local)
 
 		if deliveryDate.Sub(time.Now()) < 0 {
 			response.Error(w, r, http.StatusBadRequest, errors.New("past dates are not valid"))
 			return
 		}
 
+		// Fetch the user cart
 		cart, err := cart.Get(ctx, h.DB, cID.Value)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
 
-		order, err := New(ctx, h.DB, userID, o.Currency, o.Address, o.City, o.Country, o.State, o.ZipCode, deliveryDate, cart)
+		// Create order passing userID, order params, delivery date and the user cart
+		order, err := New(ctx, h.DB, userID, oParams, deliveryDate, cart)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
 
-		_, err = stripe.CreateIntent(order.ID, order.CartID, order.Currency, order.Cart.Total, o.Card)
+		// Create payment intent and update the order status
+		_, err = stripe.CreateIntent(order.ID, order.CartID, order.Currency, order.Cart.Total, oParams.Card)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return

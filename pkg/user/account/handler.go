@@ -116,7 +116,7 @@ func (h *Handler) SendChangeConfirmation(u user.Service) http.HandlerFunc {
 			return
 		}
 
-		errCh := make(chan error)
+		errCh := make(chan error, 1)
 
 		go email.SendChangeConfirmation(user.ID, user.Username, user.Email, token, new.Email, errCh)
 

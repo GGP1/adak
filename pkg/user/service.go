@@ -2,6 +2,7 @@ package user
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"github.com/GGP1/palo/internal/token"
@@ -114,9 +115,7 @@ func (s *service) Get(ctx context.Context) ([]ListUser, error) {
 		return nil, errors.Wrap(err, "couldn't find the users")
 	}
 
-	ch, errCh := make(chan ListUser), make(chan error)
-
-	list, err := getRelationships(ctx, s.DB, users, ch, errCh)
+	list, err := getRelationships(ctx, s.DB, users)
 	if err != nil {
 		return nil, err
 	}
@@ -179,13 +178,15 @@ func (s *service) Search(ctx context.Context, search string) ([]ListUser, error)
 	to_tsvector(id || ' ' || username || ' ' || email) 
 	@@ to_tsquery($1)`
 
+	if strings.ContainsAny(search, ";-\\|@#~€¬<>_()[]}{¡'") {
+		return nil, errors.New("invalid search")
+	}
+
 	if err := s.DB.SelectContext(ctx, &users, q, search); err != nil {
 		return nil, errors.Wrap(err, "couldn't find the users")
 	}
 
-	ch, errCh := make(chan ListUser), make(chan error)
-
-	list, err := getRelationships(ctx, s.DB, users, ch, errCh)
+	list, err := getRelationships(ctx, s.DB, users)
 	if err != nil {
 		return nil, err
 	}
@@ -203,8 +204,10 @@ func (s *service) Update(ctx context.Context, u *UpdateUser, id string) error {
 	return nil
 }
 
-func getRelationships(ctx context.Context, db *sqlx.DB, users []ListUser, ch chan ListUser, errCh chan error) ([]ListUser, error) {
+func getRelationships(ctx context.Context, db *sqlx.DB, users []ListUser) ([]ListUser, error) {
 	var list []ListUser
+
+	ch, errCh := make(chan ListUser), make(chan error, 1)
 
 	for _, user := range users {
 		go func(user ListUser) {
@@ -212,10 +215,6 @@ func getRelationships(ctx context.Context, db *sqlx.DB, users []ListUser, ch cha
 				reviews []review.Review
 				orders  []ordering.Order
 			)
-
-			if err := db.Select(&orders, "SELECT * FROM orders WHERE user_id=$1", user.ID); err != nil {
-				errCh <- errors.Wrap(err, "couldn't find the orders")
-			}
 
 			if err := db.Select(&reviews, "SELECT * FROM reviews WHERE user_id=$1", user.ID); err != nil {
 				errCh <- errors.Wrap(err, "couldn't find the reviews")

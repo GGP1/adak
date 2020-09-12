@@ -2,6 +2,7 @@ package shop
 
 import (
 	"context"
+	"strings"
 	"time"
 
 	"github.com/GGP1/palo/internal/token"
@@ -92,9 +93,7 @@ func (s *service) Get(ctx context.Context) ([]Shop, error) {
 		return nil, errors.Wrap(err, "couldn't find the shops")
 	}
 
-	ch, errCh := make(chan Shop), make(chan error)
-
-	list, err := getRelationships(ctx, s.DB, shops, ch, errCh)
+	list, err := getRelationships(ctx, s.DB, shops)
 	if err != nil {
 		return nil, err
 	}
@@ -141,13 +140,15 @@ func (s *service) Search(ctx context.Context, search string) ([]Shop, error) {
 	q := `SELECT * FROM shops WHERE
 	to_tsvector(id || ' ' || name) @@ to_tsquery($1)`
 
+	if strings.ContainsAny(search, ";-\\|@#~€¬<>_()[]}{¡'") {
+		return nil, errors.New("invalid search")
+	}
+
 	if err := s.DB.SelectContext(ctx, &shops, q, search); err != nil {
 		return nil, errors.Wrap(err, "couldn't find shops")
 	}
 
-	ch, errCh := make(chan Shop), make(chan error)
-
-	list, err := getRelationships(ctx, s.DB, shops, ch, errCh)
+	list, err := getRelationships(ctx, s.DB, shops)
 	if err != nil {
 		return nil, err
 	}
@@ -169,8 +170,10 @@ func (s *service) Update(ctx context.Context, shop *Shop, id string) error {
 	return nil
 }
 
-func getRelationships(ctx context.Context, db *sqlx.DB, shops []Shop, ch chan Shop, errCh chan error) ([]Shop, error) {
+func getRelationships(ctx context.Context, db *sqlx.DB, shops []Shop) ([]Shop, error) {
 	var list []Shop
+
+	ch, errCh := make(chan Shop), make(chan error, 1)
 
 	for _, shop := range shops {
 		go func(shop Shop) {
