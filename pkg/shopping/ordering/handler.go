@@ -131,7 +131,7 @@ func (h *Handler) New() http.HandlerFunc {
 
 		err := validator.New().StructCtx(ctx, oParams)
 		if err != nil {
-			response.Error(w, r, http.StatusBadRequest, err)
+			http.Error(w, err.(validator.ValidationErrors).Error(), http.StatusBadRequest)
 			return
 		}
 

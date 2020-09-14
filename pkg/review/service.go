@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/GGP1/palo/internal/token"
-	"github.com/go-playground/validator"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
@@ -42,10 +41,6 @@ func (s *service) Create(ctx context.Context, r *Review, userID string) error {
 	q := `INSERT INTO reviews
 	(id, stars, comment, user_id, product_id, shop_id, created_at, updated_at)
 	VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`
-
-	if err := validator.New().StructCtx(ctx, r); err != nil {
-		return err
-	}
 
 	id := token.GenerateRunes(30)
 	r.CreatedAt = time.Now()

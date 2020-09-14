@@ -8,7 +8,6 @@ import (
 	"github.com/GGP1/palo/internal/token"
 	"github.com/GGP1/palo/pkg/product"
 	"github.com/GGP1/palo/pkg/review"
-	"github.com/go-playground/validator"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
@@ -53,10 +52,6 @@ func (s *service) Create(ctx context.Context, shop *Shop) error {
 	lQuery := `INSERT INTO locations
 	(shop_id, country, state, zip_code, city, address)
 	VALUES ($1, $2, $3, $4, $5, $6)`
-
-	if err := validator.New().StructCtx(ctx, shop); err != nil {
-		return err
-	}
 
 	id := token.GenerateRunes(30)
 	shop.CreatedAt = time.Now()

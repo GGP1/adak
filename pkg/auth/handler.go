@@ -30,7 +30,7 @@ func Login(s Session) http.HandlerFunc {
 		defer r.Body.Close()
 
 		if err := validator.New().StructCtx(ctx, user); err != nil {
-			response.Error(w, r, http.StatusBadRequest, err)
+			http.Error(w, err.(validator.ValidationErrors).Error(), http.StatusBadRequest)
 			return
 		}
 

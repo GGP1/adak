@@ -42,7 +42,7 @@ func LimitRate(next http.Handler) http.Handler {
 		}
 
 		limiter := getVisitor(ip, 1, 3)
-		// Control how frequent events may happen
+
 		if limiter.Allow() == false {
 			http.Error(w, http.StatusText(429), http.StatusTooManyRequests)
 			return
@@ -65,11 +65,13 @@ func getVisitor(ip string, r rate.Limit, b int) *rate.Limiter {
 		limiter := rate.NewLimiter(r, b)
 		// Save visitor
 		visitors[ip] = &visitor{limiter, time.Now()}
+
 		return limiter
 	}
 
 	// Update visitor last event
 	v.lastSeen = time.Now()
+
 	return v.limiter
 }
 
@@ -77,12 +79,12 @@ func getVisitor(ip string, r rate.Limit, b int) *rate.Limiter {
 // haven't been seen for 10 minutes.
 func cleanupVisitors() {
 	for {
-		time.Sleep(time.Minute)
+		time.Sleep(time.Minute * 30)
 
 		mu.RLock()
 		for ip, v := range visitors {
 			go func(v *visitor, ip string) {
-				if time.Since(v.lastSeen) > 10*time.Minute {
+				if time.Since(v.lastSeen) > 5*time.Hour {
 					delete(visitors, ip)
 				}
 			}(v, ip)

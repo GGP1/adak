@@ -6,6 +6,7 @@ import (
 
 	"github.com/GGP1/palo/internal/response"
 	"github.com/GGP1/palo/internal/token"
+	"github.com/go-playground/validator"
 
 	"github.com/go-chi/chi"
 )
@@ -36,6 +37,11 @@ func (h *Handler) Create() http.HandlerFunc {
 			return
 		}
 		defer r.Body.Close()
+
+		if err := validator.New().StructCtx(ctx, review); err != nil {
+			http.Error(w, err.(validator.ValidationErrors).Error(), http.StatusBadRequest)
+			return
+		}
 
 		if err := h.Service.Create(ctx, &review, userID); err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)

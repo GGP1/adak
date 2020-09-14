@@ -45,10 +45,7 @@ func NewRouter(db *sqlx.DB) http.Handler {
 	trackingService := tracking.NewService(db, "")
 
 	// Middlewares
-	r.Use(m.Cors)
-	r.Use(m.Secure)
-	r.Use(m.LimitRate)
-	r.Use(m.LogFormatter)
+	r.Use(m.Cors, m.Secure, m.LimitRate, m.LogFormatter)
 
 	// Auth
 	r.Post("/login", auth.Login(session))
