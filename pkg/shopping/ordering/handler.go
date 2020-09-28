@@ -54,7 +54,7 @@ func (h *Handler) Delete() http.HandlerFunc {
 			return
 		}
 
-		response.HTMLText(w, r, http.StatusOK, "The order has been deleted succesfully.")
+		response.HTMLText(w, r, http.StatusOK, "The order has been deleted successfully.")
 	}
 }
 

@@ -9,8 +9,8 @@ import (
 var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
 
 // GenerateRunes generates a random string.
-func GenerateRunes(n int) string {
-	b := make([]rune, n)
+func GenerateRunes(length int) string {
+	b := make([]rune, length)
 
 	for i := range b {
 		b[i] = letterRunes[rand.Intn(len(letterRunes))]

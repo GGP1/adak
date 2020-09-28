@@ -67,7 +67,7 @@ func (s *service) Create(ctx context.Context, user *AddUser) error {
 		return errors.New("useraname is already taken")
 	}
 
-	hash, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
+	hash, err := bcrypt.GenerateFromPassword([]byte(user.Password), 24)
 	if err != nil {
 		return err
 	}

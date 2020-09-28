@@ -114,7 +114,7 @@ func (session *session) Login(ctx context.Context, w http.ResponseWriter, email,
 	}
 	setCookie(w, "UID", userID, "/", session.length)
 
-	// -CID- used to identify wich cart belongs to each user
+	// -CID- used to identify which cart belongs to each user
 	setCookie(w, "CID", user.CartID, "/", session.length)
 
 	return nil
@@ -153,7 +153,7 @@ func deleteCookie(w http.ResponseWriter, name string) {
 	})
 }
 
-func setCookie(w http.ResponseWriter, name, value, path string, lenght int) {
+func setCookie(w http.ResponseWriter, name, value, path string, length int) {
 	http.SetCookie(w, &http.Cookie{
 		Name:     name,
 		Value:    value,
@@ -162,6 +162,6 @@ func setCookie(w http.ResponseWriter, name, value, path string, lenght int) {
 		Secure:   false,
 		HttpOnly: true,
 		SameSite: 3,
-		MaxAge:   lenght,
+		MaxAge:   length,
 	})
 }

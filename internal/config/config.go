@@ -75,7 +75,9 @@ func New() (*Configuration, error) {
 	viper.SetConfigName(configFileName)
 	viper.SetConfigType(configType)
 
-	if err := godotenv.Load("../.env"); err != nil {
+	path := os.Getenv("PALO_CONFIG") + "/.env"
+
+	if err := godotenv.Load(path); err != nil {
 		return nil, errors.Wrap(err, "env loading failed")
 	}
 
@@ -150,7 +152,7 @@ var (
 		"database.username": "postgres",
 		"database.password": "password",
 		"database.host":     "localhost",
-		"database.port":     "6000",
+		"database.port":     "5432",
 		"database.name":     "postgres",
 		"database.sslmode":  "disable",
 		// Server
@@ -172,6 +174,7 @@ var (
 		// JWT
 		"jwt.secretkey": "secretkey",
 	}
+
 	envVars = map[string]string{
 		// Database
 		"database.username": "DB_USERNAME",
