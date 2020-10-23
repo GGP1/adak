@@ -1,4 +1,4 @@
-package ordering
+package rest
 
 import (
 	"encoding/json"
@@ -8,13 +8,15 @@ import (
 	"time"
 
 	"github.com/GGP1/palo/internal/response"
+	"github.com/GGP1/palo/internal/sanitize"
 	"github.com/GGP1/palo/internal/token"
 	"github.com/GGP1/palo/pkg/shopping/cart"
+	"github.com/GGP1/palo/pkg/shopping/ordering"
 	"github.com/GGP1/palo/pkg/shopping/payment/stripe"
-	"github.com/go-playground/validator"
+	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/go-chi/chi"
-	"github.com/jmoiron/sqlx"
+	"github.com/go-playground/validator/v10"
 )
 
 // OrderParams holds the parameters for creating a order.
@@ -37,19 +39,14 @@ type date struct {
 	Minutes int `json:"minutes" validate:"required,min=0,max=60"`
 }
 
-// Handler handles ordering endpoints.
-type Handler struct {
-	DB *sqlx.DB
-}
-
-// Delete deletes an order.
-func (h *Handler) Delete() http.HandlerFunc {
+// OrderingDelete deletes an order.
+func (s *Frontend) OrderingDelete() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
-
 		ctx := r.Context()
 
-		if err := Delete(ctx, h.DB, id); err != nil {
+		_, err := s.orderingClient.Delete(ctx, &ordering.DeleteRequest{OrderID: id})
+		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
@@ -58,12 +55,12 @@ func (h *Handler) Delete() http.HandlerFunc {
 	}
 }
 
-// Get finds all the stored orders.
-func (h *Handler) Get() http.HandlerFunc {
+// OrderingGet finds all the stored orders.
+func (s *Frontend) OrderingGet() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
-		orders, err := Get(ctx, h.DB)
+		orders, err := s.orderingClient.Get(ctx, &ordering.GetRequest{})
 		if err != nil {
 			response.Error(w, r, http.StatusNotFound, err)
 			return
@@ -73,14 +70,14 @@ func (h *Handler) Get() http.HandlerFunc {
 	}
 }
 
-// GetByID retrieves all the orders from the user.
-func (h *Handler) GetByID() http.HandlerFunc {
+// OrderingGetByID retrieves all the orders from the user.
+func (s *Frontend) OrderingGetByID() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
 
 		ctx := r.Context()
 
-		order, err := GetByID(ctx, h.DB, id)
+		order, err := s.orderingClient.GetByID(ctx, &ordering.GetByIDRequest{OrderID: id})
 		if err != nil {
 			response.Error(w, r, http.StatusNotFound, err)
 			return
@@ -90,12 +87,11 @@ func (h *Handler) GetByID() http.HandlerFunc {
 	}
 }
 
-// GetByUserID retrieves all the orders from the user.
-func (h *Handler) GetByUserID() http.HandlerFunc {
+// OrderingGetByUserID retrieves all the orders from the user.
+func (s *Frontend) OrderingGetByUserID() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
 		uID, _ := r.Cookie("UID")
-
 		ctx := r.Context()
 
 		if err := token.CheckPermits(id, uID.Value); err != nil {
@@ -103,7 +99,7 @@ func (h *Handler) GetByUserID() http.HandlerFunc {
 			return
 		}
 
-		orders, err := GetByUserID(ctx, h.DB, id)
+		orders, err := s.orderingClient.GetByUserID(ctx, &ordering.GetByUserIDRequest{UserID: id})
 		if err != nil {
 			response.Error(w, r, http.StatusNotFound, err)
 			return
@@ -113,16 +109,13 @@ func (h *Handler) GetByUserID() http.HandlerFunc {
 	}
 }
 
-// New creates a new order and the payment intent.
-func (h *Handler) New() http.HandlerFunc {
+// OrderingNew creates a new order and the payment intent.
+func (s *Frontend) OrderingNew() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		var oParams OrderParams
 		cID, _ := r.Cookie("CID")
 		uID, _ := r.Cookie("UID")
-
-		var (
-			oParams OrderParams
-			ctx     = r.Context()
-		)
+		ctx := r.Context()
 
 		if err := json.NewDecoder(r.Body).Decode(&oParams); err != nil {
 			response.Error(w, r, http.StatusBadRequest, err)
@@ -132,6 +125,11 @@ func (h *Handler) New() http.HandlerFunc {
 		err := validator.New().StructCtx(ctx, oParams)
 		if err != nil {
 			http.Error(w, err.(validator.ValidationErrors).Error(), http.StatusBadRequest)
+			return
+		}
+
+		if err := sanitize.Normalize(&oParams.Address, &oParams.City, &oParams.Country, &oParams.Currency, &oParams.State, &oParams.ZipCode); err != nil {
+			response.Error(w, r, http.StatusBadRequest, err)
 			return
 		}
 
@@ -151,32 +149,46 @@ func (h *Handler) New() http.HandlerFunc {
 		}
 
 		// Fetch the user cart
-		cart, err := cart.Get(ctx, h.DB, cID.Value)
+		cart, err := s.shoppingClient.Get(ctx, &cart.GetRequest{CartID: cID.Value})
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
 
 		// Create order passing userID, order params, delivery date and the user cart
-		order, err := New(ctx, h.DB, userID, oParams, deliveryDate, cart)
+		order, err := s.orderingClient.New(ctx, &ordering.NewRequest{
+			UserID:       userID,
+			Currency:     oParams.Currency,
+			Address:      oParams.Address,
+			City:         oParams.City,
+			Country:      oParams.Country,
+			State:        oParams.State,
+			ZipCode:      oParams.ZipCode,
+			DeliveryDate: timestamppb.New(deliveryDate),
+			Cart:         cart.Cart,
+		})
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
 
 		// Create payment intent and update the order status
-		_, err = stripe.CreateIntent(order.ID, order.CartID, order.Currency, order.Cart.Total, oParams.Card)
+		_, err = stripe.CreateIntent(order.Order.ID, order.Order.CartID, order.Order.Currency, order.Order.Cart.Total, oParams.Card)
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
 
-		if err := UpdateStatus(ctx, h.DB, order.ID, PaidState); err != nil {
+		_, err = s.orderingClient.UpdateStatus(ctx, &ordering.UpdateStatusRequest{
+			OrderID:     order.Order.ID,
+			OrderStatus: ordering.PaidState,
+		})
+		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
 
-		respond := fmt.Sprintf("Thanks for your purchase! Your products will be delivered on %v.", order.DeliveryDate)
+		respond := fmt.Sprintf("Thanks for your purchase! Your products will be delivered on %v.", time.Unix(order.Order.DeliveryDate.Seconds, 0))
 		response.HTMLText(w, r, http.StatusCreated, respond)
 	}
 }

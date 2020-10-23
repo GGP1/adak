@@ -4,31 +4,53 @@ import (
 	"context"
 	"fmt"
 	"math"
+	"net"
+
+	"google.golang.org/grpc"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 )
 
-// New returns a cart with the default values.
-func New(id string) *Cart {
-	return &Cart{
-		ID:       id,
-		Counter:  0,
-		Weight:   0,
-		Discount: 0,
-		Taxes:    0,
-		Subtotal: 0,
-		Total:    0,
-		Products: []*Product{},
+// Shopping implements the shopping service.
+type Shopping struct {
+	db   *sqlx.DB
+	Cart *Cart
+}
+
+// NewService returns a new shopping server.
+func NewService(db *sqlx.DB) *Shopping {
+	return &Shopping{
+		db:   db,
+		Cart: &Cart{},
 	}
 }
 
+// Run starts the server.
+func (s *Shopping) Run(port int) error {
+	lis, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", port))
+	if err != nil {
+		return errors.Wrapf(err, "shopping: failed listening on port %d", port)
+	}
+
+	srv := grpc.NewServer()
+	RegisterShoppingServer(srv, s)
+
+	return srv.Serve(lis)
+}
+
+// New returns a new cart with the id provided.
+func (s *Shopping) New(ctx context.Context, req *NewRequest) (*NewResponse, error) {
+	return &NewResponse{
+		Cart: &Cart{
+			ID: req.ID,
+		},
+	}, nil
+}
+
 // Add adds a product to the cart.
-func Add(ctx context.Context, db *sqlx.DB, cartID string, p *Product, quantity int) (*Product, error) {
-	var (
-		cart Cart
-		sum  int
-	)
+func (s *Shopping) Add(ctx context.Context, req *AddRequest) (*AddResponse, error) {
+	var sum int64
 
 	pQuery := `INSERT INTO cart_products
 	(id, cart_id, quantity, brand, category, type, description, weight, 
@@ -38,104 +60,82 @@ func Add(ctx context.Context, db *sqlx.DB, cartID string, p *Product, quantity i
 	cQuery := `UPDATE carts SET counter=$2, weight=$3, discount=$4, taxes=$5, 
 	subtotal=$6, total=$7 WHERE id=$1`
 
-	if err := db.GetContext(ctx, &cart, "SELECT * FROM carts WHERE id=$1", cartID); err != nil {
+	if err := s.db.GetContext(ctx, &s.Cart, "SELECT * FROM carts WHERE id=$1", req.CartID); err != nil {
 		return nil, errors.Wrap(err, "couldn't find the cart")
 	}
 
-	// percentages -> numeric values
-	taxes := ((p.Subtotal / 100) * p.Taxes)
-	discount := ((p.Subtotal / 100) * p.Discount)
+	AddProduct(s.Cart, req.Product, req.Quantity)
 
-	p.CartID = cartID
-	p.Total = p.Total + p.Subtotal + taxes - discount
-
-	// math.Ceil(x*100)/100 is used to round floats
-	for i := 0; i < quantity; i++ {
-		cart.Counter++
-		p.Quantity++
-		cart.Weight += math.Ceil(p.Weight*100) / 100
-		cart.Discount += math.Ceil(discount*100) / 100
-		cart.Taxes += math.Ceil(taxes*100) / 100
-		cart.Subtotal += math.Ceil(p.Subtotal*100) / 100
-		cart.Total = cart.Total + p.Subtotal + taxes - discount
-	}
-
-	db.QueryRow("SELECT SUM(quantity) FROM cart_products WHERE id=$1 AND cart_id=$2", p.ID, cartID).Scan(&sum)
-	// If sum == 0 (does not exist a product with the same id and cart_id), create the product.
+	// Check how many products are in the cart with the product id provided
+	// If sum == 0 (there is no product with the same id and cart_id), create the product
+	s.db.QueryRow("SELECT SUM(quantity) FROM cart_products WHERE id=$1 AND cart_id=$2", req.Product.ID, req.CartID).Scan(&sum)
 	if sum == 0 {
-		_, err := db.ExecContext(ctx, pQuery, p.ID, cartID, p.Quantity, p.Brand, p.Category, p.Type, p.Description,
-			p.Weight, p.Discount, p.Taxes, p.Subtotal, p.Total)
+		_, err := s.db.ExecContext(ctx, pQuery, req.Product.ID, req.CartID, req.Product.Quantity, req.Product.Brand, req.Product.Category, req.Product.Type,
+			req.Product.Description, req.Product.Weight, req.Product.Discount, req.Product.Taxes, req.Product.Subtotal, req.Product.Total)
 		if err != nil {
 			return nil, errors.Wrap(err, "couldn't create the product")
 		}
 	}
-	// If sum != 0 (product already exists), update the quantity.
+	// If sum != 0 (product already exists), update the quantity
 	if sum != 0 {
-		p.Quantity += sum
+		req.Product.Quantity += sum
 
-		_, err := db.ExecContext(ctx, "UPDATE cart_products SET quantity=$2 WHERE cart_id=$1", cartID, p.Quantity)
+		_, err := s.db.ExecContext(ctx, "UPDATE cart_products SET quantity=$2 WHERE cart_id=$1", req.CartID, req.Product.Quantity)
 		if err != nil {
 			return nil, errors.Wrap(err, "couldn't update the product")
 		}
 	}
 
-	_, err := db.ExecContext(ctx, cQuery, cartID, cart.Counter, cart.Weight, cart.Discount, cart.Taxes, cart.Subtotal,
-		cart.Total)
+	_, err := s.db.ExecContext(ctx, cQuery, req.CartID, s.Cart.Counter, s.Cart.Weight, s.Cart.Discount, s.Cart.Taxes, s.Cart.Subtotal,
+		s.Cart.Total)
 	if err != nil {
 		return nil, errors.Wrap(err, "couldn't update the cart")
 	}
 
-	return p, nil
+	return &AddResponse{Product: req.Product}, nil
 }
 
 // Checkout returns the cart total.
-func Checkout(ctx context.Context, db *sqlx.DB, cartID string) (float64, error) {
-	var cart Cart
-
-	if err := db.GetContext(ctx, &cart, "SELECT * FROM carts WHERE id=$1", cartID); err != nil {
-		return 0, errors.Wrap(err, "couldn't find the cart")
+func (s *Shopping) Checkout(ctx context.Context, req *CheckoutRequest) (*CheckoutResponse, error) {
+	if err := s.db.GetContext(ctx, &s.Cart, "SELECT * FROM carts WHERE id=$1", req.CartID); err != nil {
+		return nil, errors.Wrap(err, "couldn't find the cart")
 	}
 
-	total := cart.Total + cart.Taxes - cart.Discount
-
-	return total, nil
+	return &CheckoutResponse{Total: s.Cart.Total}, nil
 }
 
 // Delete permanently deletes a cart from the database.
-func Delete(ctx context.Context, db *sqlx.DB, cartID string) error {
-	_, err := db.ExecContext(ctx, "DELETE FROM carts WHERE id=$1", cartID)
+func (s *Shopping) Delete(ctx context.Context, req *DeleteRequest) (*DeleteResponse, error) {
+	_, err := s.db.ExecContext(ctx, "DELETE FROM carts WHERE id=$1", req.CartID)
 	if err != nil {
-		return errors.New("couldn't delete the cart")
+		return nil, errors.New("couldn't delete the cart")
 	}
 
-	return nil
+	return nil, nil
 }
 
 // Get returns the user cart.
-func Get(ctx context.Context, db *sqlx.DB, cartID string) (Cart, error) {
-	var (
-		cart     Cart
-		products []*Product
-	)
+func (s *Shopping) Get(ctx context.Context, req *GetRequest) (*GetResponse, error) {
+	var products []*Product
 
-	if err := db.GetContext(ctx, &cart, "SELECT * FROM carts WHERE id=$1", cartID); err != nil {
-		return Cart{}, errors.Wrap(err, "couldn't find the cart")
+	if err := s.db.GetContext(ctx, &s.Cart, "SELECT * FROM carts WHERE id=$1", req.CartID); err != nil {
+		return nil, errors.Wrap(err, "couldn't find the cart")
 	}
 
-	if err := db.SelectContext(ctx, &products, "SELECT * FROM cart_products WHERE cart_id=$1", cartID); err != nil {
-		return Cart{}, errors.Wrap(err, "couldn't find the cart products")
+	if err := s.db.SelectContext(ctx, &products, "SELECT * FROM cart_products WHERE cart_id=$1", req.CartID); err != nil {
+		return nil, errors.Wrap(err, "couldn't find the cart products")
 	}
 
-	cart.Products = products
+	s.Cart.Products = products
 
-	return cart, nil
+	return &GetResponse{Cart: s.Cart}, nil
 }
 
 // Products returns the cart products.
-func Products(ctx context.Context, db *sqlx.DB, cartID string) ([]Product, error) {
-	var products []Product
+func (s *Shopping) Products(ctx context.Context, req *ProductsRequest) (*ProductsResponse, error) {
+	var products []*Product
 
-	if err := db.SelectContext(ctx, &products, "SELECT * FROM cart_products WHERE cart_id=$1", cartID); err != nil {
+	if err := s.db.SelectContext(ctx, &products, "SELECT * FROM cart_products WHERE cart_id=$1", req.CartID); err != nil {
 		return nil, errors.Wrap(err, "couldn't find the cart")
 	}
 
@@ -143,95 +143,79 @@ func Products(ctx context.Context, db *sqlx.DB, cartID string) ([]Product, error
 		return nil, errors.New("cart is empty")
 	}
 
-	return products, nil
+	return &ProductsResponse{Products: products}, nil
 }
 
 // Remove takes away the specified quantity of products from the cart.
-func Remove(ctx context.Context, db *sqlx.DB, cartID string, pID string, quantity int) error {
-	var (
-		cart Cart
-		p    Product
-	)
+func (s *Shopping) Remove(ctx context.Context, req *RemoveRequest) (*RemoveResponse, error) {
+	var p *Product
 
 	cQuery := `UPDATE carts SET counter=$2, weight=$3, discount=$4, taxes=$5, 
 	subtotal=$6, total=$7 WHERE id=$1`
 
-	if err := db.GetContext(ctx, &cart, "SELECT * FROM carts WHERE id=$1", cartID); err != nil {
-		return errors.Wrap(err, "couldn't find the cart")
+	if err := s.db.GetContext(ctx, &s.Cart, "SELECT * FROM carts WHERE id=$1", req.CartID); err != nil {
+		return nil, errors.Wrap(err, "couldn't find the cart")
 	}
 
-	if err := db.GetContext(ctx, &p, "SELECT * FROM cart_products WHERE id = $1 AND cart_id=$2", pID, cartID); err != nil {
-		return errors.New("couldn't find the product")
+	if err := s.db.GetContext(ctx, &p, "SELECT * FROM cart_products WHERE id = $1 AND cart_id=$2", req.ProductID, req.CartID); err != nil {
+		return nil, errors.New("couldn't find the product")
 	}
 
-	if quantity > p.Quantity {
-		return fmt.Errorf("quantity inserted (%d) is higher than the stock of products (%d)", quantity, p.Quantity)
+	if req.Quantity > p.Quantity {
+		return nil, fmt.Errorf("quantity inserted (%d) is higher than the stock of products (%d)", req.Quantity, p.Quantity)
 	}
 
-	if quantity == p.Quantity {
-		_, err := db.ExecContext(ctx, "DELETE FROM cart_products WHERE id=$1 AND cart_id=$2", pID, cartID)
+	if req.Quantity == p.Quantity {
+		_, err := s.db.ExecContext(ctx, "DELETE FROM cart_products WHERE id=$1 AND cart_id=$2", req.ProductID, req.CartID)
 		if err != nil {
-			return errors.Wrap(err, "couldn't delete the product")
+			return nil, errors.Wrap(err, "couldn't delete the product")
 		}
 	}
 
-	if cart.Counter == 1 {
-		if err := Reset(ctx, db, cartID); err != nil {
-			return err
+	if s.Cart.Counter == 1 {
+		_, err := s.Reset(ctx, &ResetRequest{CartID: req.CartID})
+		if err != nil {
+			return nil, err
 		}
-		return nil
+		return nil, nil
 	}
 
-	taxes := (p.Subtotal / 100) * p.Taxes
-	discount := (p.Subtotal / 100) * p.Discount
+	RemoveProduct(s.Cart, p, req.Quantity)
 
-	// math.Ceil(x*100)/100 is used to round float numbers
-	for i := 0; i < quantity; i++ {
-		cart.Counter--
-		p.Quantity--
-		cart.Weight -= math.Ceil(p.Weight*100) / 100
-		cart.Discount -= math.Ceil(discount*100) / 100
-		cart.Taxes -= math.Ceil(taxes*100) / 100
-		cart.Subtotal -= math.Ceil(p.Subtotal*100) / 100
-		cart.Total = cart.Total - p.Subtotal - taxes + discount
-	}
-
-	_, err := db.ExecContext(ctx, cQuery, cartID, cart.Counter, cart.Weight, cart.Discount, cart.Taxes, cart.Subtotal,
-		cart.Total)
+	_, err := s.db.ExecContext(ctx, cQuery, req.CartID, s.Cart.Counter, s.Cart.Weight, s.Cart.Discount, s.Cart.Taxes, s.Cart.Subtotal,
+		s.Cart.Total)
 	if err != nil {
-		return errors.Wrap(err, "couldn't update the cart")
+		return nil, errors.Wrap(err, "couldn't update the cart")
 	}
 
-	return nil
+	return &RemoveResponse{}, nil
 }
 
 // Reset sets cart values to default.
-func Reset(ctx context.Context, db *sqlx.DB, cartID string) error {
+func (s *Shopping) Reset(ctx context.Context, req *ResetRequest) (*ResetResponse, error) {
 	cQuery := `UPDATE carts SET counter=$2, weight=$3, discount=$4, taxes=$5, 
 	subtotal=$6, total=$7 WHERE id=$1`
 
-	_, err := db.ExecContext(ctx, "DELETE FROM cart_products WHERE cart_id=$1", cartID)
+	_, err := s.db.ExecContext(ctx, "DELETE FROM cart_products WHERE cart_id=$1", req.CartID)
 	if err != nil {
-		return errors.Wrap(err, "couldn't delete cart products")
+		return nil, errors.Wrap(err, "couldn't delete cart products")
 	}
 
-	_, err = db.ExecContext(ctx, cQuery, cartID, 0, 0, 0, 0, 0, 0)
+	_, err = s.db.ExecContext(ctx, cQuery, req.CartID, 0, 0, 0, 0, 0, 0)
 	if err != nil {
-		return errors.Wrap(err, "couldn't reset the cart")
+		return nil, errors.Wrap(err, "couldn't reset the cart")
 	}
 
-	return nil
+	return &ResetResponse{}, nil
 }
 
 // Size returns the quantity of products inside the cart.
-func Size(ctx context.Context, db *sqlx.DB, cartID string) (int, error) {
-	var cart Cart
-
-	if err := db.GetContext(ctx, &cart, "SELECT * FROM carts WHERE id=$1", cartID); err != nil {
-		return 0, errors.Wrap(err, "couldn't find the cart")
+func (s *Shopping) Size(ctx context.Context, req *SizeRequest) (*SizeResponse, error) {
+	if err := s.db.GetContext(ctx, &s.Cart, "SELECT * FROM carts WHERE id=$1", req.CartID); err != nil {
+		return nil, errors.Wrap(err, "couldn't find the cart")
 	}
 
-	return cart.Counter, nil
+	return &SizeResponse{Counter: s.Cart.Counter}, nil
 }
 
 // String returns a string with the cart details.
@@ -246,4 +230,42 @@ func String(ctx context.Context, db *sqlx.DB, cartID string) (string, error) {
 	$%2.f of taxes and a total of $%2.f`
 
 	return fmt.Sprintf(details, c.Counter, c.Weight, c.Discount, c.Taxes, c.Total), nil
+}
+
+// AddProduct executes the mathematical process that takes adding a product to the cart.
+func AddProduct(c *Cart, p *Product, quantity int64) {
+	// percentages -> numeric values
+	taxes := ((p.Subtotal / 100) * p.Taxes)
+	discount := ((p.Subtotal / 100) * p.Discount)
+
+	p.CartID = c.ID
+	p.Total = p.Total + p.Subtotal + taxes - discount
+
+	// math.Ceil(x*100)/100 is used to round floats
+	for i := 0; i < int(quantity); i++ {
+		c.Counter++
+		p.Quantity++
+		c.Weight += math.Ceil(p.Weight*100) / 100
+		c.Discount += math.Ceil(discount*100) / 100
+		c.Taxes += math.Ceil(taxes*100) / 100
+		c.Subtotal += math.Ceil(p.Subtotal*100) / 100
+		c.Total = c.Total + p.Subtotal + taxes - discount
+	}
+}
+
+// RemoveProduct executes the mathematical process that takes removing a product from the cart.
+func RemoveProduct(c *Cart, p *Product, quantity int64) {
+	taxes := (p.Subtotal / 100) * p.Taxes
+	discount := (p.Subtotal / 100) * p.Discount
+
+	// math.Ceil(x*100)/100 is used to round float numbers
+	for i := 0; i < int(quantity); i++ {
+		c.Counter--
+		p.Quantity--
+		c.Weight -= math.Ceil(p.Weight*100) / 100
+		c.Discount -= math.Ceil(discount*100) / 100
+		c.Taxes -= math.Ceil(taxes*100) / 100
+		c.Subtotal -= math.Ceil(p.Subtotal*100) / 100
+		c.Total = c.Total - p.Subtotal - taxes + discount
+	}
 }

@@ -12,6 +12,8 @@ import (
 	"net/smtp"
 	"os"
 
+	"github.com/GGP1/palo/internal/token"
+
 	"github.com/pkg/errors"
 )
 
@@ -25,7 +27,7 @@ type Items struct {
 }
 
 // SendValidation sends a validation email to the user.
-func SendValidation(ctx context.Context, username, email, token string, errCh chan error) {
+func SendValidation(ctx context.Context, username, email string, errCh chan error) {
 	var (
 		// Both os.Getenv and viper.GetString work
 		emailSender   = os.Getenv("EMAIL_SENDER")
@@ -33,6 +35,8 @@ func SendValidation(ctx context.Context, username, email, token string, errCh ch
 		emailHost     = os.Getenv("EMAIL_HOST")
 		emailPort     = os.Getenv("EMAIL_PORT")
 	)
+
+	token := token.GenerateRunes(20)
 
 	// 	Email content
 	from := mail.Address{Name: "Palo", Address: emailSender}

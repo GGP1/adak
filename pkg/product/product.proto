@@ -1,0 +1,85 @@
+syntax = "proto3";
+package product;
+
+import "google/protobuf/timestamp.proto";
+import "github.com/GGP1/palo/pkg/review/review.proto";
+
+option go_package = "github.com/GGP1/palo/pkg/product";
+
+service Products {
+    rpc Create (CreateRequest) returns (CreateResponse);
+    rpc Delete (DeleteRequest) returns (DeleteResponse);
+    rpc Get (GetRequest) returns (GetResponse);
+    rpc GetByID (GetByIDRequest) returns (GetByIDResponse);
+    rpc Search (SearchRequest) returns (SearchResponse);
+    rpc Update (UpdateRequest) returns (UpdateResponse);
+}
+
+message Product {
+    string ID = 1;
+    string shopID = 2;
+    uint64 stock = 3;
+    string brand = 4;
+    string category = 5;
+    string type = 6;
+    string description = 7;
+    double weight = 8;
+    double discount = 9;
+    double taxes = 10;
+    double subtotal = 11;
+    double total  = 12;
+    repeated review.Review reviews = 13;
+    google.protobuf.Timestamp createdAt = 14;
+    google.protobuf.Timestamp updatedAt = 15;
+}
+
+message Void {}
+
+message CreateRequest {
+    Product product = 1;
+}
+
+message CreateResponse {
+    Void nil = 1;
+}
+
+message DeleteRequest {
+    string ID = 1;
+}
+
+message DeleteResponse {
+    Void nil = 1;
+}
+
+message GetRequest {
+    Void nil = 1;
+}
+
+message GetResponse {
+    repeated Product products = 1;
+}
+
+message GetByIDRequest {
+    string ID = 1;
+}
+
+message GetByIDResponse {
+    Product product = 1;
+}
+
+message SearchRequest {
+    string search = 1;
+}
+
+message SearchResponse {
+    repeated Product products = 1;
+}
+
+message UpdateRequest {
+    Product product = 1;
+    string ID = 2;
+}
+
+message UpdateResponse {
+    Void nil = 1;
+}

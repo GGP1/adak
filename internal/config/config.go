@@ -69,13 +69,15 @@ type StripeConfiguration struct {
 }
 
 // New sets up the configuration with the values the user gave.
-// Defaults and env variables are placed at the end to make the config easier to read.
 func New() (*Configuration, error) {
 	viper.AddConfigPath(configurationDirectory)
 	viper.SetConfigName(configFileName)
 	viper.SetConfigType(configType)
 
-	path := os.Getenv("PALO_CONFIG") + "/.env"
+	path := os.Getenv("PALO_CONFIG")
+	if filepath.Ext(path) == "" {
+		path += "/.env"
+	}
 
 	if err := godotenv.Load(path); err != nil {
 		return nil, errors.Wrap(err, "env loading failed")
@@ -107,14 +109,18 @@ func New() (*Configuration, error) {
 	return configuration, nil
 }
 
-// read configuration from file
+// read configuration from file.
 func readConfiguration() error {
 	err := viper.ReadInConfig() // Find and read the config file
 	if err != nil {
 		// if file does not exist, simply create one
 		if _, err := os.Stat(configFileAbsPath + configFileExt); os.IsNotExist(err) {
-			os.MkdirAll(configurationDirectory, 0755)
-			os.Create(configFileAbsPath + configFileExt)
+			if err := os.MkdirAll(configurationDirectory, 0755); err != nil {
+				return errors.New("failed creating folder")
+			}
+			if _, err := os.Create(configFileAbsPath + configFileExt); err != nil {
+				return errors.New("failed creating file")
+			}
 		} else {
 			return err
 		}

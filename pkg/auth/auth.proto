@@ -1,0 +1,50 @@
+syntax = "proto3";
+package auth;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/GGP1/palo/pkg/auth";
+
+service Session {
+    rpc AlreadyLoggedIn (AlreadyLoggedInRequest) returns (AlreadyLoggedInResponse);
+    rpc Login (LoginRequest) returns (LoginResponse);
+    rpc Logout (LogoutRequest) returns (LogoutResponse);
+}
+
+message User {
+    string ID = 1;
+    string cartID = 2;
+    string username = 3;
+    string email = 4;
+    string password = 5;
+    google.protobuf.Timestamp emailVerifiedAt = 6;
+}
+
+message Void {}
+
+message AlreadyLoggedInRequest {
+    string sessionID = 1;
+}
+
+message AlreadyLoggedInResponse {
+    int64 sessionLength = 1;
+    bool loggedIn = 2;
+}
+
+message LoginRequest {
+    string email = 1;
+    string password = 2;
+}
+
+message LoginResponse {
+    string sessionID = 1;
+    int64 sessionLength = 2;
+}
+
+message LogoutRequest {
+    string sessionID = 1;
+}
+
+message LogoutResponse {
+    Void nil = 1;
+}

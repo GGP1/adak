@@ -1,0 +1,128 @@
+syntax = "proto3";
+package user;
+
+import "google/protobuf/timestamp.proto";
+import "github.com/GGP1/palo/pkg/review/review.proto";
+import "github.com/GGP1/palo/pkg/shopping/ordering/ordering.proto";
+
+option go_package = "github.com/GGP1/palo/pkg/user";
+
+service Users {
+    rpc Create (CreateRequest) returns (CreateResponse);
+    rpc Delete (DeleteRequest) returns (DeleteResponse);
+    rpc Get (GetRequest) returns (GetResponse);
+    rpc GetByEmail (GetByEmailRequest) returns (GetByEmailResponse);
+    rpc GetByID (GetByIDRequest) returns (GetByIDResponse);
+    rpc GetByUsername (GetByUsernameRequest) returns (GetByUsernameResponse);
+    rpc Search (SearchRequest) returns (SearchResponse);
+    rpc Update (UpdateRequest) returns (UpdateResponse);
+}
+
+message User {
+    string ID = 1;
+    string cartID = 2;
+    string username = 3;
+    string email = 4;
+    string password = 5;
+    bool verifiedEmail = 6;
+    string confirmationCode = 7;
+    repeated ordering.Order orders = 8;
+    repeated review.Review reviews = 9;
+    google.protobuf.Timestamp createdAt = 10;
+    google.protobuf.Timestamp updatedAt = 11;
+}
+
+message AddUser {
+    string ID = 1;
+    string cartID = 2;
+    string username = 3;
+    string email = 4;
+    string password = 5;
+}
+
+message ListUser {
+    string ID = 1;
+    string cartID = 2;
+    string username = 3;
+    string email = 4;
+    string password = 5;
+    bool verifiedEmail = 6;
+    repeated ordering.Order orders = 7;
+    repeated review.Review reviews = 8;
+    google.protobuf.Timestamp createdAt = 9;
+}
+
+message UpdateUser {
+    string username = 1;
+    string email = 2;
+    string password = 3;
+    bool verifiedEmail = 4;
+    string confirmationCode = 5;
+}
+
+message Void {}
+
+message CreateRequest {
+    AddUser user = 1;
+}
+
+message CreateResponse {
+    Void nil = 1;
+}
+
+message DeleteRequest {
+    string ID = 1;
+}
+
+message DeleteResponse {
+    Void nil = 1;
+}
+
+message GetRequest {
+    Void nil = 1;
+}
+
+message GetResponse {
+    repeated ListUser users = 1;
+}
+
+message GetByEmailRequest {
+    string email = 1;
+}
+
+message GetByEmailResponse {
+    ListUser user = 1;
+}
+
+message GetByUsernameRequest {
+    string username = 1;
+}
+
+message GetByUsernameResponse {
+    ListUser user = 1;
+}
+
+message GetByIDRequest {
+    string ID = 1;
+}
+
+message GetByIDResponse {
+    ListUser user = 1;
+}
+
+message SearchRequest {
+    string search = 1;
+}
+
+message SearchResponse {
+    repeated ListUser users = 1;
+}
+
+message UpdateRequest {
+    UpdateUser user = 1;
+    string ID = 2;
+}
+
+message UpdateResponse {
+    Void nil = 1;
+}

@@ -1,7 +1,8 @@
 package token
 
 import (
-	"math/rand"
+	"crypto/rand"
+	"math/big"
 
 	"github.com/pkg/errors"
 )
@@ -13,14 +14,15 @@ func GenerateRunes(length int) string {
 	b := make([]rune, length)
 
 	for i := range b {
-		b[i] = letterRunes[rand.Intn(len(letterRunes))]
+		// Do not check error as len() can't be <= 0
+		n, _ := rand.Int(rand.Reader, big.NewInt(int64(len(letterRunes))))
+		b[i] = letterRunes[n.Int64()]
 	}
 
 	return string(b)
 }
 
-// CheckPermits cheks if the user is trying to perform and action on his own
-// account or not. If true, return an error.
+// CheckPermits cheks if the user is trying to perform and action on his own account or not.
 func CheckPermits(paramID, cookieID string) error {
 	userID, err := ParseFixedJWT(cookieID)
 	if err != nil {

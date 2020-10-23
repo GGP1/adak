@@ -1,0 +1,59 @@
+syntax = "proto3";
+package review;
+
+import "google/protobuf/timestamp.proto";
+
+option go_package = "github.com/GGP1/palo/pkg/review";
+
+service Reviews {
+    rpc Create (CreateRequest) returns (CreateResponse);
+    rpc Delete (DeleteRequest) returns (DeleteResponse);
+    rpc Get (GetRequest) returns (GetResponse);
+    rpc GetByID (GetByIDRequest) returns (GetByIDResponse);
+}
+
+message Review {
+    string ID = 1;
+    uint32 stars = 2;
+    string comment = 3;
+    string userID = 4;
+    string productID = 5;
+    string shopID = 6;
+    google.protobuf.Timestamp createdAt = 7;
+    google.protobuf.Timestamp updatedAt = 8;
+}
+
+message Void {}
+
+message CreateRequest {
+    Review review = 1;
+    string userID = 2;
+}
+
+message CreateResponse {
+    Void nil = 1;
+}
+
+message DeleteRequest {
+    string ID = 1;
+}
+
+message DeleteResponse {
+    Void nil = 1;
+}
+
+message GetRequest {
+    Void nil = 1;
+}
+
+message GetResponse {
+    repeated Review reviews = 1;
+}
+
+message GetByIDRequest {
+    string ID = 1;
+}
+
+message GetByIDResponse {
+    Review reviews = 1;
+}

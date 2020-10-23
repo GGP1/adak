@@ -3,6 +3,8 @@ package ordering
 
 import (
 	"context"
+	"fmt"
+	"net"
 	"time"
 
 	"github.com/GGP1/palo/internal/token"
@@ -10,6 +12,8 @@ import (
 
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
+	"google.golang.org/grpc"
+	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // Order status
@@ -21,8 +25,37 @@ const (
 	FailedState   = "failed"
 )
 
+// Ordering implements the ordering service
+type Ordering struct {
+	db *sqlx.DB
+
+	Order          *Order
+	shoppingClient cart.ShoppingClient
+}
+
+// NewService returns a new ordering server.
+func NewService(db *sqlx.DB, shoppingConn *grpc.ClientConn) *Ordering {
+	return &Ordering{
+		db:             db,
+		shoppingClient: cart.NewShoppingClient(shoppingConn),
+	}
+}
+
+// Run starts the server.
+func (o *Ordering) Run(port int) error {
+	lis, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", port))
+	if err != nil {
+		return errors.Wrapf(err, "ordering: failed connecting to the server on port %d", port)
+	}
+
+	srv := grpc.NewServer()
+	// RegisterOrderingServer(srv, o)
+
+	return srv.Serve(lis)
+}
+
 // New creates an order.
-func New(ctx context.Context, db *sqlx.DB, userID string, oParams OrderParams, deliveryDate time.Time, c cart.Cart) (*Order, error) {
+func (o *Ordering) New(ctx context.Context, req *NewRequest) (*NewResponse, error) {
 	orderQuery := `INSERT INTO orders
 	(id, user_id, currency, address, city, country, state, zip_code, status, ordered_at, delivery_date, cart_id)
 	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`
@@ -35,7 +68,7 @@ func New(ctx context.Context, db *sqlx.DB, userID string, oParams OrderParams, d
 	(product_id, order_id, quantity, brand, category, type, description, weight, discount, taxes, subtotal, total)
 	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`
 
-	if c.Counter == 0 {
+	if req.Cart.Counter == 0 {
 		return nil, errors.New("ordering 0 products is not permitted")
 	}
 
@@ -43,169 +76,170 @@ func New(ctx context.Context, db *sqlx.DB, userID string, oParams OrderParams, d
 
 	order := Order{
 		ID:           id,
-		UserID:       userID,
-		Currency:     oParams.Currency,
-		Address:      oParams.Address,
-		City:         oParams.City,
-		State:        oParams.State,
-		ZipCode:      oParams.ZipCode,
+		UserID:       req.UserID,
+		Currency:     req.Currency,
+		Address:      req.Address,
+		City:         req.City,
+		State:        req.State,
+		ZipCode:      req.ZipCode,
 		Status:       PendingState,
-		OrderedAt:    time.Now(),
-		DeliveryDate: deliveryDate,
-		CartID:       c.ID,
-		Cart: OrderCart{
-			Counter:  c.Counter,
-			Weight:   c.Weight,
-			Discount: c.Discount,
-			Taxes:    c.Taxes,
-			Subtotal: c.Subtotal,
-			Total:    c.Total,
+		OrderedAt:    timestamppb.Now(),
+		DeliveryDate: req.DeliveryDate,
+		CartID:       req.Cart.ID,
+		Cart: &OrderCart{
+			Counter:  req.Cart.Counter,
+			Weight:   req.Cart.Weight,
+			Discount: req.Cart.Discount,
+			Taxes:    req.Cart.Taxes,
+			Subtotal: req.Cart.Subtotal,
+			Total:    req.Cart.Total,
 		},
 	}
 
 	// Save order products
-	for _, product := range c.Products {
-		_, err := db.ExecContext(ctx, orderPQuery, product.ID, id, product.Quantity, product.Brand,
-			product.Category, product.Type, product.Description, product.Weight,
-			product.Discount, product.Taxes, product.Subtotal, product.Total)
+	for _, p := range req.Cart.Products {
+		_, err := o.db.ExecContext(ctx, orderPQuery, p.ID, id, p.Quantity, p.Brand, p.Category,
+			p.Type, p.Description, p.Weight, p.Discount, p.Taxes, p.Subtotal, p.Total)
 		if err != nil {
 			return nil, errors.Wrap(err, "couldn't create order products")
 		}
 	}
 
 	// Save order
-	_, err := db.ExecContext(ctx, orderQuery, id, userID, oParams.Currency, oParams.Address, oParams.City, oParams.Country,
-		oParams.State, oParams.ZipCode, PendingState, time.Now(), deliveryDate, c.ID)
+	_, err := o.db.ExecContext(ctx, orderQuery, id, req.UserID, req.Currency, req.Address, req.City, req.Country,
+		req.State, req.ZipCode, PendingState, time.Now(), req.DeliveryDate, req.Cart.ID)
 	if err != nil {
 		return nil, errors.Wrap(err, "couldn't create the order")
 	}
 
 	// Save order cart
-	_, err = db.ExecContext(ctx, orderCQuery, id, c.Counter, c.Weight, c.Discount,
-		c.Taxes, c.Subtotal, c.Total)
+	_, err = o.db.ExecContext(ctx, orderCQuery, id, req.Cart.Counter, req.Cart.Weight, req.Cart.Discount,
+		req.Cart.Taxes, req.Cart.Subtotal, req.Cart.Total)
 	if err != nil {
 		return nil, errors.Wrap(err, "couldn't create the order cart")
 	}
 
-	if err := cart.Reset(ctx, db, c.ID); err != nil {
+	_, err = o.shoppingClient.Reset(ctx, &cart.ResetRequest{CartID: req.Cart.ID})
+	if err != nil {
 		return nil, errors.Wrap(err, "couldn't reset the cart")
 	}
 
-	return &order, nil
+	return &NewResponse{Order: &order}, nil
 }
 
 // Delete removes an order.
-func Delete(ctx context.Context, db *sqlx.DB, orderID string) error {
-	if _, err := db.ExecContext(ctx, "DELETE FROM orders WHERE id=$1", orderID); err != nil {
-		return errors.Wrap(err, "couldn't delete the order")
+func (o *Ordering) Delete(ctx context.Context, req *DeleteRequest) (*DeleteResponse, error) {
+	if _, err := o.db.ExecContext(ctx, "DELETE FROM orders WHERE id=$1", req.OrderID); err != nil {
+		return nil, errors.Wrap(err, "couldn't delete the order")
 	}
 
-	_, err := db.ExecContext(ctx, "DELETE FROM order_carts WHERE order_id=$1", orderID)
+	_, err := o.db.ExecContext(ctx, "DELETE FROM order_carts WHERE order_id=$1", req.OrderID)
 	if err != nil {
-		return errors.Wrap(err, "couldn't delete the order cart")
+		return nil, errors.Wrap(err, "couldn't delete the order cart")
 	}
 
-	_, err = db.ExecContext(ctx, "DELETE FROM order_products WHERE order_id=$1", orderID)
+	_, err = o.db.ExecContext(ctx, "DELETE FROM order_products WHERE order_id=$1", req.OrderID)
 	if err != nil {
-		return errors.Wrap(err, "couldn't delete the order products")
+		return nil, errors.Wrap(err, "couldn't delete the order products")
 	}
 
-	return nil
+	return nil, nil
 }
 
 // Get retrieves all the orders.
-func Get(ctx context.Context, db *sqlx.DB) ([]Order, error) {
-	var orders []Order
+func (o *Ordering) Get(ctx context.Context, req *GetRequest) (*GetResponse, error) {
+	var orders []*Order
 
-	if err := db.SelectContext(ctx, &orders, "SELECT * FROM orders"); err != nil {
+	if err := o.db.SelectContext(ctx, &orders, "SELECT * FROM orders"); err != nil {
 		return nil, errors.Wrap(err, "couldn't find the orders")
 	}
 
-	list, err := getRelationships(ctx, db, orders)
+	list, err := o.getRelationships(ctx, orders)
 	if err != nil {
 		return nil, err
 	}
 
-	return list, nil
+	return &GetResponse{Orders: list}, nil
 }
 
 // GetByID returns the order with the id provided.
-func GetByID(ctx context.Context, db *sqlx.DB, orderID string) (Order, error) {
+func (o *Ordering) GetByID(ctx context.Context, req *GetByIDRequest) (*GetByIDResponse, error) {
 	var (
 		order    Order
-		cart     OrderCart
-		products []OrderProduct
+		cart     *OrderCart
+		products []*OrderProduct
 	)
 
-	if err := db.GetContext(ctx, "SELECT * FROM orders WHERE id=$1", orderID); err != nil {
-		return Order{}, errors.Wrap(err, "couldn't find the order")
+	if err := o.db.GetContext(ctx, "SELECT * FROM orders WHERE id=$1", req.OrderID); err != nil {
+		return nil, errors.Wrap(err, "couldn't find the order")
 	}
 
-	if err := db.GetContext(ctx, &cart, "SELECT * FROM order_carts WHERE order_id=$1", order.ID); err != nil {
-		return Order{}, errors.Wrap(err, "couldn't find the order cart")
+	if err := o.db.GetContext(ctx, &cart, "SELECT * FROM order_carts WHERE order_id=$1", order.ID); err != nil {
+		return nil, errors.Wrap(err, "couldn't find the order cart")
 	}
 
-	if err := db.SelectContext(ctx, &products, "SELECT * FROM order_products WHERE order_id=$1", order.ID); err != nil {
-		return Order{}, errors.Wrap(err, "couldn't find the order products")
+	if err := o.db.SelectContext(ctx, &products, "SELECT * FROM order_products WHERE order_id=$1", order.ID); err != nil {
+		return nil, errors.Wrap(err, "couldn't find the order products")
 	}
 
 	order.Cart = cart
 	order.Products = products
 
-	return order, nil
+	return &GetByIDResponse{Order: &order}, nil
 }
 
 // GetByUserID retrieves orders depending on the user requested.
-func GetByUserID(ctx context.Context, db *sqlx.DB, userID string) ([]Order, error) {
-	var orders []Order
+func (o *Ordering) GetByUserID(ctx context.Context, req *GetByUserIDRequest) (*GetByUserIDResponse, error) {
+	var orders []*Order
 
-	if err := db.SelectContext(ctx, &orders, "SELECT * FROM orders WHERE user_id=$1", userID); err != nil {
+	if err := o.db.SelectContext(ctx, &orders, "SELECT * FROM orders WHERE user_id=$1", req.UserID); err != nil {
 		return nil, errors.Wrap(err, "couldn't find the orders")
 	}
 
-	list, err := getRelationships(ctx, db, orders)
+	list, err := o.getRelationships(ctx, orders)
 	if err != nil {
 		return nil, err
 	}
 
-	return list, nil
+	return &GetByUserIDResponse{Orders: list}, nil
 }
 
 // UpdateStatus updates the order status.
-func UpdateStatus(ctx context.Context, db *sqlx.DB, oID, oStatus string) error {
-	_, err := db.ExecContext(ctx, "UPDATE orders SET status=$2 WHERE id=$1", oID, oStatus)
+func (o *Ordering) UpdateStatus(ctx context.Context, req *UpdateStatusRequest) (*UpdateStatusResponse, error) {
+	_, err := o.db.ExecContext(ctx, "UPDATE orders SET status=$2 WHERE id=$1", req.OrderID, req.OrderStatus)
 	if err != nil {
-		return errors.Wrap(err, "couldn't update the order status")
+		return nil, errors.Wrap(err, "couldn't update the order status")
 	}
 
-	return nil
+	return nil, nil
 }
 
-func getRelationships(ctx context.Context, db *sqlx.DB, orders []Order) ([]Order, error) {
-	var list []Order
+func (o *Ordering) getRelationships(ctx context.Context, orders []*Order) ([]*Order, error) {
+	var list []*Order
 
-	ch, errCh := make(chan Order), make(chan error, 1)
+	ch, errCh := make(chan *Order), make(chan error, 1)
 
 	for _, order := range orders {
-		go func(order Order) {
+		go func(order *Order) {
 			var (
-				cart     OrderCart
-				products []OrderProduct
+				cart     *OrderCart
+				products []*OrderProduct
 			)
 
 			// Remove expired leaving a gap of 1 week to compute the shipping order
-			if order.DeliveryDate.Sub(time.Now().Add(time.Hour*168)) < 0 {
-				if err := Delete(ctx, db, order.ID); err != nil {
+			if order.DeliveryDate.Seconds > time.Now().Add(time.Hour*168).Unix() {
+				_, err := o.Delete(ctx, &DeleteRequest{OrderID: order.ID})
+				if err != nil {
 					errCh <- err
 				}
 				return
 			}
 
-			if err := db.GetContext(ctx, &cart, "SELECT * FROM order_carts WHERE order_id=$1", order.ID); err != nil {
+			if err := o.db.GetContext(ctx, &cart, "SELECT * FROM order_carts WHERE order_id=$1", order.ID); err != nil {
 				errCh <- errors.Wrap(err, "couldn't find the order cart")
 			}
 
-			if err := db.SelectContext(ctx, &products, "SELECT * FROM order_products WHERE order_id=$1", order.ID); err != nil {
+			if err := o.db.SelectContext(ctx, &products, "SELECT * FROM order_products WHERE order_id=$1", order.ID); err != nil {
 				errCh <- errors.Wrap(err, "couldn't find the order products")
 			}
 

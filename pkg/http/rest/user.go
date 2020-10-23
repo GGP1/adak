@@ -1,4 +1,4 @@
-package user
+package rest
 
 import (
 	"encoding/json"
@@ -6,44 +6,35 @@ import (
 
 	"github.com/GGP1/palo/internal/email"
 	"github.com/GGP1/palo/internal/response"
+	"github.com/GGP1/palo/internal/sanitize"
 	"github.com/GGP1/palo/internal/token"
-	"github.com/GGP1/palo/pkg/auth"
 	"github.com/GGP1/palo/pkg/shopping/cart"
+	"github.com/GGP1/palo/pkg/user"
 
 	"github.com/go-chi/chi"
 	"github.com/go-playground/validator/v10"
-	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 )
 
-// Handler handles user endpoints.
-type Handler struct {
-	Service Service
-}
-
-// Create creates a new user and saves it.
-func (h *Handler) Create() http.HandlerFunc {
+// UserCreate creates a new user and saves it.
+func (s *Frontend) UserCreate() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var (
-			user AddUser
-			ctx  = r.Context()
-		)
+		var addUser user.AddUser
+		ctx := r.Context()
 
-		if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
+		if err := json.NewDecoder(r.Body).Decode(&addUser); err != nil {
 			response.Error(w, r, http.StatusBadRequest, err)
 			return
 		}
 		defer r.Body.Close()
 
-		if err := validator.New().StructCtx(ctx, user); err != nil {
+		if err := validator.New().StructCtx(ctx, &addUser); err != nil {
 			http.Error(w, err.(validator.ValidationErrors).Error(), http.StatusBadRequest)
 			return
 		}
 
-		confirmationCode := token.GenerateRunes(20)
 		errCh := make(chan error, 1)
-
-		go email.SendValidation(ctx, user.Username, user.Email, confirmationCode, errCh)
+		go email.SendValidation(ctx, addUser.Username, addUser.Email, errCh)
 
 		select {
 		case <-ctx.Done():
@@ -51,7 +42,8 @@ func (h *Handler) Create() http.HandlerFunc {
 		case <-errCh:
 			response.Error(w, r, http.StatusInternalServerError, errors.Wrap(<-errCh, "failed sending validation email"))
 		default:
-			if err := h.Service.Create(ctx, &user); err != nil {
+			_, err := s.userClient.Create(ctx, &user.CreateRequest{User: &addUser})
+			if err != nil {
 				response.Error(w, r, http.StatusBadRequest, err)
 				return
 			}
@@ -61,49 +53,47 @@ func (h *Handler) Create() http.HandlerFunc {
 	}
 }
 
-// Delete removes a user.
-func (h *Handler) Delete(db *sqlx.DB, s auth.Session) http.HandlerFunc {
+// UserDelete removes a user.
+func (s *Frontend) UserDelete() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
 		uID, _ := r.Cookie("UID")
-
-		var (
-			ctx = r.Context()
-		)
+		ctx := r.Context()
 
 		if err := token.CheckPermits(id, uID.Value); err != nil {
 			response.Error(w, r, http.StatusUnauthorized, err)
 			return
 		}
 
-		user, err := h.Service.GetByID(ctx, id)
+		getByID, err := s.userClient.GetByID(ctx, &user.GetByIDRequest{ID: id})
 		if err != nil {
 			response.Error(w, r, http.StatusNotFound, err)
 			return
 		}
 
-		if err := cart.Delete(ctx, db, user.CartID); err != nil {
+		_, err = s.shoppingClient.Delete(ctx, &cart.DeleteRequest{CartID: getByID.User.CartID})
+		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
 
-		if err := h.Service.Delete(ctx, id); err != nil {
+		_, err = s.userClient.Delete(ctx, &user.DeleteRequest{ID: id})
+		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}
-
-		s.Logout(w, r, uID)
-
 		response.HTMLText(w, r, http.StatusOK, "User deleted successfully.")
+
+		http.Redirect(w, r, "/logout", http.StatusTemporaryRedirect)
 	}
 }
 
-// Get lists all the users.
-func (h *Handler) Get() http.HandlerFunc {
+// UserGet lists all the users.
+func (s *Frontend) UserGet() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
-		users, err := h.Service.Get(ctx)
+		users, err := s.userClient.Get(ctx, &user.GetRequest{})
 		if err != nil {
 			response.Error(w, r, http.StatusNotFound, err)
 			return
@@ -113,14 +103,13 @@ func (h *Handler) Get() http.HandlerFunc {
 	}
 }
 
-// GetByID lists the user with the id requested.
-func (h *Handler) GetByID() http.HandlerFunc {
+// UserGetByID lists the user with the id requested.
+func (s *Frontend) UserGetByID() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
-
 		ctx := r.Context()
 
-		user, err := h.Service.GetByID(ctx, id)
+		user, err := s.userClient.GetByID(ctx, &user.GetByIDRequest{ID: id})
 		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
@@ -130,40 +119,18 @@ func (h *Handler) GetByID() http.HandlerFunc {
 	}
 }
 
-// QRCode shows the user id in a qrcode format.
-func (h *Handler) QRCode() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		id := chi.URLParam(r, "id")
-
-		var (
-			user ListUser
-			ctx  = r.Context()
-		)
-
-		user, err := h.Service.GetByID(ctx, id)
-		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
-			return
-		}
-
-		img, err := user.QRCode()
-		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
-			return
-		}
-
-		response.PNG(w, r, http.StatusOK, img)
-	}
-}
-
-// Search looks for the products with the given value.
-func (h *Handler) Search() http.HandlerFunc {
+// UserSearch looks for the products with the given value.
+func (s *Frontend) UserSearch() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		query := chi.URLParam(r, "query")
-
 		ctx := r.Context()
 
-		users, err := h.Service.Search(ctx, query)
+		if err := sanitize.Normalize(&query); err != nil {
+			response.Error(w, r, http.StatusBadRequest, err)
+			return
+		}
+
+		users, err := s.userClient.Search(ctx, &user.SearchRequest{Search: query})
 		if err != nil {
 			response.Error(w, r, http.StatusNotFound, err)
 			return
@@ -173,34 +140,32 @@ func (h *Handler) Search() http.HandlerFunc {
 	}
 }
 
-// Update updates the user with the given id.
-func (h *Handler) Update() http.HandlerFunc {
+// UserUpdate updates the user with the given id.
+func (s *Frontend) UserUpdate() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		var updateUser user.UpdateUser
 		id := chi.URLParam(r, "id")
 		uID, _ := r.Cookie("UID")
-
-		var (
-			user UpdateUser
-			ctx  = r.Context()
-		)
+		ctx := r.Context()
 
 		if err := token.CheckPermits(id, uID.Value); err != nil {
 			response.Error(w, r, http.StatusUnauthorized, err)
 			return
 		}
 
-		if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
+		if err := json.NewDecoder(r.Body).Decode(&updateUser); err != nil {
 			response.Error(w, r, http.StatusBadRequest, err)
 			return
 		}
 		defer r.Body.Close()
 
-		if err := validator.New().StructCtx(ctx, user); err != nil {
+		if err := validator.New().StructCtx(ctx, &updateUser); err != nil {
 			http.Error(w, err.(validator.ValidationErrors).Error(), http.StatusBadRequest)
 			return
 		}
 
-		if err := h.Service.Update(ctx, &user, id); err != nil {
+		_, err := s.userClient.Update(ctx, &user.UpdateRequest{User: &updateUser, ID: id})
+		if err != nil {
 			response.Error(w, r, http.StatusInternalServerError, err)
 			return
 		}

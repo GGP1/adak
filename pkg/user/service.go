@@ -2,6 +2,8 @@ package user
 
 import (
 	"context"
+	"fmt"
+	"net"
 	"strings"
 	"time"
 
@@ -13,42 +15,41 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/bcrypt"
+	"google.golang.org/grpc"
 )
 
-// Repository provides access to the storage.
-type Repository interface {
-	Create(ctx context.Context, user *AddUser) error
-	Delete(ctx context.Context, id string) error
-	Get(ctx context.Context) ([]ListUser, error)
-	GetByEmail(ctx context.Context, email string) (User, error)
-	GetByID(ctx context.Context, id string) (ListUser, error)
-	Search(ctx context.Context, search string) ([]ListUser, error)
-	Update(ctx context.Context, u *UpdateUser, id string) error
+// Users implements the users interface.
+type Users struct {
+	db *sqlx.DB
+
+	orderingClient ordering.OrderingClient
+	shoppingClient cart.ShoppingClient
 }
 
-// Service provides user operations.
-type Service interface {
-	Create(ctx context.Context, user *AddUser) error
-	Delete(ctx context.Context, id string) error
-	Get(ctx context.Context) ([]ListUser, error)
-	GetByEmail(ctx context.Context, email string) (User, error)
-	GetByID(ctx context.Context, id string) (ListUser, error)
-	Search(ctx context.Context, search string) ([]ListUser, error)
-	Update(ctx context.Context, u *UpdateUser, id string) error
+// NewService returns a new users server.
+func NewService(db *sqlx.DB, orderingConn, shoppingConn *grpc.ClientConn) *Users {
+	return &Users{
+		db:             db,
+		orderingClient: ordering.NewOrderingClient(orderingConn),
+		shoppingClient: cart.NewShoppingClient(shoppingConn),
+	}
 }
 
-type service struct {
-	r  Repository
-	DB *sqlx.DB
-}
+// Run starts the server.
+func (u *Users) Run(port int) error {
+	lis, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", port))
+	if err != nil {
+		return errors.Wrapf(err, "users: failed listening on port %d", port)
+	}
 
-// NewService creates a deleting service with the necessary dependencies.
-func NewService(r Repository, db *sqlx.DB) Service {
-	return &service{r, db}
+	srv := grpc.NewServer()
+	RegisterUsersServer(srv, u)
+
+	return srv.Serve(lis)
 }
 
 // Create creates a user.
-func (s *service) Create(ctx context.Context, user *AddUser) error {
+func (u *Users) Create(ctx context.Context, req *CreateRequest) (*CreateResponse, error) {
 	cartQuery := `INSERT INTO carts
 	(id, counter, weight, discount, taxes, subtotal, total)
 	VALUES ($1, $2, $3, $4, $5, $6, $7)`
@@ -57,166 +58,197 @@ func (s *service) Create(ctx context.Context, user *AddUser) error {
 	(id, cart_id, username, email, password, created_at, updated_at)
 	VALUES ($1, $2, $3, $4, $5, $6, $7)`
 
-	_, err := s.GetByEmail(ctx, user.Email)
+	_, err := u.GetByEmail(ctx, &GetByEmailRequest{Email: req.User.Email})
 	if err == nil {
-		return errors.New("email is already taken")
+		return nil, errors.New("email is already taken")
 	}
 
-	_, err = s.GetByUsername(ctx, user.Username)
+	_, err = u.GetByUsername(ctx, &GetByUsernameRequest{Username: req.User.Username})
 	if err == nil {
-		return errors.New("useraname is already taken")
+		return nil, errors.New("username is already taken")
 	}
 
-	hash, err := bcrypt.GenerateFromPassword([]byte(user.Password), 24)
+	// Non default cost blocks forever (check bcrypt issues)
+	hash, err := bcrypt.GenerateFromPassword([]byte(req.User.Password), bcrypt.DefaultCost)
 	if err != nil {
-		return err
+		return nil, err
 	}
-	user.Password = string(hash)
+	req.User.Password = string(hash)
 
 	// Create a cart for each user
 	cartID := token.GenerateRunes(30)
-	user.CartID = cartID
+	req.User.CartID = cartID
 
-	cart := cart.New(user.CartID)
+	new, _ := u.shoppingClient.New(ctx, &cart.NewRequest{ID: req.User.CartID})
 
-	_, err = s.DB.ExecContext(ctx, cartQuery, cart.ID, cart.Counter, cart.Weight,
-		cart.Discount, cart.Taxes, cart.Subtotal, cart.Total)
+	// Create user cart
+	_, err = u.db.ExecContext(ctx, cartQuery, new.Cart.ID, new.Cart.Counter, new.Cart.Weight,
+		new.Cart.Discount, new.Cart.Taxes, new.Cart.Subtotal, new.Cart.Total)
 	if err != nil {
-		return errors.Wrap(err, "couldn't create the cart")
+		return nil, errors.Wrap(err, "couldn't create the cart")
 	}
 
 	userID := token.GenerateRunes(30)
-	user.CreatedAt = time.Now()
+	createdAt := time.Now()
+	updatedAt := time.Now()
 
-	_, err = s.DB.ExecContext(ctx, userQuery, userID, cart.ID, user.Username, user.Email,
-		user.Password, user.CreatedAt, user.UpdatedAt)
+	// Create user
+	_, err = u.db.ExecContext(ctx, userQuery, userID, new.Cart.ID, req.User.Username, req.User.Email,
+		req.User.Password, createdAt, updatedAt)
 	if err != nil {
-		return errors.Wrap(err, "couldn't create the user")
+		return nil, errors.Wrap(err, "couldn't create the user")
 	}
 
-	return nil
+	return nil, nil
 }
 
 // Delete permanently deletes a user from the database.
-func (s *service) Delete(ctx context.Context, id string) error {
-	_, err := s.DB.ExecContext(ctx, "DELETE FROM users WHERE id=$1", id)
+func (u *Users) Delete(ctx context.Context, req *DeleteRequest) (*DeleteResponse, error) {
+	_, err := u.db.ExecContext(ctx, "DELETE FROM users WHERE id=$1", req.ID)
 	if err != nil {
-		return errors.Wrap(err, "couldn't delete the user")
+		return nil, errors.Wrap(err, "couldn't delete the user")
 	}
 
-	return nil
+	return nil, nil
 }
 
 // Get returns a list with all the users stored in the database.
-func (s *service) Get(ctx context.Context) ([]ListUser, error) {
-	var users []ListUser
+func (u *Users) Get(ctx context.Context, req *GetRequest) (*GetResponse, error) {
+	var users []*ListUser
 
-	if err := s.DB.SelectContext(ctx, &users, "SELECT id, cart_id, username, email FROM users"); err != nil {
+	if err := u.db.SelectContext(ctx, &users, "SELECT id, cart_id, username, email, created_at FROM users"); err != nil {
 		return nil, errors.Wrap(err, "couldn't find the users")
 	}
 
-	list, err := getRelationships(ctx, s.DB, users)
+	list, err := getRelationships(ctx, u.db, users)
 	if err != nil {
 		return nil, err
 	}
 
-	return list, nil
+	return &GetResponse{Users: list}, nil
 }
 
 // GetByEmail retrieves the user requested from the database.
-func (s *service) GetByEmail(ctx context.Context, email string) (User, error) {
-	var user User
+func (u *Users) GetByEmail(ctx context.Context, req *GetByEmailRequest) (*GetByEmailResponse, error) {
+	var user *ListUser
 
-	if err := s.DB.GetContext(ctx, &user, "SELECT id, email, username FROM users WHERE email=$1", email); err != nil {
-		return User{}, errors.Wrap(err, "couldn't find the user")
+	if err := u.db.GetContext(ctx, &user, "SELECT id, email, username, created_at FROM users WHERE email=$1", req.Email); err != nil {
+		return nil, errors.Wrap(err, "couldn't find the user")
 	}
 
-	return user, nil
+	return &GetByEmailResponse{User: user}, nil
 }
 
 // GetByID retrieves the user requested from the database.
-func (s *service) GetByID(ctx context.Context, id string) (ListUser, error) {
+func (u *Users) GetByID(ctx context.Context, req *GetByIDRequest) (*GetByIDResponse, error) {
 	var (
-		user    ListUser
-		reviews []review.Review
+		user    *ListUser
+		reviews []*review.Review
 	)
 
-	if err := s.DB.GetContext(ctx, &user, "SELECT id, cart_id, username, email FROM users WHERE id=$1", id); err != nil {
-		return ListUser{}, errors.Wrap(err, "couldn't find the user")
+	if err := u.db.GetContext(ctx, &user, "SELECT id, cart_id, username, email, created_at FROM users WHERE id=$1", req.ID); err != nil {
+		return nil, errors.Wrap(err, "couldn't find the user")
 	}
 
-	if err := s.DB.SelectContext(ctx, &reviews, "SELECT * FROM reviews WHERE user_id=$1", id); err != nil {
-		return ListUser{}, errors.Wrap(err, "couldn't find the reviews")
+	if err := u.db.SelectContext(ctx, &reviews, "SELECT * FROM reviews WHERE user_id=$1", req.ID); err != nil {
+		return nil, errors.Wrap(err, "couldn't find the reviews")
 	}
 
-	orders, err := ordering.GetByUserID(ctx, s.DB, id)
+	getByUserID, err := u.orderingClient.GetByUserID(ctx, &ordering.GetByUserIDRequest{UserID: req.ID})
 	if err != nil {
-		return ListUser{}, err
+		return nil, err
 	}
 
-	user.Orders = orders
+	user.Orders = getByUserID.Orders
 
-	return user, nil
+	return &GetByIDResponse{User: user}, nil
 }
 
 // GetByUsername retrieves the user requested from the database.
-func (s *service) GetByUsername(ctx context.Context, username string) (User, error) {
-	var user User
+func (u *Users) GetByUsername(ctx context.Context, req *GetByUsernameRequest) (*GetByUsernameResponse, error) {
+	var user *ListUser
 
-	if err := s.DB.GetContext(ctx, &user, "SELECT id FROM users WHERE username=$1", username); err != nil {
-		return User{}, errors.Wrap(err, "couldn't find the user")
+	if err := u.db.GetContext(ctx, &user, "SELECT id, cart_id, username, email, created_at FROM users WHERE username=$1", req.Username); err != nil {
+		return nil, errors.Wrap(err, "couldn't find the user")
 	}
 
-	return user, nil
+	return &GetByUsernameResponse{User: user}, nil
 }
 
 // Search looks for the users that contain the value specified. (Only text fields)
-func (s *service) Search(ctx context.Context, search string) ([]ListUser, error) {
-	var users []ListUser
+func (u *Users) Search(ctx context.Context, req *SearchRequest) (*SearchResponse, error) {
+	var users []*ListUser
 
 	q := `SELECT * FROM users WHERE
 	to_tsvector(id || ' ' || username || ' ' || email) 
 	@@ to_tsquery($1)`
 
-	if strings.ContainsAny(search, ";-\\|@#~€¬<>_()[]}{¡'") {
+	if strings.ContainsAny(req.Search, ";-\\|@#~€¬<>_()[]}{¡'") {
 		return nil, errors.New("invalid search")
 	}
 
-	if err := s.DB.SelectContext(ctx, &users, q, search); err != nil {
+	if err := u.db.SelectContext(ctx, &users, q, req.Search); err != nil {
 		return nil, errors.Wrap(err, "couldn't find the users")
 	}
 
-	list, err := getRelationships(ctx, s.DB, users)
+	list, err := getRelationships(ctx, u.db, users)
 	if err != nil {
 		return nil, err
 	}
 
-	return list, nil
+	return &SearchResponse{Users: list}, nil
 }
 
 // Update sets new values for an already existing user.
-func (s *service) Update(ctx context.Context, u *UpdateUser, id string) error {
-	_, err := s.DB.ExecContext(ctx, "UPDATE users SET username=$2 WHERE id=$1", id, u.Username)
-	if err != nil {
-		return errors.Wrap(err, "couldn't update the user")
+func (u *Users) Update(ctx context.Context, req *UpdateRequest) (*UpdateResponse, error) {
+	var user *UpdateUser
+	get := "SELECT username, email, password, verified_email, confirmation_code, updated_at FROM users WHERE id=$1"
+	update := "UPDATE users SET username=$2, email=$3, password=$4, verified_email=$5, confirmation_code=$6, updated_at=$7 WHERE id=$1"
+
+	// Get the user and fill empty fields to not overwrite them when updating.
+	if err := u.db.GetContext(ctx, &user, get, req.ID); err != nil {
+		return nil, errors.Wrap(err, "couldn't find the user")
 	}
 
-	return nil
+	if req.User.Username == "" {
+		req.User.Username = user.Username
+	}
+	if req.User.Email == "" {
+		req.User.Email = user.Email
+	}
+	if req.User.Password == "" {
+		req.User.Password = user.Password
+	}
+	if req.User.VerifiedEmail == false {
+		req.User.VerifiedEmail = user.VerifiedEmail
+	}
+	if req.User.ConfirmationCode == "" {
+		req.User.ConfirmationCode = user.ConfirmationCode
+	}
+	updatedAt := time.Now()
+
+	_, err := u.db.ExecContext(ctx, update, req.ID, req.User.Username, req.User.Email, req.User.Password,
+		req.User.VerifiedEmail, req.User.ConfirmationCode, updatedAt)
+	if err != nil {
+		return nil, errors.Wrap(err, "couldn't update the user")
+	}
+
+	return nil, nil
 }
 
-func getRelationships(ctx context.Context, db *sqlx.DB, users []ListUser) ([]ListUser, error) {
-	var list []ListUser
+func getRelationships(ctx context.Context, db *sqlx.DB, users []*ListUser) ([]*ListUser, error) {
+	var list []*ListUser
 
-	ch, errCh := make(chan ListUser), make(chan error, 1)
+	ch, errCh := make(chan *ListUser), make(chan error, 1)
 
 	for _, user := range users {
-		go func(user ListUser) {
+		go func(user *ListUser) {
 			var (
-				reviews []review.Review
-				orders  []ordering.Order
+				reviews []*review.Review
+				orders  []*ordering.Order
 			)
 
-			if err := db.Select(&reviews, "SELECT * FROM reviews WHERE user_id=$1", user.ID); err != nil {
+			if err := db.SelectContext(ctx, &reviews, "SELECT * FROM reviews WHERE user_id=$1", user.ID); err != nil {
 				errCh <- errors.Wrap(err, "couldn't find the reviews")
 			}
 

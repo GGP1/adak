@@ -41,7 +41,7 @@ CREATE TABLE IF NOT EXISTS users
     username text NOT NULL,
     email text NOT NULL,
     password text NOT NULL,
-    email_verified_at timestamp,
+    verified_email boolean,
     confirmation_code text,
     created_at timestamp with time zone DEFAULT NOW(),
     updated_at timestamp DEFAULT NULL,

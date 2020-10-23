@@ -1,0 +1,144 @@
+syntax = "proto3";
+
+option go_package = "github.com/GGP1/palo/pkg/shopping/cart";
+
+package cart;
+
+service Shopping {
+    rpc New (NewRequest) returns (NewResponse);
+    rpc Add (AddRequest) returns (AddResponse);
+    rpc Checkout (CheckoutRequest) returns (CheckoutResponse);
+    rpc Delete (DeleteRequest) returns (DeleteResponse);
+    rpc FilterByBrand (FilterTextRequest) returns (FilterResponse);
+    rpc FilterByCategory (FilterTextRequest) returns (FilterResponse);
+    rpc FilterByDiscount (FilterNumberRequest) returns (FilterResponse);
+    rpc FilterBySubtotal (FilterNumberRequest) returns (FilterResponse);
+    rpc FilterByTaxes (FilterNumberRequest) returns (FilterResponse);
+    rpc FilterByTotal (FilterNumberRequest) returns (FilterResponse);
+    rpc FilterByType (FilterTextRequest) returns (FilterResponse);
+    rpc FilterByWeight (FilterNumberRequest) returns (FilterResponse);
+    rpc Get (GetRequest) returns (GetResponse);
+    rpc Products (ProductsRequest) returns (ProductsResponse);
+    rpc Remove (RemoveRequest) returns (RemoveResponse);
+    rpc Reset (ResetRequest) returns (ResetResponse);
+    rpc Size (SizeRequest) returns (SizeResponse);
+}
+
+message Cart {
+    string ID = 1;
+    int64 counter = 2;
+    double weight = 3;
+    double discount = 4;
+    double taxes = 5;
+    double subtotal = 6;
+    double total = 7;
+    repeated Product products = 8;
+}
+
+message Product {
+    string ID = 1;
+    string cartID = 2;
+    int64 quantity = 3;
+    string brand = 4;
+    string category = 5;
+    string type = 6;
+    string description = 7;
+    double weight = 8;
+    double discount = 9;
+    double taxes = 10;
+    double subtotal = 11;
+    double total = 12;
+}
+
+message Void {}
+
+message NewRequest {
+    string ID = 1;
+}
+
+message NewResponse {
+    Cart cart = 1;
+}
+
+message AddRequest {
+    string cartID = 1;
+    int64 quantity = 2;
+    Product product = 3;
+}
+
+message AddResponse {
+    Product product = 1;
+}
+
+message CheckoutRequest {
+    string cartID = 1;
+}
+
+message CheckoutResponse {
+    double total = 1;
+}
+
+message DeleteRequest {
+    string cartID = 1;
+}
+
+message DeleteResponse {
+    Void nil = 1;
+}
+
+message FilterTextRequest {
+    string cartID = 1;
+    string field = 2;
+}
+
+message FilterNumberRequest {
+    string cartID = 1;
+    double min = 2;
+    double max = 3;
+}
+
+message FilterResponse {
+    repeated Product products = 1;
+}
+
+message GetRequest {
+    string cartID = 1;
+}
+
+message GetResponse {
+    Cart cart = 1;
+}
+
+message ProductsRequest {
+    string cartID = 1;
+}
+
+message ProductsResponse {
+    repeated Product products = 1;
+}
+
+message RemoveRequest {
+    string cartID = 1;
+    string productID = 2;
+    int64 quantity = 3;
+}
+
+message RemoveResponse {
+    Void nil = 1;
+}
+
+message ResetRequest {
+    string cartID = 1;
+}
+
+message ResetResponse {
+    Void nil = 1;
+}
+
+message SizeRequest {
+    string cartID = 1;
+}
+
+message SizeResponse {
+    int64 counter = 1;
+}

@@ -40,6 +40,7 @@ func GenerateFixedJWT(id string) (string, error) {
 }
 
 // ParseFixedJWT takes the claims from the token and returns the id value.
+//
 // This function is used to take the user id value from the UID cookie.
 func ParseFixedJWT(tokenString string) (string, error) {
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {

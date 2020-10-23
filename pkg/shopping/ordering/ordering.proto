@@ -1,0 +1,117 @@
+syntax = "proto3";
+package ordering;
+
+import "google/protobuf/timestamp.proto";
+import "github.com/GGP1/palo/pkg/shopping/cart/cart.proto";
+
+option go_package = "github.com/GGP1/palo/pkg/shopping/ordering";
+
+service Ordering {
+    rpc New (NewRequest) returns (NewResponse);
+    rpc Delete (DeleteRequest) returns (DeleteResponse);
+    rpc Get (GetRequest) returns (GetResponse);
+    rpc GetByID (GetByIDRequest) returns (GetByIDResponse);
+    rpc GetByUserID (GetByUserIDRequest) returns (GetByUserIDResponse);
+    rpc UpdateStatus (UpdateStatusRequest) returns (UpdateStatusResponse);
+}
+
+message Order {
+    string ID = 1;
+    string userID = 2;
+    string currency = 3;
+    string address = 4;
+    string city = 5;
+    string state = 6;
+    string zipCode = 7;
+    string country = 8;
+    string status = 9;
+    google.protobuf.Timestamp orderedAt = 10;
+    google.protobuf.Timestamp deliveryDate = 11;
+    string cartID = 12;
+    OrderCart cart = 13;
+    repeated OrderProduct products = 14;
+}
+
+message OrderCart {
+    string orderID = 1;
+    int64 counter = 2;
+    double weight = 3;
+    double discount = 4;
+    double taxes = 5;
+    double subtotal = 6;
+    double total = 7;
+}
+
+message OrderProduct {
+    string productID = 1;
+    string orderID = 2;
+    int64 quantity = 3;
+    string brand = 4;
+    string category = 5;
+    string type = 6;
+    string description = 7;
+    double weight = 8;
+    double discount = 9;
+    double taxes = 10;
+    double subtotal = 11;
+    double total = 12;
+}
+
+message Void {}
+
+message NewRequest {
+    string userID = 1;
+    string currency = 2;
+    string address = 3;
+    string city = 4;
+    string country = 5;
+    string state = 6;
+    string zipCode = 7;
+    google.protobuf.Timestamp deliveryDate = 8;
+    cart.Cart cart = 10;
+}
+
+message NewResponse {
+    Order order = 1;
+}
+
+message DeleteRequest {
+    string orderID = 1;
+}
+
+message DeleteResponse {
+    Void nil = 1;
+}
+
+message GetRequest {
+    Void nil = 1;
+}
+
+message GetResponse {
+    repeated Order orders = 1;
+}
+
+message GetByIDRequest {
+    string orderID = 1;
+}
+
+message GetByIDResponse {
+    Order order = 1;
+}
+
+message GetByUserIDRequest {
+    string userID = 1;
+}
+
+message GetByUserIDResponse {
+    repeated Order orders = 1;
+}
+
+message UpdateStatusRequest {
+    string orderID = 1;
+    string orderStatus = 2;
+}
+
+message UpdateStatusResponse {
+    Void nil = 1;
+}

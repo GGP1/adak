@@ -2,6 +2,8 @@ package account
 
 import (
 	"context"
+	"fmt"
+	"net"
 	"time"
 
 	"github.com/GGP1/palo/pkg/user"
@@ -9,90 +11,112 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/bcrypt"
+	"google.golang.org/grpc"
 )
 
-// Repository provides access to the storage.
-type Repository interface {
-	ChangeEmail(ctx context.Context, id, newEmail, token string) error
-	ChangePassword(ctx context.Context, id, oldPass, newPass string) error
-	ValidateUserEmail(ctx context.Context, id, confirmationCode string, verifiedAt time.Time) error
+// Accounts implements the accounts interface.
+type Accounts struct {
+	db *sqlx.DB
+
+	userClient user.UsersClient
 }
 
-// Service provides user account operations.
-type Service interface {
-	ChangeEmail(ctx context.Context, id, newEmail, token string) error
-	ChangePassword(ctx context.Context, id, oldPass, newPass string) error
-	ValidateUserEmail(ctx context.Context, id, confirmationCode string, verifiedAt time.Time) error
-}
-
-type service struct {
-	r  Repository
-	DB *sqlx.DB
-}
-
-// NewService creates a searching service with the necessary dependencies.
-func NewService(r Repository, db *sqlx.DB) Service {
-	return &service{r, db}
-}
-
-// Change changes the user email.
-func (s *service) ChangeEmail(ctx context.Context, id, newEmail, token string) error {
-	var user user.User
-
-	if err := s.DB.SelectContext(ctx, &user, "SELECT * FROM users WHERE id=?", id); err != nil {
-		return errors.Wrap(err, "invalid email")
+// NewService returns a new accounts server.
+func NewService(db *sqlx.DB, userConn *grpc.ClientConn) *Accounts {
+	return &Accounts{
+		db:         db,
+		userClient: user.NewUsersClient(userConn),
 	}
+}
 
-	if user.CreatedAt.Add(72*time.Hour).Sub(time.Now()) < 0 {
-		return errors.New("accounts must be 3 days old to change email")
-	}
-
-	_, err := s.DB.ExecContext(ctx, "UPDATE users set email=$2 WHERE id=$1", id, newEmail)
+// Run starts the server.
+func (a *Accounts) Run(port int) error {
+	lis, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", port))
 	if err != nil {
-		return errors.Wrap(err, "couldn't change the email")
+		return errors.Wrapf(err, "products: failed listening on port %d", port)
 	}
 
-	return nil
+	srv := grpc.NewServer()
+	RegisterAccountsServer(srv, a)
+
+	return srv.Serve(lis)
+}
+
+// ChangeEmail changes the user email.
+func (a *Accounts) ChangeEmail(ctx context.Context, req *ChangeEmailRequest) (*ChangeEmailResponse, error) {
+	u, err := a.userClient.GetByID(ctx, &user.GetByIDRequest{ID: req.ID})
+	if err != nil {
+		return nil, err
+	}
+
+	if u.User.CreatedAt.Seconds > time.Now().Add(72*time.Hour).Unix() {
+		return nil, errors.New("accounts must be 3 days old to change email")
+	}
+
+	_, err = a.userClient.Update(ctx, &user.UpdateRequest{
+		ID: req.ID,
+		User: &user.UpdateUser{
+			Email: req.NewEmail,
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return nil, nil
 }
 
 // ChangePassword changes the user password.
-func (s *service) ChangePassword(ctx context.Context, id, oldPass, newPass string) error {
-	var user user.User
-
-	if err := s.DB.GetContext(ctx, &user, "SELECT password, created_at FROM users WHERE id=$1", id); err != nil {
-		return errors.Wrap(err, "invalid email")
-	}
-
-	if user.CreatedAt.Add(72*time.Hour).Sub(time.Now()) < 0 {
-		return errors.New("accounts must be 3 days old to change password")
-	}
-
-	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(oldPass)); err != nil {
-		return errors.Wrap(err, "invalid old password")
-	}
-
-	newPassHash, err := bcrypt.GenerateFromPassword([]byte(newPass), bcrypt.DefaultCost)
+func (a *Accounts) ChangePassword(ctx context.Context, req *ChangePasswordRequest) (*ChangePasswordResponse, error) {
+	u, err := a.userClient.GetByID(ctx, &user.GetByIDRequest{ID: req.ID})
 	if err != nil {
-		return errors.Wrap(err, "couldn't generate the password hash")
+		return nil, err
 	}
-	user.Password = string(newPassHash)
 
-	_, err = s.DB.ExecContext(ctx, "UPDATE users SET password=$2 WHERE id=$1", user.ID, user.Password)
+	if u.User.CreatedAt.Seconds > time.Now().Add(72*time.Hour).Unix() {
+		return nil, errors.New("accounts must be 3 days old to change password")
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(u.User.Password), []byte(req.OldPass)); err != nil {
+		return nil, errors.Wrap(err, "invalid old password")
+	}
+
+	newPassHash, err := bcrypt.GenerateFromPassword([]byte(req.NewPass), bcrypt.DefaultCost)
 	if err != nil {
-		return errors.Wrap(err, "couldn't change the password")
+		return nil, errors.Wrap(err, "couldn't generate the password hash")
+	}
+	u.User.Password = string(newPassHash)
+
+	_, err = a.userClient.Update(ctx, &user.UpdateRequest{
+		ID: req.ID,
+		User: &user.UpdateUser{
+			Password: u.User.Password,
+		},
+	})
+	if err != nil {
+		return nil, err
 	}
 
-	return nil
+	return nil, nil
 }
 
-// ValidateUserEmail sets the time when the user validated its email and the token he received.
-func (s *service) ValidateUserEmail(ctx context.Context, id, confirmationCode string, verifiedAt time.Time) error {
-	q := "UPDATE users SET email_verified_at=$2, confirmation_code=$3 WHERE id=$1"
-
-	_, err := s.DB.ExecContext(ctx, q, id, verifiedAt, confirmationCode)
+// ValidateEmail sets the time when the user validated its email and the token he received.
+func (a *Accounts) ValidateEmail(ctx context.Context, req *ValidateEmailRequest) (*ValidateEmailResponse, error) {
+	u, err := a.userClient.GetByEmail(ctx, &user.GetByEmailRequest{Email: req.Email})
 	if err != nil {
-		return errors.Wrap(err, "couldn't validate the user")
+		return nil, err
 	}
 
-	return nil
+	_, err = a.userClient.Update(ctx, &user.UpdateRequest{
+		ID: u.User.ID,
+		User: &user.UpdateUser{
+			VerifiedEmail:    req.VerifiedEmail,
+			ConfirmationCode: req.ConfirmationCode,
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	return nil, nil
 }
