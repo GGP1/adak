@@ -1,7 +1,8 @@
 package token
 
 import (
-	"math/rand"
+	"crypto/rand"
+	"math/big"
 
 	"github.com/pkg/errors"
 )
@@ -13,7 +14,9 @@ func GenerateRunes(length int) string {
 	b := make([]rune, length)
 
 	for i := range b {
-		b[i] = letterRunes[rand.Intn(len(letterRunes))]
+		// Don't handle error as it is always greater than 0
+		n, _ := rand.Int(rand.Reader, big.NewInt(int64(len(letterRunes))))
+		b[i] = letterRunes[n.Int64()]
 	}
 
 	return string(b)

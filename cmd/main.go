@@ -3,8 +3,6 @@ package main
 import (
 	"context"
 	"log"
-	"math/rand"
-	"time"
 
 	"github.com/GGP1/palo/cmd/server"
 	"github.com/GGP1/palo/internal/config"
@@ -15,8 +13,6 @@ import (
 )
 
 func main() {
-	rand.Seed(time.Now().UnixNano())
-
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -35,7 +31,7 @@ func main() {
 
 	srv := server.New(conf, router)
 
-	if err := srv.Start(); err != nil {
+	if err := srv.Start(ctx); err != nil {
 		log.Fatal(err)
 	}
 }
