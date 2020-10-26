@@ -86,7 +86,7 @@ func (s *Session) AlreadyLoggedIn(ctx context.Context, req *AlreadyLoggedInReque
 
 // Login authenticates users.
 func (s *Session) Login(ctx context.Context, req *LoginRequest) (*LoginResponse, error) {
-	if !s.delay[req.Email].IsZero() {
+	if !s.delay[req.Email].IsZero() && s.delay[req.Email].Sub(time.Now()) > 0 {
 		return nil, fmt.Errorf("please wait %v before trying again", s.delay[req.Email].Sub(time.Now()))
 	}
 
@@ -147,10 +147,9 @@ func (s *Session) loginDelay(email string) {
 	s.Lock()
 	defer s.Unlock()
 
-	t := s.tries[email]
-	t = append(t, struct{}{})
+	s.tries[email] = append(s.tries[email], struct{}{})
 
-	d := (len(s.tries) * 2)
+	d := (len(s.tries[email]) * 2)
 	s.delay[email] = time.Now().Add(time.Second * time.Duration(d))
 }
 
