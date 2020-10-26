@@ -3,6 +3,7 @@ package auth
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"sync"
 	"time"
@@ -30,98 +31,114 @@ type userData struct {
 type session struct {
 	sync.RWMutex
 
-	DB     *sqlx.DB
-	store  map[string]userData
-	clean  time.Time
+	DB *sqlx.DB
+	// user session
+	store map[string]userData
+	// last time the user logged in
+	cleaned time.Time
+	// session length
 	length int
+	// number of tries to log in
+	tries map[string][]struct{}
+	// time to wait after failing x times (increments every fail)
+	delay map[string]time.Time
 }
 
 // NewSession creates a new session with the necessary dependencies.
 func NewSession(db *sqlx.DB) Session {
 	return &session{
-		DB:     db,
-		store:  make(map[string]userData),
-		clean:  time.Now(),
-		length: 0,
+		DB:      db,
+		store:   make(map[string]userData),
+		cleaned: time.Now(),
+		length:  0,
+		tries:   make(map[string][]struct{}),
+		delay:   make(map[string]time.Time),
 	}
 }
 
 // AlreadyLoggedIn checks if the user has an active session or not.
-func (session *session) AlreadyLoggedIn(w http.ResponseWriter, r *http.Request) bool {
+func (s *session) AlreadyLoggedIn(w http.ResponseWriter, r *http.Request) bool {
 	cookie, err := r.Cookie("SID")
 	if err != nil {
 		return false
 	}
 
-	session.Lock()
-	defer session.Unlock()
+	s.Lock()
+	defer s.Unlock()
 
-	user, ok := session.store[cookie.Value]
+	user, ok := s.store[cookie.Value]
 	if ok {
 		user.lastSeen = time.Now()
-		session.store[cookie.Value] = user
+		s.store[cookie.Value] = user
 	}
 
-	cookie.MaxAge = session.length
+	cookie.MaxAge = s.length
 
 	return ok
 }
 
 // Clean deletes all the sessions that have expired.
-func (session *session) Clean() {
-	for key, value := range session.store {
+func (s *session) Clean() {
+	for key, value := range s.store {
 		if time.Now().Sub(value.lastSeen) > (time.Hour * 120) {
-			delete(session.store, key)
+			delete(s.store, key)
 		}
 	}
-	session.clean = time.Now()
+	s.cleaned = time.Now()
 }
 
 // Login authenticates users.
-func (session *session) Login(ctx context.Context, w http.ResponseWriter, email, password string) error {
-	var user User
+func (s *session) Login(ctx context.Context, w http.ResponseWriter, email, password string) error {
+	if !s.delay[email].IsZero() && s.delay[email].Sub(time.Now()) > 0 {
+		return fmt.Errorf("please wait %v before trying again", s.delay[email].Sub(time.Now()))
+	}
 
+	var user User
 	q := `SELECT id, cart_id, username, email, password, email_verified_at FROM users WHERE email=$1`
 
 	// Check if the email exists and if it is verified
-	if err := session.DB.GetContext(ctx, &user, q, email); err != nil {
-		return errors.New("invalid email")
+	if err := s.DB.GetContext(ctx, &user, q, email); err != nil {
+		s.loginDelay(email)
+		return errors.New("invalid email or password")
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
-		return errors.New("invalid password")
+		s.loginDelay(email)
+		return errors.New("invalid email or password")
 	}
 
-	for _, admin := range adminList {
+	for _, admin := range AdminList {
 		if admin == user.Email {
 			admID := token.GenerateRunes(8)
-			setCookie(w, "AID", admID, "/", session.length)
+			setCookie(w, "AID", admID, "/", s.length)
 		}
 	}
 
 	// -SID- used to add the user to the session map
 	sID := token.GenerateRunes(27)
-	setCookie(w, "SID", sID, "/", session.length)
+	setCookie(w, "SID", sID, "/", s.length)
 
-	session.Lock()
-	session.store[sID] = userData{user.Email, time.Now()}
-	session.Unlock()
+	s.Lock()
+	s.store[sID] = userData{user.Email, time.Now()}
+	delete(s.tries, email)
+	delete(s.delay, email)
+	s.Unlock()
 
 	// -UID- used to deny users from making requests to other accounts
 	userID, err := token.GenerateFixedJWT(user.ID)
 	if err != nil {
 		return errors.Wrap(err, "failed generating a jwt token")
 	}
-	setCookie(w, "UID", userID, "/", session.length)
+	setCookie(w, "UID", userID, "/", s.length)
 
 	// -CID- used to identify which cart belongs to each user
-	setCookie(w, "CID", user.CartID, "/", session.length)
+	setCookie(w, "CID", user.CartID, "/", s.length)
 
 	return nil
 }
 
 // Logout removes the user session and its cookies.
-func (session *session) Logout(w http.ResponseWriter, r *http.Request, c *http.Cookie) {
+func (s *session) Logout(w http.ResponseWriter, r *http.Request, c *http.Cookie) {
 	admin, _ := r.Cookie("AID")
 	if admin != nil {
 		deleteCookie(w, "AID")
@@ -131,13 +148,24 @@ func (session *session) Logout(w http.ResponseWriter, r *http.Request, c *http.C
 	deleteCookie(w, "UID")
 	deleteCookie(w, "CID")
 
-	session.Lock()
-	delete(session.store, c.Value)
-	session.Unlock()
+	s.Lock()
+	delete(s.store, c.Value)
+	s.Unlock()
 
-	if time.Now().Sub(session.clean) > (time.Second * 30) {
-		go session.Clean()
+	if time.Now().Sub(s.cleaned) > (time.Second * 30) {
+		go s.Clean()
 	}
+}
+
+// loginDelay increments the time that the user will have to wait after failing.
+func (s *session) loginDelay(email string) {
+	s.Lock()
+	defer s.Unlock()
+
+	s.tries[email] = append(s.tries[email], struct{}{})
+
+	d := (len(s.tries[email]) * 2)
+	s.delay[email] = time.Now().Add(time.Second * time.Duration(d))
 }
 
 func deleteCookie(w http.ResponseWriter, name string) {
