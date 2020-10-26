@@ -50,12 +50,9 @@ type changePassword struct {
 // ChangePassword updates the user password.
 func (h *Handler) ChangePassword() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		var changePass changePassword
 		uID, _ := r.Cookie("UID")
-
-		var (
-			changePass changePassword
-			ctx        = r.Context()
-		)
+		ctx := r.Context()
 
 		userID, err := token.ParseFixedJWT(uID.Value)
 		if err != nil {
@@ -80,10 +77,8 @@ func (h *Handler) ChangePassword() http.HandlerFunc {
 // SendChangeConfirmation takes the new email and sends an email confirmation.
 func (h *Handler) SendChangeConfirmation(u user.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var (
-			new changeEmail
-			ctx = r.Context()
-		)
+		var new changeEmail
+		ctx := r.Context()
 
 		if err := json.NewDecoder(r.Body).Decode(&new); err != nil {
 			response.Error(w, r, http.StatusBadRequest, err)
@@ -136,8 +131,7 @@ func (h *Handler) SendEmailValidation(u user.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		email := chi.URLParam(r, "email")
 		token := chi.URLParam(r, "token")
-
-		var ctx = r.Context()
+		ctx := r.Context()
 
 		usr, err := u.GetByEmail(ctx, email)
 		if err != nil {

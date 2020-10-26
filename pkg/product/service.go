@@ -176,7 +176,7 @@ func getRelationships(ctx context.Context, db *sqlx.DB, products []Product) ([]P
 		}(product)
 	}
 
-	for i := 0; i < len(products); i++ {
+	for range products {
 		select {
 		case p := <-ch:
 			list = append(list, p)

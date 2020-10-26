@@ -61,7 +61,7 @@ func Add(ctx context.Context, db *sqlx.DB, cartID string, p *Product, quantity i
 	}
 
 	db.QueryRow("SELECT SUM(quantity) FROM cart_products WHERE id=$1 AND cart_id=$2", p.ID, cartID).Scan(&sum)
-	// If sum == 0 (does not exist a product with the same id and cart_id), create the product.
+	// Create the product.
 	if sum == 0 {
 		_, err := db.ExecContext(ctx, pQuery, p.ID, cartID, p.Quantity, p.Brand, p.Category, p.Type, p.Description,
 			p.Weight, p.Discount, p.Taxes, p.Subtotal, p.Total)
@@ -69,7 +69,7 @@ func Add(ctx context.Context, db *sqlx.DB, cartID string, p *Product, quantity i
 			return nil, errors.Wrap(err, "couldn't create the product")
 		}
 	}
-	// If sum != 0 (product already exists), update the quantity.
+	// Update the quantity.
 	if sum != 0 {
 		p.Quantity += sum
 
@@ -136,7 +136,7 @@ func Products(ctx context.Context, db *sqlx.DB, cartID string) ([]Product, error
 	var products []Product
 
 	if err := db.SelectContext(ctx, &products, "SELECT * FROM cart_products WHERE cart_id=$1", cartID); err != nil {
-		return nil, errors.Wrap(err, "couldn't find the cart")
+		return nil, errors.Wrap(err, "couldn't find the cart products")
 	}
 
 	if len(products) == 0 {

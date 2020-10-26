@@ -24,10 +24,8 @@ type Handler struct {
 // Create creates a new user and saves it.
 func (h *Handler) Create() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var (
-			user AddUser
-			ctx  = r.Context()
-		)
+		var user AddUser
+		ctx := r.Context()
 
 		if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
 			response.Error(w, r, http.StatusBadRequest, err)
@@ -66,10 +64,7 @@ func (h *Handler) Delete(db *sqlx.DB, s auth.Session) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
 		uID, _ := r.Cookie("UID")
-
-		var (
-			ctx = r.Context()
-		)
+		ctx := r.Context()
 
 		if err := token.CheckPermits(id, uID.Value); err != nil {
 			response.Error(w, r, http.StatusUnauthorized, err)
@@ -133,12 +128,9 @@ func (h *Handler) GetByID() http.HandlerFunc {
 // QRCode shows the user id in a qrcode format.
 func (h *Handler) QRCode() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		var user ListUser
 		id := chi.URLParam(r, "id")
-
-		var (
-			user ListUser
-			ctx  = r.Context()
-		)
+		ctx := r.Context()
 
 		user, err := h.Service.GetByID(ctx, id)
 		if err != nil {
@@ -176,13 +168,10 @@ func (h *Handler) Search() http.HandlerFunc {
 // Update updates the user with the given id.
 func (h *Handler) Update() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		var user UpdateUser
 		id := chi.URLParam(r, "id")
 		uID, _ := r.Cookie("UID")
-
-		var (
-			user UpdateUser
-			ctx  = r.Context()
-		)
+		ctx := r.Context()
 
 		if err := token.CheckPermits(id, uID.Value); err != nil {
 			response.Error(w, r, http.StatusUnauthorized, err)

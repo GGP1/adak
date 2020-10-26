@@ -1,5 +1,4 @@
-// Package storage implements functions for the manipulation
-// of databases.
+// Package storage implements functions for the manipulation of databases.
 package storage
 
 import (

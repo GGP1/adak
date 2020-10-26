@@ -18,10 +18,8 @@ type Handler struct {
 // Create creates a new product and saves it.
 func (h *Handler) Create() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var (
-			product Product
-			ctx     = r.Context()
-		)
+		var product Product
+		ctx := r.Context()
 
 		if err := json.NewDecoder(r.Body).Decode(&product); err != nil {
 			response.Error(w, r, http.StatusBadRequest, err)
@@ -111,12 +109,9 @@ func (h *Handler) Search() http.HandlerFunc {
 // Update updates the product with the given id.
 func (h *Handler) Update() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		var product Product
 		id := chi.URLParam(r, "id")
-
-		var (
-			product Product
-			ctx     = r.Context()
-		)
+		ctx := r.Context()
 
 		if err := json.NewDecoder(r.Body).Decode(&product); err != nil {
 			response.Error(w, r, http.StatusBadRequest, err)

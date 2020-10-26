@@ -216,7 +216,7 @@ func getRelationships(ctx context.Context, db *sqlx.DB, orders []Order) ([]Order
 		}(order)
 	}
 
-	for i := 0; i < len(orders); i++ {
+	for range orders {
 		select {
 		case order := <-ch:
 			list = append(list, order)

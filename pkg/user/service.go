@@ -227,7 +227,7 @@ func getRelationships(ctx context.Context, db *sqlx.DB, users []ListUser) ([]Lis
 		}(user)
 	}
 
-	for i := 0; i < len(users); i++ {
+	for range users {
 		select {
 		case user := <-ch:
 			list = append(list, user)

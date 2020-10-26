@@ -47,7 +47,7 @@ func New(c *config.Configuration, router http.Handler) *Server {
 }
 
 // Start runs the server listening for errors.
-func (srv *Server) Start() error {
+func (srv *Server) Start(ctx context.Context) error {
 	stripe.Key = srv.Stripe.SecretKey
 
 	stripe.DefaultLeveledLogger = &stripe.LeveledLogger{
@@ -73,18 +73,16 @@ func (srv *Server) Start() error {
 		log.Println("main: Start shutdown")
 
 		// Give outstanding requests a deadline for completion
-		ctx, cancel := context.WithTimeout(context.Background(), srv.TimeoutShutdown)
+		ctx, cancel := context.WithTimeout(ctx, srv.TimeoutShutdown)
 		defer cancel()
 
 		// Asking listener to shutdown and load shed
-		err := srv.Shutdown(ctx)
-		if err != nil {
-			return fmt.Errorf("main: Graceful shutdown did not complete in %v : %v", srv.TimeoutShutdown, err)
+		if err := srv.Shutdown(ctx); err != nil {
+			return fmt.Errorf("main: Graceful shutdown did not complete in %v: %v", srv.TimeoutShutdown, err)
 		}
 
-		err = srv.Close()
-		if err != nil {
-			return fmt.Errorf("main: Couldn't stop server gracefully : %v", err)
+		if err := srv.Close(); err != nil {
+			return fmt.Errorf("main: Couldn't stop server gracefully: %v", err)
 		}
 		return nil
 	}

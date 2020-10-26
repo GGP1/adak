@@ -75,7 +75,10 @@ func New() (*Configuration, error) {
 	viper.SetConfigName(configFileName)
 	viper.SetConfigType(configType)
 
-	path := os.Getenv("PALO_CONFIG") + "/.env"
+	path := os.Getenv("PALO_CONFIG")
+	if filepath.Ext(path) == "" {
+		path += "/.env"
+	}
 
 	if err := godotenv.Load(path); err != nil {
 		return nil, errors.Wrap(err, "env loading failed")
@@ -113,8 +116,12 @@ func readConfiguration() error {
 	if err != nil {
 		// if file does not exist, simply create one
 		if _, err := os.Stat(configFileAbsPath + configFileExt); os.IsNotExist(err) {
-			os.MkdirAll(configurationDirectory, 0755)
-			os.Create(configFileAbsPath + configFileExt)
+			if err := os.MkdirAll(configurationDirectory, 0755); err != nil {
+				return errors.New("failed creating folder")
+			}
+			if _, err := os.Create(configFileAbsPath + configFileExt); err != nil {
+				return errors.New("failed creating file")
+			}
 		} else {
 			return err
 		}

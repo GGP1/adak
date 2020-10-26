@@ -21,10 +21,12 @@ func Error(w http.ResponseWriter, r *http.Request, status int, err error) {
 // HTMLText is the function used to send html text resposes.
 func HTMLText(w http.ResponseWriter, r *http.Request, status int, text string) {
 	w.Header().Set("Content-Type", "text/html; charset=UTF-8")
-
 	w.WriteHeader(status)
 
-	fmt.Fprintln(w, text)
+	_, err := fmt.Fprintln(w, text)
+	if err != nil {
+		Error(w, r, http.StatusInternalServerError, err)
+	}
 }
 
 // JSON is the function used to send JSON responses.
@@ -32,16 +34,15 @@ func JSON(w http.ResponseWriter, r *http.Request, status int, v interface{}) {
 	var buf bytes.Buffer
 
 	if err := json.NewEncoder(&buf).Encode(v); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		Error(w, r, http.StatusInternalServerError, err)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json; charset=utf-8")
-
 	w.WriteHeader(status)
 
 	if _, err := io.Copy(w, &buf); err != nil {
-		fmt.Println("Respond: ", err)
+		Error(w, r, http.StatusInternalServerError, fmt.Errorf("couldn't write to response writer: %v", err))
 	}
 }
 
@@ -58,7 +59,7 @@ func PNG(w http.ResponseWriter, r *http.Request, status int, img image.Image) {
 	w.Header().Set("Content-Type", "image/png")
 	w.Header().Set("Content-Length", strconv.Itoa(len(buf.Bytes())))
 
-	if _, err := w.Write(buf.Bytes()); err != nil {
-		http.Error(w, "unable to write image", http.StatusInternalServerError)
+	if _, err := io.Copy(w, &buf); err != nil {
+		Error(w, r, http.StatusInternalServerError, fmt.Errorf("couldn't write to response writer: %v", err))
 	}
 }

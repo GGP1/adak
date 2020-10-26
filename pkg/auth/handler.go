@@ -18,10 +18,8 @@ func Login(s Session) http.HandlerFunc {
 			return
 		}
 
-		var (
-			user User
-			ctx  = r.Context()
-		)
+		var user User
+		ctx := r.Context()
 
 		if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
 			response.Error(w, r, http.StatusBadRequest, err)

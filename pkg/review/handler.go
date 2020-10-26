@@ -19,12 +19,9 @@ type Handler struct {
 // Create creates a new review and saves it.
 func (h *Handler) Create() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		var review Review
 		uID, _ := r.Cookie("UID")
-
-		var (
-			review Review
-			ctx    = r.Context()
-		)
+		ctx := r.Context()
 
 		userID, err := token.ParseFixedJWT(uID.Value)
 		if err != nil {

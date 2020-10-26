@@ -20,12 +20,9 @@ type Handler struct {
 // Add appends a product to the cart.
 func (h *Handler) Add() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		var product Product
 		q := chi.URLParam(r, "quantity")
-
-		var (
-			product Product
-			ctx     = r.Context()
-		)
+		ctx := r.Context()
 
 		quantity, err := strconv.Atoi(q)
 		if err != nil {

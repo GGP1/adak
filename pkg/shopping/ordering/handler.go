@@ -116,13 +116,10 @@ func (h *Handler) GetByUserID() http.HandlerFunc {
 // New creates a new order and the payment intent.
 func (h *Handler) New() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		var oParams OrderParams
 		cID, _ := r.Cookie("CID")
 		uID, _ := r.Cookie("UID")
-
-		var (
-			oParams OrderParams
-			ctx     = r.Context()
-		)
+		ctx := r.Context()
 
 		if err := json.NewDecoder(r.Body).Decode(&oParams); err != nil {
 			response.Error(w, r, http.StatusBadRequest, err)

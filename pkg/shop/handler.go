@@ -18,10 +18,8 @@ type Handler struct {
 // Create creates a new shop and saves it.
 func (h *Handler) Create() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var (
-			shop *Shop
-			ctx  = r.Context()
-		)
+		var shop *Shop
+		ctx := r.Context()
 
 		if err := json.NewDecoder(r.Body).Decode(&shop); err != nil {
 			response.Error(w, r, http.StatusBadRequest, err)
@@ -111,12 +109,9 @@ func (h *Handler) Search() http.HandlerFunc {
 // Update updates the shop with the given id.
 func (h *Handler) Update() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		var shop *Shop
 		id := chi.URLParam(r, "id")
-
-		var (
-			shop *Shop
-			ctx  = r.Context()
-		)
+		ctx := r.Context()
 
 		if err := json.NewDecoder(r.Body).Decode(&shop); err != nil {
 			response.Error(w, r, http.StatusBadRequest, err)
