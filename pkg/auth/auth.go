@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/GGP1/palo/internal/token"
+	"github.com/GGP1/palo/pkg/tracking"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
@@ -19,7 +20,8 @@ import (
 type Session interface {
 	AlreadyLoggedIn(w http.ResponseWriter, r *http.Request) bool
 	Clean()
-	Login(ctx context.Context, w http.ResponseWriter, email, password string) error
+	Login(ctx context.Context, w http.ResponseWriter, r *http.Request, email, password string) error
+	LoginOAuth(ctx context.Context, w http.ResponseWriter, r *http.Request, email string) error
 	Logout(w http.ResponseWriter, r *http.Request, c *http.Cookie)
 }
 
@@ -29,19 +31,20 @@ type userData struct {
 }
 
 type session struct {
-	sync.RWMutex
-
 	DB *sqlx.DB
+
+	sync.RWMutex
 	// user session
 	store map[string]userData
+	// time to wait after failing x times (increments every fail)
+	delay map[string]time.Time
+	// number of tries to log in
+	tries map[string][]struct{}
+
 	// last time the user logged in
 	cleaned time.Time
 	// session length
 	length int
-	// number of tries to log in
-	tries map[string][]struct{}
-	// time to wait after failing x times (increments every fail)
-	delay map[string]time.Time
 }
 
 // NewSession creates a new session with the necessary dependencies.
@@ -79,6 +82,8 @@ func (s *session) AlreadyLoggedIn(w http.ResponseWriter, r *http.Request) bool {
 
 // Clean deletes all the sessions that have expired.
 func (s *session) Clean() {
+	s.Lock()
+	defer s.Unlock()
 	for key, value := range s.store {
 		if time.Now().Sub(value.lastSeen) > (time.Hour * 120) {
 			delete(s.store, key)
@@ -88,40 +93,88 @@ func (s *session) Clean() {
 }
 
 // Login authenticates users.
-func (s *session) Login(ctx context.Context, w http.ResponseWriter, email, password string) error {
-	if !s.delay[email].IsZero() && s.delay[email].Sub(time.Now()) > 0 {
-		return fmt.Errorf("please wait %v before trying again", s.delay[email].Sub(time.Now()))
+func (s *session) Login(ctx context.Context, w http.ResponseWriter, r *http.Request, email, password string) error {
+	s.Lock()
+	defer s.Unlock()
+
+	ip, err := tracking.GetUserIP(r)
+	if err != nil {
+		return err
+	}
+
+	if !s.delay[ip].IsZero() && s.delay[ip].Sub(time.Now()) > 0 {
+		return fmt.Errorf("please wait %v before trying again", s.delay[ip].Sub(time.Now()))
 	}
 
 	var user User
-	q := `SELECT id, cart_id, username, email, password, email_verified_at FROM users WHERE email=$1`
+	q := `SELECT id, cart_id, username, email, password, verified_email FROM users WHERE email=$1`
 
 	// Check if the email exists and if it is verified
 	if err := s.DB.GetContext(ctx, &user, q, email); err != nil {
-		s.loginDelay(email)
+		s.loginDelay(ip)
 		return errors.New("invalid email or password")
 	}
 
+	if !user.VerfiedEmail {
+		return errors.New("please verify your email to log in")
+	}
+
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
-		s.loginDelay(email)
+		s.loginDelay(ip)
 		return errors.New("invalid email or password")
 	}
 
 	for _, admin := range AdminList {
 		if admin == user.Email {
-			admID := token.GenerateRunes(8)
+			admID := token.RandString(8)
 			setCookie(w, "AID", admID, "/", s.length)
 		}
 	}
 
 	// -SID- used to add the user to the session map
-	sID := token.GenerateRunes(27)
+	sID := token.RandString(27)
+	setCookie(w, "SID", sID, "/", s.length)
+
+	s.store[sID] = userData{user.Email, time.Now()}
+	delete(s.tries, ip)
+	delete(s.delay, ip)
+
+	// -UID- used to deny users from making requests to other accounts
+	userID, err := token.GenerateFixedJWT(user.ID)
+	if err != nil {
+		return errors.Wrap(err, "failed generating a jwt token")
+	}
+	setCookie(w, "UID", userID, "/", s.length)
+
+	// -CID- used to identify which cart belongs to each user
+	setCookie(w, "CID", user.CartID, "/", s.length)
+
+	return nil
+}
+
+// Login authenticates users using OAuth2.
+func (s *session) LoginOAuth(ctx context.Context, w http.ResponseWriter, r *http.Request, email string) error {
+	var user User
+	q := `SELECT id, cart_id, username, email, password, verified_email FROM users WHERE email=$1`
+
+	// Check if the email exists and if it is verified
+	if err := s.DB.GetContext(ctx, &user, q, email); err != nil {
+		return errors.New("please register before logging in")
+	}
+
+	for _, admin := range AdminList {
+		if admin == user.Email {
+			admID := token.RandString(8)
+			setCookie(w, "AID", admID, "/", s.length)
+		}
+	}
+
+	// -SID- used to add the user to the session map
+	sID := token.RandString(27)
 	setCookie(w, "SID", sID, "/", s.length)
 
 	s.Lock()
 	s.store[sID] = userData{user.Email, time.Now()}
-	delete(s.tries, email)
-	delete(s.delay, email)
 	s.Unlock()
 
 	// -UID- used to deny users from making requests to other accounts
@@ -158,14 +211,14 @@ func (s *session) Logout(w http.ResponseWriter, r *http.Request, c *http.Cookie)
 }
 
 // loginDelay increments the time that the user will have to wait after failing.
-func (s *session) loginDelay(email string) {
+func (s *session) loginDelay(ip string) {
 	s.Lock()
 	defer s.Unlock()
 
-	s.tries[email] = append(s.tries[email], struct{}{})
+	s.tries[ip] = append(s.tries[ip], struct{}{})
 
-	d := (len(s.tries[email]) * 2)
-	s.delay[email] = time.Now().Add(time.Second * time.Duration(d))
+	d := (len(s.tries[ip]) * 2)
+	s.delay[ip] = time.Now().Add(time.Second * time.Duration(d))
 }
 
 func deleteCookie(w http.ResponseWriter, name string) {
@@ -174,7 +227,7 @@ func deleteCookie(w http.ResponseWriter, name string) {
 		Value:    "0",
 		Expires:  time.Unix(1414414788, 1414414788000),
 		Path:     "/",
-		Domain:   "127.0.0.1",
+		Domain:   "localhost",
 		Secure:   false,
 		HttpOnly: true,
 		MaxAge:   -1,
@@ -186,7 +239,7 @@ func setCookie(w http.ResponseWriter, name, value, path string, length int) {
 		Name:     name,
 		Value:    value,
 		Path:     path,
-		Domain:   "127.0.0.1",
+		Domain:   "localhost",
 		Secure:   false,
 		HttpOnly: true,
 		SameSite: 3,
