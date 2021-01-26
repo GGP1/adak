@@ -7,13 +7,14 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/GGP1/palo/internal/response"
-	"github.com/GGP1/palo/internal/token"
-	"github.com/GGP1/palo/pkg/shopping/cart"
-	"github.com/GGP1/palo/pkg/shopping/payment/stripe"
-	"github.com/go-playground/validator"
+	"github.com/GGP1/adak/internal/response"
+	"github.com/GGP1/adak/internal/sanitize"
+	"github.com/GGP1/adak/internal/token"
+	"github.com/GGP1/adak/pkg/shopping/cart"
+	"github.com/GGP1/adak/pkg/shopping/payment/stripe"
 
 	"github.com/go-chi/chi"
+	validator "github.com/go-playground/validator/v10"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -46,15 +47,14 @@ type Handler struct {
 func (h *Handler) Delete() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
-
 		ctx := r.Context()
 
 		if err := Delete(ctx, h.DB, id); err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
+			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
 
-		response.HTMLText(w, r, http.StatusOK, "The order has been deleted successfully.")
+		response.HTMLText(w, http.StatusOK, "The order has been deleted successfully.")
 	}
 }
 
@@ -65,11 +65,11 @@ func (h *Handler) Get() http.HandlerFunc {
 
 		orders, err := Get(ctx, h.DB)
 		if err != nil {
-			response.Error(w, r, http.StatusNotFound, err)
+			response.Error(w, http.StatusNotFound, err)
 			return
 		}
 
-		response.JSON(w, r, http.StatusOK, orders)
+		response.JSON(w, http.StatusOK, orders)
 	}
 }
 
@@ -77,16 +77,15 @@ func (h *Handler) Get() http.HandlerFunc {
 func (h *Handler) GetByID() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
-
 		ctx := r.Context()
 
 		order, err := GetByID(ctx, h.DB, id)
 		if err != nil {
-			response.Error(w, r, http.StatusNotFound, err)
+			response.Error(w, http.StatusNotFound, err)
 			return
 		}
 
-		response.JSON(w, r, http.StatusOK, order)
+		response.JSON(w, http.StatusOK, order)
 	}
 }
 
@@ -95,21 +94,20 @@ func (h *Handler) GetByUserID() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
 		uID, _ := r.Cookie("UID")
-
 		ctx := r.Context()
 
 		if err := token.CheckPermits(id, uID.Value); err != nil {
-			response.Error(w, r, http.StatusUnauthorized, err)
+			response.Error(w, http.StatusUnauthorized, err)
 			return
 		}
 
 		orders, err := GetByUserID(ctx, h.DB, id)
 		if err != nil {
-			response.Error(w, r, http.StatusNotFound, err)
+			response.Error(w, http.StatusNotFound, err)
 			return
 		}
 
-		response.JSON(w, r, http.StatusOK, orders)
+		response.JSON(w, http.StatusOK, orders)
 	}
 }
 
@@ -122,7 +120,7 @@ func (h *Handler) New() http.HandlerFunc {
 		ctx := r.Context()
 
 		if err := json.NewDecoder(r.Body).Decode(&oParams); err != nil {
-			response.Error(w, r, http.StatusBadRequest, err)
+			response.Error(w, http.StatusBadRequest, err)
 		}
 		defer r.Body.Close()
 
@@ -132,48 +130,52 @@ func (h *Handler) New() http.HandlerFunc {
 			return
 		}
 
+		if err := sanitize.Normalize(&oParams.Address, &oParams.City, &oParams.Country, &oParams.Currency, &oParams.State, &oParams.ZipCode); err != nil {
+			response.Error(w, http.StatusBadRequest, err)
+			return
+		}
+
 		// Parse jwt to take the user id
-		userID, err := token.ParseFixedJWT(uID.Value)
+		userID, err := token.GetUserID(uID.Value)
 		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
+			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
 
 		// Format date
 		deliveryDate := time.Date(oParams.Date.Year, time.Month(oParams.Date.Month), oParams.Date.Day, oParams.Date.Hour, oParams.Date.Minutes, 0, 0, time.Local)
-
 		if deliveryDate.Sub(time.Now()) < 0 {
-			response.Error(w, r, http.StatusBadRequest, errors.New("past dates are not valid"))
+			response.Error(w, http.StatusBadRequest, errors.New("past dates are not valid"))
 			return
 		}
 
 		// Fetch the user cart
 		cart, err := cart.Get(ctx, h.DB, cID.Value)
 		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
+			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
 
 		// Create order passing userID, order params, delivery date and the user cart
 		order, err := New(ctx, h.DB, userID, oParams, deliveryDate, cart)
 		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
+			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
 
 		// Create payment intent and update the order status
 		_, err = stripe.CreateIntent(order.ID, order.CartID, order.Currency, order.Cart.Total, oParams.Card)
 		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
+			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
 
 		if err := UpdateStatus(ctx, h.DB, order.ID, PaidState); err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
+			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
 
 		respond := fmt.Sprintf("Thanks for your purchase! Your products will be delivered on %v.", order.DeliveryDate)
-		response.HTMLText(w, r, http.StatusCreated, respond)
+		response.HTMLText(w, http.StatusCreated, respond)
 	}
 }

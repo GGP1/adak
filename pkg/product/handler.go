@@ -4,10 +4,11 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/GGP1/palo/internal/response"
-	"github.com/go-playground/validator"
+	"github.com/GGP1/adak/internal/response"
+	"github.com/GGP1/adak/internal/sanitize"
 
 	"github.com/go-chi/chi"
+	validator "github.com/go-playground/validator/v10"
 )
 
 // Handler handles product endpoints.
@@ -22,7 +23,7 @@ func (h *Handler) Create() http.HandlerFunc {
 		ctx := r.Context()
 
 		if err := json.NewDecoder(r.Body).Decode(&product); err != nil {
-			response.Error(w, r, http.StatusBadRequest, err)
+			response.Error(w, http.StatusBadRequest, err)
 			return
 		}
 		defer r.Body.Close()
@@ -33,11 +34,11 @@ func (h *Handler) Create() http.HandlerFunc {
 		}
 
 		if err := h.Service.Create(ctx, &product); err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
+			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
 
-		response.JSON(w, r, http.StatusCreated, product)
+		response.JSON(w, http.StatusCreated, product)
 	}
 }
 
@@ -45,15 +46,14 @@ func (h *Handler) Create() http.HandlerFunc {
 func (h *Handler) Delete() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
-
 		ctx := r.Context()
 
 		if err := h.Service.Delete(ctx, id); err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
+			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
 
-		response.HTMLText(w, r, http.StatusOK, "Product deleted successfully.")
+		response.HTMLText(w, http.StatusOK, "Product deleted successfully.")
 	}
 }
 
@@ -64,11 +64,11 @@ func (h *Handler) Get() http.HandlerFunc {
 
 		products, err := h.Service.Get(ctx)
 		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
+			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
 
-		response.JSON(w, r, http.StatusOK, products)
+		response.JSON(w, http.StatusOK, products)
 	}
 }
 
@@ -76,16 +76,15 @@ func (h *Handler) Get() http.HandlerFunc {
 func (h *Handler) GetByID() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
-
 		ctx := r.Context()
 
 		product, err := h.Service.GetByID(ctx, id)
 		if err != nil {
-			response.Error(w, r, http.StatusNotFound, err)
+			response.Error(w, http.StatusNotFound, err)
 			return
 		}
 
-		response.JSON(w, r, http.StatusOK, product)
+		response.JSON(w, http.StatusOK, product)
 	}
 }
 
@@ -93,16 +92,20 @@ func (h *Handler) GetByID() http.HandlerFunc {
 func (h *Handler) Search() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		query := chi.URLParam(r, "query")
-
 		ctx := r.Context()
 
-		products, err := h.Service.Search(ctx, query)
-		if err != nil {
-			response.Error(w, r, http.StatusNotFound, err)
+		if err := sanitize.Normalize(&query); err != nil {
+			response.Error(w, http.StatusBadRequest, err)
 			return
 		}
 
-		response.JSON(w, r, http.StatusOK, products)
+		products, err := h.Service.Search(ctx, query)
+		if err != nil {
+			response.Error(w, http.StatusNotFound, err)
+			return
+		}
+
+		response.JSON(w, http.StatusOK, products)
 	}
 }
 
@@ -114,16 +117,16 @@ func (h *Handler) Update() http.HandlerFunc {
 		ctx := r.Context()
 
 		if err := json.NewDecoder(r.Body).Decode(&product); err != nil {
-			response.Error(w, r, http.StatusBadRequest, err)
+			response.Error(w, http.StatusBadRequest, err)
 			return
 		}
 		defer r.Body.Close()
 
 		if err := h.Service.Update(ctx, &product, id); err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
+			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
 
-		response.JSON(w, r, http.StatusOK, product)
+		response.JSON(w, http.StatusOK, product)
 	}
 }

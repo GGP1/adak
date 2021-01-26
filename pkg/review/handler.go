@@ -4,11 +4,11 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/GGP1/palo/internal/response"
-	"github.com/GGP1/palo/internal/token"
-	"github.com/go-playground/validator"
+	"github.com/GGP1/adak/internal/response"
+	"github.com/GGP1/adak/internal/token"
 
 	"github.com/go-chi/chi"
+	validator "github.com/go-playground/validator/v10"
 )
 
 // Handler handles reviews endpoints.
@@ -20,17 +20,21 @@ type Handler struct {
 func (h *Handler) Create() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var review Review
-		uID, _ := r.Cookie("UID")
 		ctx := r.Context()
-
-		userID, err := token.ParseFixedJWT(uID.Value)
+		uID, err := r.Cookie("UID")
 		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
+			http.Redirect(w, r, "http://localhost:4000/login", http.StatusTemporaryRedirect)
+			return
+		}
+
+		userID, err := token.GetUserID(uID.Value)
+		if err != nil {
+			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
 
 		if err := json.NewDecoder(r.Body).Decode(&review); err != nil {
-			response.Error(w, r, http.StatusBadRequest, err)
+			response.Error(w, http.StatusBadRequest, err)
 			return
 		}
 		defer r.Body.Close()
@@ -41,11 +45,11 @@ func (h *Handler) Create() http.HandlerFunc {
 		}
 
 		if err := h.Service.Create(ctx, &review, userID); err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
+			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
 
-		response.JSON(w, r, http.StatusCreated, review)
+		response.JSON(w, http.StatusCreated, review)
 	}
 }
 
@@ -53,15 +57,14 @@ func (h *Handler) Create() http.HandlerFunc {
 func (h *Handler) Delete() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
-
 		ctx := r.Context()
 
 		if err := h.Service.Delete(ctx, id); err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
+			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
 
-		response.HTMLText(w, r, http.StatusOK, "Review deleted successfully.")
+		response.HTMLText(w, http.StatusOK, "Review deleted successfully.")
 	}
 }
 
@@ -72,11 +75,11 @@ func (h *Handler) Get() http.HandlerFunc {
 
 		reviews, err := h.Service.Get(ctx)
 		if err != nil {
-			response.Error(w, r, http.StatusNotFound, err)
+			response.Error(w, http.StatusNotFound, err)
 			return
 		}
 
-		response.JSON(w, r, http.StatusOK, reviews)
+		response.JSON(w, http.StatusOK, reviews)
 	}
 }
 
@@ -84,15 +87,14 @@ func (h *Handler) Get() http.HandlerFunc {
 func (h *Handler) GetByID() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
-
 		ctx := r.Context()
 
 		review, err := h.Service.GetByID(ctx, id)
 		if err != nil {
-			response.Error(w, r, http.StatusNotFound, err)
+			response.Error(w, http.StatusNotFound, err)
 			return
 		}
 
-		response.JSON(w, r, http.StatusOK, review)
+		response.JSON(w, http.StatusOK, review)
 	}
 }

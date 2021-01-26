@@ -4,14 +4,15 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/GGP1/palo/internal/email"
-	"github.com/GGP1/palo/internal/response"
-	"github.com/GGP1/palo/internal/token"
-	"github.com/GGP1/palo/pkg/auth"
-	"github.com/GGP1/palo/pkg/shopping/cart"
+	"github.com/GGP1/adak/internal/email"
+	"github.com/GGP1/adak/internal/response"
+	"github.com/GGP1/adak/internal/sanitize"
+	"github.com/GGP1/adak/internal/token"
+	"github.com/GGP1/adak/pkg/auth"
+	"github.com/GGP1/adak/pkg/shopping/cart"
 
 	"github.com/go-chi/chi"
-	"github.com/go-playground/validator/v10"
+	validator "github.com/go-playground/validator/v10"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 )
@@ -28,7 +29,7 @@ func (h *Handler) Create() http.HandlerFunc {
 		ctx := r.Context()
 
 		if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
-			response.Error(w, r, http.StatusBadRequest, err)
+			response.Error(w, http.StatusBadRequest, err)
 			return
 		}
 		defer r.Body.Close()
@@ -38,23 +39,28 @@ func (h *Handler) Create() http.HandlerFunc {
 			return
 		}
 
-		confirmationCode := token.GenerateRunes(20)
+		if err := sanitize.Normalize(&user.Username, &user.Email); err != nil {
+			response.Error(w, http.StatusBadRequest, err)
+			return
+		}
+
+		confirmationCode := token.RandString(20)
 		errCh := make(chan error, 1)
 
 		go email.SendValidation(ctx, user.Username, user.Email, confirmationCode, errCh)
 
 		select {
 		case <-ctx.Done():
-			response.Error(w, r, http.StatusInternalServerError, ctx.Err())
-		case <-errCh:
-			response.Error(w, r, http.StatusInternalServerError, errors.Wrap(<-errCh, "failed sending validation email"))
+			response.Error(w, http.StatusInternalServerError, ctx.Err())
+		case err := <-errCh:
+			response.Error(w, http.StatusInternalServerError, errors.Wrap(err, "failed sending validation email"))
 		default:
 			if err := h.Service.Create(ctx, &user); err != nil {
-				response.Error(w, r, http.StatusBadRequest, err)
+				response.Error(w, http.StatusBadRequest, err)
 				return
 			}
 
-			response.HTMLText(w, r, http.StatusCreated, "Your account was successfully created.\nWe've sent you an email to validate your account.")
+			response.HTMLText(w, http.StatusCreated, "Your account was successfully created.\nWe've sent you an email to validate your account.")
 		}
 	}
 }
@@ -67,29 +73,29 @@ func (h *Handler) Delete(db *sqlx.DB, s auth.Session) http.HandlerFunc {
 		ctx := r.Context()
 
 		if err := token.CheckPermits(id, uID.Value); err != nil {
-			response.Error(w, r, http.StatusUnauthorized, err)
+			response.Error(w, http.StatusUnauthorized, err)
 			return
 		}
 
 		user, err := h.Service.GetByID(ctx, id)
 		if err != nil {
-			response.Error(w, r, http.StatusNotFound, err)
+			response.Error(w, http.StatusNotFound, err)
 			return
 		}
 
 		if err := cart.Delete(ctx, db, user.CartID); err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
+			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
 
 		if err := h.Service.Delete(ctx, id); err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
+			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
 
 		s.Logout(w, r, uID)
 
-		response.HTMLText(w, r, http.StatusOK, "User deleted successfully.")
+		response.HTMLText(w, http.StatusOK, "User deleted successfully.")
 	}
 }
 
@@ -100,11 +106,11 @@ func (h *Handler) Get() http.HandlerFunc {
 
 		users, err := h.Service.Get(ctx)
 		if err != nil {
-			response.Error(w, r, http.StatusNotFound, err)
+			response.Error(w, http.StatusNotFound, err)
 			return
 		}
 
-		response.JSON(w, r, http.StatusOK, users)
+		response.JSON(w, http.StatusOK, users)
 	}
 }
 
@@ -112,16 +118,47 @@ func (h *Handler) Get() http.HandlerFunc {
 func (h *Handler) GetByID() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
-
 		ctx := r.Context()
 
 		user, err := h.Service.GetByID(ctx, id)
 		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
+			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
 
-		response.JSON(w, r, http.StatusOK, user)
+		response.JSON(w, http.StatusOK, user)
+	}
+}
+
+// GetByEmail lists the user with the id requested.
+func (h *Handler) GetByEmail() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		email := chi.URLParam(r, "email")
+		ctx := r.Context()
+
+		user, err := h.Service.GetByEmail(ctx, email)
+		if err != nil {
+			response.Error(w, http.StatusInternalServerError, err)
+			return
+		}
+
+		response.JSON(w, http.StatusOK, user)
+	}
+}
+
+// GetByUsername lists the user with the id requested.
+func (h *Handler) GetByUsername() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		username := chi.URLParam(r, "username")
+		ctx := r.Context()
+
+		user, err := h.Service.GetByUsername(ctx, username)
+		if err != nil {
+			response.Error(w, http.StatusInternalServerError, err)
+			return
+		}
+
+		response.JSON(w, http.StatusOK, user)
 	}
 }
 
@@ -134,17 +171,17 @@ func (h *Handler) QRCode() http.HandlerFunc {
 
 		user, err := h.Service.GetByID(ctx, id)
 		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
+			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
 
 		img, err := user.QRCode()
 		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
+			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
 
-		response.PNG(w, r, http.StatusOK, img)
+		response.PNG(w, http.StatusOK, img)
 	}
 }
 
@@ -152,16 +189,20 @@ func (h *Handler) QRCode() http.HandlerFunc {
 func (h *Handler) Search() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		query := chi.URLParam(r, "query")
-
 		ctx := r.Context()
 
-		users, err := h.Service.Search(ctx, query)
-		if err != nil {
-			response.Error(w, r, http.StatusNotFound, err)
+		if err := sanitize.Normalize(&query); err != nil {
+			response.Error(w, http.StatusBadRequest, err)
 			return
 		}
 
-		response.JSON(w, r, http.StatusOK, users)
+		users, err := h.Service.Search(ctx, query)
+		if err != nil {
+			response.Error(w, http.StatusNotFound, err)
+			return
+		}
+
+		response.JSON(w, http.StatusOK, users)
 	}
 }
 
@@ -174,12 +215,12 @@ func (h *Handler) Update() http.HandlerFunc {
 		ctx := r.Context()
 
 		if err := token.CheckPermits(id, uID.Value); err != nil {
-			response.Error(w, r, http.StatusUnauthorized, err)
+			response.Error(w, http.StatusUnauthorized, err)
 			return
 		}
 
 		if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
-			response.Error(w, r, http.StatusBadRequest, err)
+			response.Error(w, http.StatusBadRequest, err)
 			return
 		}
 		defer r.Body.Close()
@@ -190,10 +231,10 @@ func (h *Handler) Update() http.HandlerFunc {
 		}
 
 		if err := h.Service.Update(ctx, &user, id); err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
+			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
 
-		response.HTMLText(w, r, http.StatusOK, "User updated successfully.")
+		response.HTMLText(w, http.StatusOK, "User updated successfully.")
 	}
 }

@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/GGP1/palo/internal/response"
-	"github.com/GGP1/palo/internal/sanitize"
-	"github.com/GGP1/palo/internal/token"
+	"github.com/GGP1/adak/internal/response"
+	"github.com/GGP1/adak/internal/sanitize"
+	"github.com/GGP1/adak/internal/token"
 
 	validator "github.com/go-playground/validator/v10"
 	"github.com/pkg/errors"
@@ -40,31 +40,31 @@ func Login(s Session) http.HandlerFunc {
 			return
 		}
 
-		var user User
+		var auth UserAuth
 		ctx := r.Context()
 
-		if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
+		if err := json.NewDecoder(r.Body).Decode(&auth); err != nil {
 			response.Error(w, http.StatusBadRequest, err)
 			return
 		}
 		defer r.Body.Close()
 
-		if err := validator.New().StructCtx(ctx, user); err != nil {
+		if err := validator.New().StructCtx(ctx, auth); err != nil {
 			http.Error(w, err.(validator.ValidationErrors).Error(), http.StatusBadRequest)
 			return
 		}
 
-		if err := sanitize.Normalize(&user.Email, &user.Password); err != nil {
+		if err := sanitize.Normalize(&auth.Email, &auth.Password); err != nil {
 			response.Error(w, http.StatusBadRequest, err)
 			return
 		}
 
-		if err := s.Login(ctx, w, r, user.Email, user.Password); err != nil {
+		if err := s.Login(ctx, w, r, auth.Email, auth.Password); err != nil {
 			response.Error(w, http.StatusUnauthorized, err)
 			return
 		}
 
-		response.HTMLText(w, r, http.StatusOK, "You logged in!")
+		response.HTMLText(w, http.StatusOK, "You logged in!")
 	}
 }
 
@@ -72,7 +72,6 @@ func Login(s Session) http.HandlerFunc {
 func Logout(s Session) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		c, _ := r.Cookie("SID")
-
 		if c == nil {
 			response.Error(w, http.StatusBadRequest, errors.New("error: you cannot log out without a session"))
 			return
@@ -81,7 +80,7 @@ func Logout(s Session) http.HandlerFunc {
 		// Logout user from the session and delete cookies
 		s.Logout(w, r, c)
 
-		response.HTMLText(w, r, http.StatusOK, "You are now logged out.")
+		response.HTMLText(w, http.StatusOK, "You are now logged out.")
 	}
 }
 
@@ -124,7 +123,7 @@ func OAuth2Google(s Session) http.HandlerFunc {
 			return
 		}
 
-		response.HTMLText(w, r, http.StatusOK, "You logged in!")
+		response.HTMLText(w, http.StatusOK, "You logged in!")
 	}
 }
 
