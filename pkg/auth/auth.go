@@ -1,4 +1,4 @@
-// Package auth provides authentication and authorization support.
+// Package auth provides user authentication and authorization support.
 package auth
 
 import (
@@ -8,8 +8,9 @@ import (
 	"sync"
 	"time"
 
-	"github.com/GGP1/palo/internal/token"
-	"github.com/GGP1/palo/pkg/tracking"
+	"github.com/GGP1/adak/internal/cookie"
+	"github.com/GGP1/adak/internal/token"
+	"github.com/GGP1/adak/pkg/tracking"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
@@ -97,10 +98,7 @@ func (s *session) Login(ctx context.Context, w http.ResponseWriter, r *http.Requ
 	s.Lock()
 	defer s.Unlock()
 
-	ip, err := tracking.GetUserIP(r)
-	if err != nil {
-		return err
-	}
+	ip := tracking.GetUserIP(r)
 
 	if !s.delay[ip].IsZero() && s.delay[ip].Sub(time.Now()) > 0 {
 		return fmt.Errorf("please wait %v before trying again", s.delay[ip].Sub(time.Now()))
@@ -127,13 +125,13 @@ func (s *session) Login(ctx context.Context, w http.ResponseWriter, r *http.Requ
 	for _, admin := range AdminList {
 		if admin == user.Email {
 			admID := token.RandString(8)
-			setCookie(w, "AID", admID, "/", s.length)
+			cookie.Set(w, "AID", admID, "/", s.length)
 		}
 	}
 
 	// -SID- used to add the user to the session map
 	sID := token.RandString(27)
-	setCookie(w, "SID", sID, "/", s.length)
+	cookie.Set(w, "SID", sID, "/", s.length)
 
 	s.store[sID] = userData{user.Email, time.Now()}
 	delete(s.tries, ip)
@@ -144,10 +142,10 @@ func (s *session) Login(ctx context.Context, w http.ResponseWriter, r *http.Requ
 	if err != nil {
 		return errors.Wrap(err, "failed generating a jwt token")
 	}
-	setCookie(w, "UID", userID, "/", s.length)
+	cookie.Set(w, "UID", userID, "/", s.length)
 
 	// -CID- used to identify which cart belongs to each user
-	setCookie(w, "CID", user.CartID, "/", s.length)
+	cookie.Set(w, "CID", user.CartID, "/", s.length)
 
 	return nil
 }
@@ -165,27 +163,34 @@ func (s *session) LoginOAuth(ctx context.Context, w http.ResponseWriter, r *http
 	for _, admin := range AdminList {
 		if admin == user.Email {
 			admID := token.RandString(8)
-			setCookie(w, "AID", admID, "/", s.length)
+			cookie.Set(w, "AID", admID, "/", s.length)
 		}
 	}
 
 	// -SID- used to add the user to the session map
 	sID := token.RandString(27)
-	setCookie(w, "SID", sID, "/", s.length)
+	if err := cookie.Set(w, "SID", sID, "/", s.length); err != nil {
+		return err
+	}
 
 	s.Lock()
 	s.store[sID] = userData{user.Email, time.Now()}
 	s.Unlock()
 
-	// -UID- used to deny users from making requests to other accounts
 	userID, err := token.GenerateFixedJWT(user.ID)
 	if err != nil {
 		return errors.Wrap(err, "failed generating a jwt token")
 	}
-	setCookie(w, "UID", userID, "/", s.length)
+
+	// -UID- used to deny users from making requests to other accounts
+	if err := cookie.Set(w, "UID", userID, "/", s.length); err != nil {
+		return err
+	}
 
 	// -CID- used to identify which cart belongs to each user
-	setCookie(w, "CID", user.CartID, "/", s.length)
+	if err := cookie.Set(w, "CID", user.CartID, "/", s.length); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -194,12 +199,12 @@ func (s *session) LoginOAuth(ctx context.Context, w http.ResponseWriter, r *http
 func (s *session) Logout(w http.ResponseWriter, r *http.Request, c *http.Cookie) {
 	admin, _ := r.Cookie("AID")
 	if admin != nil {
-		deleteCookie(w, "AID")
+		cookie.Delete(w, "AID")
 	}
 
-	deleteCookie(w, "SID")
-	deleteCookie(w, "UID")
-	deleteCookie(w, "CID")
+	cookie.Delete(w, "SID")
+	cookie.Delete(w, "UID")
+	cookie.Delete(w, "CID")
 
 	s.Lock()
 	delete(s.store, c.Value)
@@ -219,30 +224,4 @@ func (s *session) loginDelay(ip string) {
 
 	d := (len(s.tries[ip]) * 2)
 	s.delay[ip] = time.Now().Add(time.Second * time.Duration(d))
-}
-
-func deleteCookie(w http.ResponseWriter, name string) {
-	http.SetCookie(w, &http.Cookie{
-		Name:     name,
-		Value:    "0",
-		Expires:  time.Unix(1414414788, 1414414788000),
-		Path:     "/",
-		Domain:   "localhost",
-		Secure:   false,
-		HttpOnly: true,
-		MaxAge:   -1,
-	})
-}
-
-func setCookie(w http.ResponseWriter, name, value, path string, length int) {
-	http.SetCookie(w, &http.Cookie{
-		Name:     name,
-		Value:    value,
-		Path:     path,
-		Domain:   "localhost",
-		Secure:   false,
-		HttpOnly: true,
-		SameSite: 3,
-		MaxAge:   length,
-	})
 }
