@@ -1,0 +1,1969 @@
+openapi: 3.0.1
+info:
+  title: Adak
+  description: Adak e-commerce API.
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+  version: 1.0.0
+
+components:
+  securitySchemes:
+      googleOAuth2:
+        type: oauth2
+        description: Login with Google
+        flows: 
+          authorizationCode:
+            authorizationUrl: https://accounts.google.com/o/oauth2/auth
+            tokenUrl: https://oauth2.googleapis.com/token
+            scopes:
+              user_info: Read user information
+  schemas:
+    # Cart
+    Cart:
+      type: object
+      properties:
+        id:
+          type: string
+        counter:
+          type: integer
+          format: int64
+        weight:
+          type: integer
+          format: int64
+        discount:
+          type: integer
+          format: int64
+        taxes:
+          type: integer
+          format: int64
+        subtotal:
+          type: integer
+          format: int64
+        total:
+          type: integer
+          format: int64
+        products:
+          type: array
+          items:
+            $ref: '#/components/schemas/CartProduct'
+    
+    CartProduct:
+      type: object
+      properties:
+        id:
+          type: string
+        cart_id:
+          type: string
+        quantity:
+          type: integer
+          format: int64
+        brand:
+          type: string
+        category:
+          type: string
+        type:
+          type: string
+        description:
+          type: string
+        weight:
+          type: integer
+          format: int64
+        discount:
+          type: integer
+          format: int64
+        taxes:
+          type: integer
+          format: int64
+        subtotal:
+          type: integer
+          format: int64
+        total:
+          type: integer
+          format: int64
+    
+    Error:
+      type: object
+      properties:
+        status:
+          type: integer
+          format: int64
+        error:
+          type: string
+    
+    # Ordering
+    Order:
+      type: object
+      properties:
+        id:
+          type: string
+        user_id:
+          type: string
+        currency:
+          type: string
+        address:
+          type: string
+        city:
+          type: string
+        state:
+          type: string
+        zip_code:
+          type: string
+        country:
+          type: string
+        status:
+          type: string
+        ordered_at:
+          type: string
+          format: date-time
+        delivery_date:
+          type: string
+          format: date-time
+        cart_id:
+          type: string
+        cart:
+          type: object
+          items:
+            $ref: '#/components/schemas/OrderCart'
+        products:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderProduct'
+    
+    OrderCart:
+      type: object
+      properties:
+        order_id:
+          type: string
+        counter:
+          type: integer
+          format: int64
+        weight:
+          type: integer
+          format: int64
+        discount:
+          type: integer
+          format: int64
+        taxes:
+          type: integer
+          format: int64
+        subtotal:
+          type: integer
+          format: int64
+        total:
+          type: integer
+          format: int64
+    
+    OrderParams:
+      type: object
+      properties:
+        currency:
+          type: string
+        country:
+          type: string
+        state:
+          type: string
+        zip_code:
+          type: string
+        city:
+          type: string
+        address:
+          type: string
+        date:
+          type: object
+          properties:
+            year:
+              type: integer
+              format: int64
+            month:
+              type: integer
+              format: int64
+            day:
+              type: integer
+              format: int64
+            hour:
+              type: integer
+              format: int64
+            minutes:
+              type: integer
+              format: int64
+        card:
+          type: object
+          items:
+            $ref: '#/components/schemas/Card'
+    
+    OrderProduct:
+      type: object
+      properties:
+        product_id:
+          type: string
+        order_id:
+          type: string
+        quantity:
+          type: integer
+          format: int64
+        brand:
+          type: string
+        category:
+          type: string
+        type:
+          type: string
+        description:
+          type: string
+        weight:
+          type: integer
+          format: int64
+        discount:
+          type: integer
+          format: int64
+        taxes:
+          type: integer
+          format: int64
+        subtotal:
+          type: integer
+          format: int64
+        total:
+          type: integer
+          format: int64
+    
+    # Product
+    Product:
+      type: object
+      properties:
+        id:
+          type: string
+        shop:
+          type: string
+        stock:
+          type: string
+        brand:
+          type: string
+        category:
+          type: string
+        type:
+          type: string
+        description:
+          type: string
+        weight:
+          type: integer
+          format: int64
+        discount:
+          type: integer
+          format: int64
+        taxes:
+          type: integer
+          format: int64
+        subtotal:
+          type: integer
+          format: int64
+        total:
+          type: integer
+          format: int64
+        reviews:
+          type: array
+          items:
+            $ref: '#/components/schemas/Review'
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    
+    # Review
+    Review:
+      type: object
+      properties:
+        id:
+          type: string
+        stars:
+          type: integer
+          format: int64
+        comments:
+          type: string
+        user_id:
+          type: string
+        product_id:
+          type: string
+        shop_id:
+          type: string
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    
+    # Shop
+    Shop:
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        location:
+          type: object
+          items:
+            $ref: '#/components/schemas/Location'
+        reviews:
+          type: array
+          items:
+            $ref: '#/components/schemas/Review'
+        products:
+          type: array
+          items:
+            $ref: '#/components/schemas/Product'
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    
+    Location:
+      type: object
+      properties:
+        shop_id:
+          type: string
+        country:
+          type: string
+        state:
+          type: string
+        zip_code:
+          type: string
+        city:
+          type: string
+        address:
+          type: string
+    
+    # Stripe
+    Card:
+      type: object
+      properties:
+        number:
+          type: string
+        exp_month:
+          type: string
+        exp_year:
+          type: string
+        cvc:
+          type: string
+    
+    # Tracking
+    Hit:
+      type: object
+      properties:
+        id:
+          type: string
+        footprint:
+          type: string
+        path:
+          type: string
+        url:
+          type: string
+        language:
+          type: string
+        user_agent:
+          type: string
+        referer:
+          type: string
+        date:
+          type: string
+          format: date-time
+    
+    # User
+    User:
+      type: object
+      properties:
+        id:
+          type: string
+        username:
+          type: string
+        email:
+          type: string
+        password:
+          type: string
+        orders:
+          type: array
+          items:
+            $ref: '#/components/schemas/Order'
+        reviews:
+          type: array
+          items:
+            $ref: '#/components/schemas/Review'
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+
+paths: 
+  #Auth
+  /login:
+    post:
+      summary: Authenticates users.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Successful login
+          content: 
+            text/html:
+              schema:
+                type: string
+        '401':
+          description: 
+            please verify your email before logging in
+            invalid {field}
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /login/google:
+    get:
+      summary: Login with Google
+      security: 
+        - googleOAuth2: [user_info]
+      responses:
+        '200':
+          description: Successful login
+          content:
+            text/html:
+              schema:
+                type: string
+        '400':
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /logout:
+    get:
+      summary: Logs out users.
+      responses:
+        '200':
+          description: You are now logged out.
+          content: 
+            text/html:
+              schema:
+                type: string
+        '400':
+          description: you cannot log out without a session
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  # Cart
+  /cart:
+    get:
+      summary: Get user cart details.
+      responses:
+        '200':
+          description: A cart object.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Cart'
+        '404':
+          description: 
+            couldn't find the cart
+            couldn't find the products
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /cart/add/{quantity}:
+    post:
+      summary: Adds products to the cart.
+      parameters:
+        - name: quantity
+          in: path
+          required: true
+          description: The number of products to be added to the cart.
+          schema:
+            type: integer
+            format: int
+            minimum: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                id:
+                  type: string
+                brand:
+                  type: string
+                category:
+                  type: string
+                type:
+                  type: string
+                weight:
+                  type: integer
+                  format: int64
+                discount:
+                  type: integer
+                  format: int64
+                taxes:
+                  type: integer
+                  format: int64
+                subtotal:
+                  type: integer
+                  format: int64
+      responses:
+        '200':
+          description: A cart product object.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CartProduct'
+        '400':
+          description: please insert a valid quantity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description:
+            couldn't find the cart
+            couldn't create the product
+            couldn't update the product
+            couldn't update the cart
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /cart/brand/{brand}:
+    get:
+      summary: Get cart products by brand.
+      parameters:
+        - name: brand
+          in: path
+          required: true
+          description: The brand of the products.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Cart product objects.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CartProduct'
+        '404':
+          description: no products found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /cart/category/{category}:
+    get:
+      summary: Get cart products by category.
+      parameters:
+        - name: category
+          in: path
+          required: true
+          description: The category of the products.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Cart product objects.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CartProduct'
+        '404':
+          description: no products found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /cart/discount/{min}/{max}:
+    get:
+      summary: Filter cart products by discount.
+      parameters:
+        - name: min
+          in: path
+          required: true
+          description: The minimum percentage of discount.
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+        - name: max
+          in: path
+          required: true
+          description: The maximum percentage of discount.
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+      responses:
+        '200':
+          description: Cart product objects.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CartProduct'
+        '404':
+          description: no products found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /cart/checkout:
+    get:
+      summary: Get cart total.
+      responses:
+        '200':
+          description: A int64.
+          content: 
+            application/json:
+              schema:
+                type: integer
+                format: int64
+        '404':
+          description: couldn't find the cart
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /cart/products:
+    get:
+      summary: List cart products.
+      responses:
+        '200':
+          description: Cart product objects.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CartProduct'
+        '404':
+          description: 
+            couldn't find the cart
+            cart is empty
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /cart/remove/{id}/{quantity}:
+    delete:
+      summary: Delete a product from the cart.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: The id of the product.
+          schema:
+            type: string
+        - name: quantity
+          in: path
+          required: true
+          description: The number of products to be deleted from the cart.
+          schema:
+            type: integer
+            format: int
+            minimum: 1
+      responses:
+        '200':
+          description: Successfully removed the product from the cart.
+          content:
+            text/html:
+              schema:
+                type: string
+        '500':
+          description: 
+            couldn't find the cart
+            couldn't find the product
+            couldn't delete the product
+            couldn't delete the cart products
+            couldn't reset the cart
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /cart/reset:
+     get:
+      summary: Reset cart values to default.
+      responses:
+        '200':
+          description: Cart reseted.
+          content: 
+            text/html:
+              schema:
+                type: string
+        '500':
+          description:
+            couldn't delete the cart products
+            couldn't reset the cart
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /cart/size:
+    get:
+      summary: Filter cart products by size.
+      responses:
+        '200':
+          description: An integer.
+          content:
+            application/json:
+              schema:
+                type: integer
+                format: int64
+        '404':
+          description: couldn't find the cart
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /cart/taxes/{min}/{max}:
+    get:
+      summary: Filter cart products by taxes.
+      parameters:
+        - name: min
+          in: path
+          required: true
+          description: The minimum percentage of taxes.
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+        - name: max
+          in: path
+          required: true
+          description: The maximum percentage of taxes.
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+      responses:
+        '200':
+          description: Product objects.
+          content: 
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: ''
+        '404':
+          description: no products found
+          content: 
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /cart/total/{min}/{max}:
+    get:
+      summary: Filter cart products by total.
+      parameters:
+        - name: min
+          in: path
+          required: true
+          description: The minimum total.
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+        - name: max
+          in: path
+          required: true
+          description: The maximum total.
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+      responses:
+        '200':
+          description: Product objects.
+          content: 
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: ''
+        '404':
+          description: no products found
+          content: 
+            application/json:
+              schema:
+                type: object
+  /cart/type/{type}:
+    get:
+      summary: Get cart products by type.
+      parameters:
+        - name: type
+          in: path
+          required: true
+          description: The type of the products.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Product objects.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CartProduct'
+        '404':
+          description: no products found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /cart/weight/{min}/{max}:
+    get:
+      summary: Filter cart products by weight.
+      parameters:
+        - name: min
+          in: path
+          required: true
+          description: The minimum weight.
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+        - name: max
+          in: path
+          required: true
+          description: The maximum weight.
+          schema:
+            type: integer
+            format: int64
+            minimum: 1
+      responses:
+        '200':
+          description: Product objects.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/CartProduct'
+        '404':
+          description: no products found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  # Home
+  /home:
+    get:
+      summary: API welcome endpoint.
+      responses:
+        '200':
+          description: Welcome to the adak home page.
+          content:
+            text/html:
+              schema:
+                type: string
+  # Ordering
+  /orders:
+    get:
+      summary: List orders.
+      responses:
+        '200':
+          description: A slice of orders.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Order'
+        '404':
+          description: 
+            couldn't find the orders
+            couldn't find the order cart
+            couldn't find order products
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /order/{id}:
+    delete:
+      summary: Delete an order.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Order id.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: The order has been deleted successfully.
+          content: 
+            text/html:
+              schema:
+                type: string
+        '500':
+          description:
+            couldn't delete the order
+            couldn't delete the order cart
+            couldn't delete the order products
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    get:
+      summary: Get order by id.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Order id.
+          schema:
+            type: string 
+      responses:
+        '200':
+          description: An order object.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Order'
+        '404':
+          description:
+            couldn't find the order
+            order couldn't find the cart
+            order couldn't find the products
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /order/user/{id}:
+    get:
+      summary: List orders by user id.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: User id.
+          schema:
+            type: string 
+      responses:
+        '200':
+          description: A list of orders.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Order'
+        '401':
+          description: it is not allowed to perform this action on third party accounts
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description:
+            couldn't find the order
+            couldn't find the order cart
+            couldn't find the order products
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /order/new:
+    post:
+      summary: Create a new order.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrderParams'
+      responses:
+        '201':
+          description: Thanks for your purchase! Your products will be delivered on {date}.
+          content: 
+            text/html:
+              schema:
+                type: string
+        '400':
+          description: past dates are not valid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description:
+            couldn't find the cart
+            couldn't find the products
+            ordering 0 products is not permitted
+            couldn't create order products
+            couldn't create the order
+            couldn't create the order cart
+            couldn't reset the cart
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  # Product
+  /products:
+    get:
+      summary: A list of products.
+      responses:
+        '200':
+          description: A slice of products.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Product'
+        '404':
+          description: 
+            couldn't find the orders
+            couldn't find the order cart
+            couldn't find order products
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /products/create:
+    post:
+      summary: Create a product.
+      requestBody:
+        required: true
+        content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  shop_id:
+                    type: string
+                  stock:
+                    type: integer
+                    format: int64  
+                  brand:
+                    type: string
+                  category:
+                    type: string
+                  type:
+                    type: string
+                  description:
+                    type: string
+                  weight:
+                    type: integer
+                    format: int64
+                  discount:
+                    type: integer
+                    format: int64
+                  taxes:
+                    type: integer
+                    format: int64
+                  subtotal:
+                    type: integer
+                    format: int64
+      responses:
+        '201':
+          description: A product object.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+        '500':
+          description: 
+            couldn't create the product
+            invalid {field}
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /products/{id}:
+    delete:
+      summary: Delete a product.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Product id.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Product deleted successfully.
+          content: 
+            text/html:
+              schema:
+                type: string
+        '500':
+          description: couldn't delete the product
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    get:
+      summary: Get product by id.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Product id.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: A product object.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+        '404':
+          description:
+            couldn't find the product
+            couldn't find the reviews
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    put:
+      summary: Update a product.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Product id.
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                shop_id:
+                  type: string
+                stock:
+                  type: integer
+                  format: int64  
+                brand:
+                  type: string
+                category:
+                  type: string
+                type:
+                  type: string
+                description:
+                  type: string
+                weight:
+                  type: integer
+                  format: int64
+                discount:
+                  type: integer
+                  format: int64
+                taxes:
+                  type: integer
+                  format: int64
+                subtotal:
+                  type: integer
+                  format: int64
+      responses:
+        '200':
+          description: A product object.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Product'
+        '500':
+          description: couldn't update the product
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /products/search/{query}:
+    get:
+      summary: Look for products.
+      parameters:
+        - name: query
+          in: path
+          required: true
+          description: Search query.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: A slice of products.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Product'
+        '404':
+          description:
+            couldn't find the products
+            couldn't find the reviews
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  # Review
+  /reviews:
+    get:
+      summary: A list of reviews.
+      responses:
+        '200':
+          description: A slice of reviews.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Review'
+        '404':
+          description: couldn't find the reviews
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /reviews/create:
+    post:
+      summary: Create a review.
+      requestBody:
+        required: true
+        content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  stars:
+                    type: integer
+                    format: int64  
+                  comment:
+                    type: string
+                  user_id:
+                    type: string
+                  product_id:
+                    type: string
+                  shop_id:
+                    type: string
+      responses:
+        '201':
+          description: A review object.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Review'
+        '500':
+          description: couldn't create the review
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /reviews/{id}:
+    delete:
+      summary: Delete a review.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Review id.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Review deleted successfully.
+          content: 
+            text/html:
+              schema:
+                type: string
+        '500':
+          description: couldn't delete the review
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    get:
+      summary: Get review by id.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Review id.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: A review object.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Review'
+        '404':
+          description: couldn't find the review
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    put:
+      summary: Update a review.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Review ID.
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  stars:
+                    type: integer
+                    format: int64  
+                  comment:
+                    type: string
+                  user_id:
+                    type: string
+                  product_id:
+                    type: string
+                  shop_id:
+                    type: string
+      responses:
+        '200':
+          description: A review object.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Review'
+        '500':
+          description: couldn't update the review
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  # Shop
+  /shops:
+    get:
+      summary: A list of shops.
+      responses:
+        '200':
+          description: A slice of shops.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Shop'
+        '404':
+          description: 
+            couldn't find the shops
+            couldn't find the location
+            couldn't find the reviews
+            couldn't find the products
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /shops/create:
+    post:
+      summary: Create a shop.
+      requestBody:
+        required: true
+        content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: string
+                  name:
+                    type: string
+                  location:
+                    type: object
+                    items:
+                      $ref: '#/components/schemas/Location'
+      responses:
+        '201':
+          description: A shop object.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Shop'
+        '500':
+          description: 
+            couldn't create the shop
+            couldn't create the location
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /shops/{id}:
+    delete:
+      summary: Delete a shop.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Shop id.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Shop deleted successfully.
+          content: 
+            text/html:
+              schema:
+                type: string
+        '500':
+          description:
+            couldn't delete the shop
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    get:
+      summary: Get a shop by id.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Shop id.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: A shop object.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Shop'
+        '404':
+          description:
+            couldn't find the shops
+            couldn't find the location
+            couldn't find the reviews
+            couldn't find the products
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    put:
+      summary: Update a shop.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Shop id.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: A shop object.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Shop'
+        '500':
+          description: couldn't update the shop
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /shops/search/{query}:
+    get:
+      summary: Look for shops.
+      parameters:
+        - name: query
+          in: path
+          required: true
+          description: Search query.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: A slice of shops.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Shop'
+        '404':
+          description:
+            couldn't find shops
+            couldn't find the location
+            couldn't find the reviews
+            couldn't find the products
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  # Tracking
+  /tracker:
+    get:
+      summary: List hits.
+      responses:
+        '200':
+          description: A slice of hits.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Hit'
+        '404':
+          description: couldn't find the hits
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /tracker/{id}:
+    delete:
+        summary: List hits by id.
+        parameters:
+          - name: id
+            in: path
+            required: true
+            description: Hit id.
+            schema:
+              type: string
+        responses:
+          '200':
+            description: A hit object.
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Hit'
+          '500':
+            description: couldn't delete the hit
+            content:
+              application/json:
+                schema:
+                  $ref: '#/components/schemas/Error'
+  /tracker/search/{query}:
+    get:
+      summary: Look for hits.
+      parameters:
+        - name: query
+          in: path
+          required: true
+          description: Search query.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: A slice of hits.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Hit'
+        '404':
+          description: no hits found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /tracker/{field}/{value}:
+    get:
+      summary: Filter hits by field/value hits.
+      parameters:
+        - name: field
+          in: path
+          required: true
+          description: Hit field.
+          schema:
+            type: string
+        - name: value
+          in: path
+          required: true
+          description: Hit value.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: A slice of hits.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Hit'
+        '404':
+          description: no hits found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  # User
+  /users:
+    get:
+      summary: A list of users.
+      responses:
+        '200':
+          description: A slice of users.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+        '404':
+          description: 
+            couldn't find the users
+            couldn't find the orders
+            couldn't find the order cart
+            couldn't find order products
+            couldn't find the reviews
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /users/create:
+    post:
+      summary: Create a user.
+      requestBody:
+        required: true
+        content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  username:
+                    type: string
+                  email:
+                    type: string
+                  password:
+                    type: string
+      responses:
+        '201':
+          description: Your account was successfully created. Please validate your email to start using Adak.
+          content:
+              text/html:
+                schema:
+                  type: string
+        '500':
+          description: 
+            could not generate the jwt token
+            couldn't add the email
+            failed sending validation email
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /users/{id}:
+    delete:
+      summary: Delete a user.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: User id.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: User deleted successfully.
+          content: 
+            text/html:
+              schema:
+                type: string
+        '401':
+          description: it is not allowed to perform this action on third party accounts
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '404':
+          description: couldn't find the user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: 
+            couldn't delete the email
+            couldn't delete the cart
+            couldn't delete the user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    get:
+      summary: Get user by id.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: User id.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: A user object.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+        '404':
+          description:
+            couldn't find the user
+            couldn't find the reviews
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+    put:
+      summary: Update a user.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: User id.
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  username:
+                    type: string
+                  email:
+                    type: string
+                  password:
+                    type: string
+      responses:
+        '200':
+          description: User updated successfully.
+          content: 
+            text/html:
+              schema:
+                type: string
+        '401':
+          description: it is not allowed to perform this action on third party accounts
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: couldn't update the user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /users/search/{query}:
+    get:
+      summary: Returns a list of users.
+      parameters:
+        - name: query
+          in: path
+          required: true
+          description: Search query.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: A slice of users.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+        '404':
+          description:
+            couldn't find the users
+            couldn't find the reviews
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /users/{id}/qrcode:
+    get:
+      summary: Returns a qrcode with the user id.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: User id.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: A png image.
+          content: 
+            image/png:
+              schema:
+                type: string
+        '500':
+          description: qrcode content too long to encode
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  # Account
+  /settings/email:
+    post:
+      summary: Sends an email to confirm user email changing.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                email:
+                  type: string
+      responses:
+        '200':
+          description: We sent you an email to confirm that it is you.
+          content:
+              text/html:
+                schema:
+                  type: string
+        '400':
+          description: email is already taken
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: 
+            could not generate the jwt token
+            failed sending confirmation email
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /settings/password:
+    post:
+      summary: Changes user password.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                old_password:
+                  type: string
+                new_password:
+                  type: string
+      responses:
+        '200':
+          description: Password changed successfully.
+          content: 
+            text/html:
+              schema:
+                type: string
+        '500':
+          description: 
+            invalid email
+            invalid old password
+            couldn't generate the password hash
+            couldn't change the password
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /verification/{token}:
+    get:
+      summary: Send email to validate the ownership of the email.
+      parameters:
+        - name: token
+          in: path
+          required: true
+          description: User token.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: You have successfully validated your email!
+          content: 
+            text/html:
+              schema:
+                type: string
+        '404':
+          description: couldn't find the email
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+        '500':
+          description: 
+            couldn't add the email
+            couldn't remove the email
+            email validation failed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /verification/{token}/{email}/{id}:
+    get:
+      summary: Change user email.
+      parameters:
+        - name: token
+          in: path
+          required: true
+          description: User token.
+          schema:
+            type: string
+        - name: email
+          in: path
+          required: true
+          description: User new email.
+          schema:
+            type: string
+        - name: id
+          in: path
+          required: true
+          description: User id.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: You have successfully changed your email!
+          content: 
+            text/html:
+              schema:
+                type: string
+        '500':
+          description: 
+            invalid email
+            couldn't change the email
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
