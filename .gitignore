@@ -1,4 +1,7 @@
 .env
 TODO.txt
 
+postgres-data
+
 pkg/auth/adminList.go
+cmd/server/certs

@@ -1,31 +1,17 @@
-FROM golang:1.14-alpine AS builder
+FROM golang:1.15-alpine AS builder
 
-########
-# Prep
-########
+COPY . /go/src/app
 
-# add the source
-COPY . /go/src/palo
-WORKDIR /go/src/palo/
+WORKDIR /go/src/app
 
-########
-# Build Go Wrapper
-########
-
-# Install go dependencies
 RUN go get -d -v ./...
 
-#build the go app
-RUN GOOS=linux GOARCH=amd64 go build -o ./palo ./cmd/main.go
+RUN go build -o adak -ldflags="-s -w" ./cmd/main.go
 
-########
-# Package into runtime image
-########
-FROM alpine
+# -------------------------
 
-# copy the executable from the builder image
-COPY --from=builder /go/src/palo .
+FROM alpine:3.12.1
 
-ENTRYPOINT ["/palo"]
+COPY --from=builder /go/src/app/adak /usr/bin/
 
-EXPOSE 8080
+ENTRYPOINT ["/usr/bin/adak"]
