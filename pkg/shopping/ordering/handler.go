@@ -15,6 +15,7 @@ import (
 
 	"github.com/go-chi/chi"
 	validator "github.com/go-playground/validator/v10"
+	lru "github.com/hashicorp/golang-lru"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -31,7 +32,7 @@ type OrderParams struct {
 }
 
 type date struct {
-	Year    int `json:"year" validate:"required,min=2020,max=2100"`
+	Year    int `json:"year" validate:"required,min=2021,max=2150"`
 	Month   int `json:"month" validate:"required,min=1,max=12"`
 	Day     int `json:"day" validate:"required,min=1,max=31"`
 	Hour    int `json:"hour" validate:"required,min=0,max=24"`
@@ -40,7 +41,8 @@ type date struct {
 
 // Handler handles ordering endpoints.
 type Handler struct {
-	DB *sqlx.DB
+	DB    *sqlx.DB
+	Cache *lru.Cache
 }
 
 // Delete deletes an order.
@@ -54,7 +56,7 @@ func (h *Handler) Delete() http.HandlerFunc {
 			return
 		}
 
-		response.HTMLText(w, http.StatusOK, "The order has been deleted successfully.")
+		response.JSONText(w, http.StatusOK, fmt.Sprintf("order %q deleted", id))
 	}
 }
 
@@ -101,12 +103,20 @@ func (h *Handler) GetByUserID() http.HandlerFunc {
 			return
 		}
 
+		// Distinguish from the other ids from the same user
+		cacheKey := fmt.Sprintf("%s orders", id)
+		if cOrders, ok := h.Cache.Get(cacheKey); ok {
+			response.JSON(w, http.StatusOK, cOrders)
+			return
+		}
+
 		orders, err := GetByUserID(ctx, h.DB, id)
 		if err != nil {
 			response.Error(w, http.StatusNotFound, err)
 			return
 		}
 
+		h.Cache.Add(cacheKey, orders)
 		response.JSON(w, http.StatusOK, orders)
 	}
 }
@@ -175,7 +185,6 @@ func (h *Handler) New() http.HandlerFunc {
 			return
 		}
 
-		respond := fmt.Sprintf("Thanks for your purchase! Your products will be delivered on %v.", order.DeliveryDate)
-		response.HTMLText(w, http.StatusCreated, respond)
+		response.JSONText(w, http.StatusCreated, fmt.Sprintf("order %q created", order.ID))
 	}
 }

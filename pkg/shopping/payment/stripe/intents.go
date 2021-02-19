@@ -1,8 +1,6 @@
 package stripe
 
 import (
-	"fmt"
-
 	"github.com/pkg/errors"
 	stripe "github.com/stripe/stripe-go"
 	"github.com/stripe/stripe-go/paymentintent"
@@ -38,7 +36,7 @@ func ConfirmIntent(intentID string, source *stripe.Source) error {
 	}
 
 	if pi.Status != "requires_payment_method" {
-		return fmt.Errorf("stripe: paymentIntent already has a status of %s", pi.Status)
+		return errors.Errorf("stripe: paymentIntent already has a status of %s", pi.Status)
 	}
 
 	params := &stripe.PaymentIntentConfirmParams{
@@ -54,24 +52,22 @@ func ConfirmIntent(intentID string, source *stripe.Source) error {
 }
 
 // CreateIntent creates a payment intent object.
-func CreateIntent(id, cartID, currency string, total float64, card Card) (*stripe.PaymentIntent, error) {
+func CreateIntent(id, cartID, currency string, total int64, card Card) (*stripe.PaymentIntent, error) {
 	pMethodID, err := CreateMethod(card)
 	if err != nil {
 		return nil, err
 	}
 
+	if total < 50 {
+		return nil, errors.New("stripe: the order total should be higher than $0.50")
+	}
+
 	// Amounts to be provided in a currency’s smallest unit
 	// 100 = 1 USD
 	// minimum: $0.50 / maximum: $999,999.99
-	amount := total * 100
-
-	if amount < 100 {
-		return nil, errors.New("stripe: the order total should be higher than $1")
-	}
-
 	params := &stripe.PaymentIntentParams{
 		PaymentMethod: stripe.String(pMethodID),
-		Amount:        stripe.Int64(int64(amount)),
+		Amount:        stripe.Int64(total),
 		Currency:      stripe.String(currency),
 		ConfirmationMethod: stripe.String(string(
 			stripe.PaymentIntentConfirmationMethodManual,
@@ -124,9 +120,9 @@ func RetrieveIntent(intentID string) (*stripe.PaymentIntent, error) {
 }
 
 // UpdateIntent sets new properties on a PaymentIntent object without confirming.
-func UpdateIntent(intentID string, total float64) (*stripe.PaymentIntent, error) {
+func UpdateIntent(intentID string, total int64) (*stripe.PaymentIntent, error) {
 	params := &stripe.PaymentIntentParams{
-		Amount: stripe.Int64(int64(total)),
+		Amount: stripe.Int64(total),
 	}
 
 	pi, err := paymentintent.Update(intentID, params)

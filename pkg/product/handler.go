@@ -2,10 +2,12 @@ package product
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/GGP1/adak/internal/response"
 	"github.com/GGP1/adak/internal/sanitize"
+	lru "github.com/hashicorp/golang-lru"
 
 	"github.com/go-chi/chi"
 	validator "github.com/go-playground/validator/v10"
@@ -14,6 +16,7 @@ import (
 // Handler handles product endpoints.
 type Handler struct {
 	Service Service
+	Cache   *lru.Cache
 }
 
 // Create creates a new product and saves it.
@@ -53,7 +56,7 @@ func (h *Handler) Delete() http.HandlerFunc {
 			return
 		}
 
-		response.HTMLText(w, http.StatusOK, "Product deleted successfully.")
+		response.JSONText(w, http.StatusOK, fmt.Sprintf("product %q deleted", id))
 	}
 }
 
@@ -78,12 +81,18 @@ func (h *Handler) GetByID() http.HandlerFunc {
 		id := chi.URLParam(r, "id")
 		ctx := r.Context()
 
+		if cProduct, ok := h.Cache.Get(id); ok {
+			response.JSON(w, http.StatusOK, cProduct)
+			return
+		}
+
 		product, err := h.Service.GetByID(ctx, id)
 		if err != nil {
 			response.Error(w, http.StatusNotFound, err)
 			return
 		}
 
+		h.Cache.Add(id, product)
 		response.JSON(w, http.StatusOK, product)
 	}
 }

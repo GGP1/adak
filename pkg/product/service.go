@@ -2,12 +2,12 @@ package product
 
 import (
 	"context"
-	"math"
 	"strings"
 	"time"
 
-	"github.com/GGP1/palo/internal/token"
-	"github.com/GGP1/palo/pkg/review"
+	"github.com/GGP1/adak/internal/logger"
+	"github.com/GGP1/adak/internal/token"
+	"github.com/GGP1/adak/pkg/review"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
@@ -49,23 +49,21 @@ func (s *service) Create(ctx context.Context, p *Product) error {
 	(id, shop_id, stock, brand, category, type, description, weight, discount, taxes, subtotal, total, created_at, updated_at)
 	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`
 
-	id := token.GenerateRunes(35)
+	id := token.RandString(35)
 	p.CreatedAt = time.Now()
 
 	// percentages -> numeric values
 	taxes := ((p.Subtotal / 100) * p.Taxes)
 	discount := ((p.Subtotal / 100) * p.Discount)
 
-	// round floats
-	p.Weight = math.Ceil(p.Weight*100) / 100
-	p.Discount = math.Ceil(discount*100) / 100
-	p.Taxes = math.Ceil(taxes*100) / 100
-	p.Subtotal = math.Ceil(p.Subtotal*100) / 100
+	p.Discount = discount
+	p.Taxes = taxes
 	p.Total = p.Subtotal + p.Taxes - p.Discount
 
 	_, err := s.DB.ExecContext(ctx, q, id, p.ShopID, p.Stock, p.Brand, p.Category, p.Type, p.Description,
 		p.Weight, p.Discount, p.Taxes, p.Subtotal, p.Total, p.CreatedAt, p.UpdatedAt)
 	if err != nil {
+		logger.Log.Errorf("failed creating product: %v", err)
 		return errors.Wrap(err, "couldn't create the product")
 	}
 
@@ -76,6 +74,7 @@ func (s *service) Create(ctx context.Context, p *Product) error {
 func (s *service) Delete(ctx context.Context, id string) error {
 	_, err := s.DB.ExecContext(ctx, "DELETE FROM products WHERE id=$1", id)
 	if err != nil {
+		logger.Log.Errorf("failed deleting product: %v", err)
 		return errors.Wrap(err, "couldn't delete the product")
 	}
 
@@ -87,6 +86,7 @@ func (s *service) Get(ctx context.Context) ([]Product, error) {
 	var products []Product
 
 	if err := s.DB.Select(&products, "SELECT * FROM products"); err != nil {
+		logger.Log.Errorf("failed listing products: %v", err)
 		return nil, errors.Wrap(err, "couldn't find the products")
 	}
 
@@ -110,6 +110,7 @@ func (s *service) GetByID(ctx context.Context, id string) (Product, error) {
 	}
 
 	if err := s.DB.SelectContext(ctx, &reviews, "SELECT * FROM reviews WHERE product_id=$1", id); err != nil {
+		logger.Log.Errorf("failed listing product's reviews: %v", err)
 		return Product{}, errors.Wrap(err, "couldn't find the reviews")
 	}
 
@@ -131,6 +132,7 @@ func (s *service) Search(ctx context.Context, search string) ([]Product, error) 
 	}
 
 	if err := s.DB.SelectContext(ctx, &products, q, search); err != nil {
+		logger.Log.Errorf("failed searching products: %v", err)
 		return nil, errors.Wrap(err, "couldn't find the products")
 	}
 
@@ -167,6 +169,7 @@ func getRelationships(ctx context.Context, db *sqlx.DB, products []Product) ([]P
 			var reviews []review.Review
 
 			if err := db.SelectContext(ctx, &reviews, "SELECT * FROM reviews WHERE product_id=$1", product.ID); err != nil {
+				logger.Log.Errorf("failed listing product's reviews: %v", err)
 				errCh <- errors.Wrap(err, "couldn't find the reviews")
 			}
 

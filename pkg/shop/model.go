@@ -3,8 +3,8 @@ package shop
 import (
 	"time"
 
-	"github.com/GGP1/palo/pkg/product"
-	"github.com/GGP1/palo/pkg/review"
+	"github.com/GGP1/adak/pkg/product"
+	"github.com/GGP1/adak/pkg/review"
 )
 
 // Shop represents a market with its name and location.

@@ -7,7 +7,8 @@ import (
 	"strings"
 	"time"
 
-	"github.com/GGP1/palo/internal/token"
+	"github.com/GGP1/adak/internal/logger"
+	"github.com/GGP1/adak/internal/token"
 )
 
 // Hit represents a single data point/page visit.
@@ -26,6 +27,7 @@ type Hit struct {
 func (hit *Hit) String() (string, error) {
 	out, err := json.Marshal(hit)
 	if err != nil {
+		logger.Log.Errorf("failed formatting hit to json: %v", err)
 		return "", errors.New("couldn't marshal the hit")
 	}
 
@@ -34,7 +36,7 @@ func (hit *Hit) String() (string, error) {
 
 // HitRequest generates a hit for each request.
 func HitRequest(r *http.Request, salt string) (*Hit, error) {
-	id := token.GenerateRunes(27)
+	id := token.RandString(19)
 	date := time.Now()
 
 	footprint, err := Footprint(r, salt)
@@ -52,6 +54,35 @@ func HitRequest(r *http.Request, salt string) (*Hit, error) {
 		Referer:   r.Header.Get("Referer"),
 		Date:      date,
 	}, nil
+}
+
+// Check headers commonly used by bots.
+// If the user is a bot return true, else return false.
+func ignoreHit(r *http.Request) bool {
+	// Empty User-Agents are usually bots
+	userAgent := strings.TrimSpace(strings.ToLower(r.Header.Get("User-Agent")))
+	if userAgent == "" {
+		return true
+	}
+
+	xPurpose := r.Header.Get("X-Purpose")
+	purpose := r.Header.Get("Purpose")
+
+	if r.Header.Get("X-Moz") == "prefetch" ||
+		xPurpose == "prefetch" ||
+		xPurpose == "preview" ||
+		purpose == "prefetch" ||
+		purpose == "preview" {
+		return true
+	}
+
+	for _, botUserAgent := range userAgentBotlist {
+		if strings.Contains(userAgent, botUserAgent) {
+			return true
+		}
+	}
+
+	return false
 }
 
 // Get the user language from the web browser.

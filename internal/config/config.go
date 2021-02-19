@@ -6,6 +6,7 @@ import (
 	"runtime"
 	"time"
 
+	"github.com/GGP1/adak/internal/logger"
 	"github.com/joho/godotenv"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
@@ -13,25 +14,25 @@ import (
 )
 
 var (
-	configuration          *Configuration
-	configFileName         = "config"
-	configFileExt          = ".yml"
-	configType             = "yaml"
-	appName                = "palo"
-	configurationDirectory = filepath.Join(osConfigDirectory(runtime.GOOS), appName)
-	configFileAbsPath      = filepath.Join(configurationDirectory, configFileName)
+	configFilename    = "config"
+	configFileExt     = ".yml"
+	configType        = "yaml"
+	appName           = "adak"
+	configDir         = filepath.Join(getConfigDir(runtime.GOOS), appName)
+	configFileAbsPath = filepath.Join(configDir, configFilename)
 )
 
-// Configuration constains all the server configurations.
-type Configuration struct {
-	Database DatabaseConfiguration
-	Server   ServerConfiguration
-	Email    EmailConfiguration
-	Stripe   StripeConfiguration
+// Config constains all the server configurations.
+type Config struct {
+	Database DatabaseConfig
+	Cache    CacheConfig
+	Server   ServerConfig
+	Email    EmailConfig
+	Stripe   StripeConfig
 }
 
-// DatabaseConfiguration hols the database attributes.
-type DatabaseConfiguration struct {
+// DatabaseConfig hols the database attributes.
+type DatabaseConfig struct {
 	Username string
 	Password string
 	Host     string
@@ -40,10 +41,19 @@ type DatabaseConfiguration struct {
 	SSLMode  string
 }
 
-// ServerConfiguration holds the server attributes.
-type ServerConfiguration struct {
-	Host    string
-	Port    string
+// CacheConfig is the LRU-cache configuration.
+type CacheConfig struct {
+	Size int
+}
+
+// ServerConfig holds the server attributes.
+type ServerConfig struct {
+	Host string
+	Port string
+	TLS  struct {
+		KeyFile  string
+		CertFile string
+	}
 	Timeout struct {
 		Read     time.Duration
 		Write    time.Duration
@@ -51,8 +61,8 @@ type ServerConfiguration struct {
 	}
 }
 
-// EmailConfiguration holds email attributes.
-type EmailConfiguration struct {
+// EmailConfig holds email attributes.
+type EmailConfig struct {
 	Host        string
 	Port        string
 	Sender      string
@@ -60,8 +70,8 @@ type EmailConfiguration struct {
 	AdminEmails string
 }
 
-// StripeConfiguration hold stripe attributes
-type StripeConfiguration struct {
+// StripeConfig hold stripe attributes
+type StripeConfig struct {
 	SecretKey string
 	Logger    struct {
 		Level stripe.Level
@@ -70,18 +80,24 @@ type StripeConfiguration struct {
 
 // New sets up the configuration with the values the user gave.
 // Defaults and env variables are placed at the end to make the config easier to read.
-func New() (*Configuration, error) {
-	viper.AddConfigPath(configurationDirectory)
-	viper.SetConfigName(configFileName)
+func New() (*Config, error) {
+	viper.AddConfigPath(configDir)
+	viper.SetConfigName(configFilename)
 	viper.SetConfigType(configType)
 
-	path := os.Getenv("PALO_CONFIG")
-	if filepath.Ext(path) == "" {
-		path += "/.env"
-	}
+	path := os.Getenv("ADAK_CONFIG")
+	if path != "" {
+		if filepath.Ext(path) == "" {
+			path = filepath.Join(path, ".env")
+		}
 
-	if err := godotenv.Load(path); err != nil {
-		return nil, errors.Wrap(err, "env loading failed")
+		if err := godotenv.Load(path); err != nil {
+			return nil, errors.Wrap(err, "env loading failed")
+		}
+
+		logger.Log.Info("Using customized configuration")
+	} else {
+		logger.Log.Info("Using default configuration")
 	}
 
 	// Bind envs
@@ -95,38 +111,40 @@ func New() (*Configuration, error) {
 	}
 
 	// Read or create configuration file
-	if err := readConfiguration(); err != nil {
-		return nil, errors.Wrap(err, "read configuration failed")
+	if err := loadConfig(); err != nil {
+		return nil, errors.Wrap(err, "couldn't read the configuration file")
 	}
 
 	// Auto read env variables
 	viper.AutomaticEnv()
+	config := &Config{}
 
-	// Unmarshal config file to struct
-	if err := viper.Unmarshal(&configuration); err != nil {
+	if err := viper.Unmarshal(config); err != nil {
 		return nil, errors.Wrap(err, "unmarshal configuration failed")
 	}
 
-	return configuration, nil
+	logger.Log.Info("Configuration created successfully")
+	return config, nil
 }
 
-// read configuration from file
-func readConfiguration() error {
-	err := viper.ReadInConfig() // Find and read the config file
-	if err != nil {
+// read configuration from file.
+func loadConfig() error {
+	// Find and read the config file
+	if err := viper.ReadInConfig(); err != nil {
 		// if file does not exist, simply create one
 		if _, err := os.Stat(configFileAbsPath + configFileExt); os.IsNotExist(err) {
-			if err := os.MkdirAll(configurationDirectory, 0755); err != nil {
+			if err := os.MkdirAll(configDir, 0755); err != nil {
 				return errors.New("failed creating folder")
 			}
-			if _, err := os.Create(configFileAbsPath + configFileExt); err != nil {
+			f, err := os.Create(configFileAbsPath + configFileExt)
+			if err != nil {
 				return errors.New("failed creating file")
 			}
+			f.Close()
 		} else {
 			return err
 		}
 
-		// Write defaults
 		if err := viper.WriteConfig(); err != nil {
 			return err
 		}
@@ -135,7 +153,8 @@ func readConfiguration() error {
 	return nil
 }
 
-func osConfigDirectory(osName string) string {
+// getConfigDir returns the location of the configuration file.
+func getConfigDir(osName string) string {
 	if os.Getenv("SV_DIR") != "" {
 		return os.Getenv("SV_DIR")
 	}
@@ -144,15 +163,16 @@ func osConfigDirectory(osName string) string {
 	case "windows":
 		return os.Getenv("APPDATA")
 	case "darwin":
-		return os.Getenv("HOME") + "/Library/Application Support"
+		return filepath.Join(os.Getenv("HOME"), "Library/Application Support")
 	case "linux":
-		return os.Getenv("HOME") + "/.config"
+		return filepath.Join(os.Getenv("HOME"), ".config")
 	default:
 		dir, _ := os.Getwd()
 		return dir
 	}
 }
 
+// Declared at the end to avoid scrolling
 var (
 	defaults = map[string]interface{}{
 		// Database
@@ -162,17 +182,21 @@ var (
 		"database.port":     "5432",
 		"database.name":     "postgres",
 		"database.sslmode":  "disable",
+		// Cache
+		"cache.size": 100,
 		// Server
 		"server.host":             "localhost",
 		"server.port":             "7070",
 		"server.dir":              "../",
+		"server.tls.keyfile":      "server.key",
+		"server.tls.certfile":     "server.crt",
 		"server.timeout.read":     5,
 		"server.timeout.write":    5,
 		"server.timeout.shutdown": 5,
 		// Email
 		"email.host":     "smtp.default.com",
 		"email.port":     "587",
-		"email.sender":   "default@palo.com",
+		"email.sender":   "default@adak.com",
 		"email.password": "default",
 		"email.admins":   "../pkg/auth/",
 		// Stripe
@@ -184,16 +208,20 @@ var (
 
 	envVars = map[string]string{
 		// Database
-		"database.username": "DB_USERNAME",
-		"database.password": "DB_PASSWORD",
-		"database.host":     "DB_HOST",
-		"database.port":     "DB_PORT",
-		"database.name":     "DB_NAME",
-		"database.sslmode":  "DB_SSL",
+		"database.username": "POSTGRES_USERNAME",
+		"database.password": "POSTGRES_PASSWORD",
+		"database.host":     "POSTGRES_HOST",
+		"database.port":     "POSTGRES_PORT",
+		"database.name":     "POSTGRES_DB",
+		"database.sslmode":  "POSTGRES_SSL",
+		// Cache
+		"cache.size": "CACHE_SIZE",
 		// Server
 		"server.host":             "SV_HOST",
 		"server.port":             "SV_PORT",
 		"server.dir":              "SV_DIR",
+		"server.tls.keyfile":      "SV_TLS_KEYFILE",
+		"server.tls.certfile":     "SV_TLS_CERTFILE",
 		"server.timeout.read":     "SV_TIMEOUT_READ",
 		"server.timeout.write":    "SV_TIMEOUT_WRITE",
 		"server.timeout.shutdown": "SV_TIMEOUT_SHUTDOWN",
@@ -208,5 +236,11 @@ var (
 		"stripe.logger.level": "STRIPE_LOGGER_LEVEL",
 		// JWT
 		"jwt.secretkey": "TOKEN_SECRET_KEY",
+		// Google
+		"google.client.id":     "GOOGLE_CLIENT_ID",
+		"google.client.secret": "GOOGLE_CLIENT_SECRET",
+		// Github
+		"github.client.id":     "GITHUB_CLIENT_ID",
+		"github.client.secret": "GITHUB_CLIENT_SECRET",
 	}
 )

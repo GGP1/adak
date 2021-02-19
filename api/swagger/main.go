@@ -18,7 +18,7 @@ func main() {
 	flag.Parse()
 
 	addr := fmt.Sprintf(":%d", *port)
-	fmt.Printf("Serving API docs on port %s\n", addr)
+	fmt.Printf("Serving API docs on http://localhost%s\n", addr)
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html; charset=UTF-8")

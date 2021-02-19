@@ -7,9 +7,7 @@ import (
 	"github.com/pkg/errors"
 )
 
-var (
-	errNotFound = errors.New("no products found")
-)
+var errNotFound = errors.New("no products found")
 
 // FilterByBrand looks for products with the specified brand.
 func FilterByBrand(ctx context.Context, db *sqlx.DB, cartID, brand string) ([]Product, error) {

@@ -2,6 +2,8 @@ package user
 
 import (
 	"encoding/json"
+	"fmt"
+	"image"
 	"net/http"
 
 	"github.com/GGP1/adak/internal/email"
@@ -13,6 +15,7 @@ import (
 
 	"github.com/go-chi/chi"
 	validator "github.com/go-playground/validator/v10"
+	lru "github.com/hashicorp/golang-lru"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 )
@@ -20,6 +23,7 @@ import (
 // Handler handles user endpoints.
 type Handler struct {
 	Service Service
+	Cache   *lru.Cache
 }
 
 // Create creates a new user and saves it.
@@ -60,7 +64,7 @@ func (h *Handler) Create() http.HandlerFunc {
 				return
 			}
 
-			response.HTMLText(w, http.StatusCreated, "Your account was successfully created.\nWe've sent you an email to validate your account.")
+			response.JSONText(w, http.StatusCreated, "account created, please verify your email")
 		}
 	}
 }
@@ -95,7 +99,7 @@ func (h *Handler) Delete(db *sqlx.DB, s auth.Session) http.HandlerFunc {
 
 		s.Logout(w, r, uID)
 
-		response.HTMLText(w, http.StatusOK, "User deleted successfully.")
+		response.JSONText(w, http.StatusOK, fmt.Sprintf("user %q deleted", id))
 	}
 }
 
@@ -120,12 +124,18 @@ func (h *Handler) GetByID() http.HandlerFunc {
 		id := chi.URLParam(r, "id")
 		ctx := r.Context()
 
+		if cUser, ok := h.Cache.Get(id); ok {
+			response.JSON(w, http.StatusOK, cUser)
+			return
+		}
+
 		user, err := h.Service.GetByID(ctx, id)
 		if err != nil {
 			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
 
+		h.Cache.Add(id, user)
 		response.JSON(w, http.StatusOK, user)
 	}
 }
@@ -169,6 +179,13 @@ func (h *Handler) QRCode() http.HandlerFunc {
 		id := chi.URLParam(r, "id")
 		ctx := r.Context()
 
+		// Distinguish from the other ids from the same user
+		cacheKey := fmt.Sprintf("%s qrcode", id)
+		if cImage, ok := h.Cache.Get(cacheKey); ok {
+			response.PNG(w, http.StatusOK, cImage.(image.Image))
+			return
+		}
+
 		user, err := h.Service.GetByID(ctx, id)
 		if err != nil {
 			response.Error(w, http.StatusInternalServerError, err)
@@ -181,6 +198,7 @@ func (h *Handler) QRCode() http.HandlerFunc {
 			return
 		}
 
+		h.Cache.Add(cacheKey, img)
 		response.PNG(w, http.StatusOK, img)
 	}
 }
@@ -235,6 +253,6 @@ func (h *Handler) Update() http.HandlerFunc {
 			return
 		}
 
-		response.HTMLText(w, http.StatusOK, "User updated successfully.")
+		response.JSONText(w, http.StatusOK, fmt.Sprintf("user %q updated", id))
 	}
 }

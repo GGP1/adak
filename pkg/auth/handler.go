@@ -64,7 +64,7 @@ func Login(s Session) http.HandlerFunc {
 			return
 		}
 
-		response.HTMLText(w, http.StatusOK, "You logged in!")
+		response.JSONText(w, http.StatusOK, "logged in")
 	}
 }
 
@@ -80,7 +80,7 @@ func Logout(s Session) http.HandlerFunc {
 		// Logout user from the session and delete cookies
 		s.Logout(w, r, c)
 
-		response.HTMLText(w, http.StatusOK, "You are now logged out.")
+		response.JSONText(w, http.StatusOK, "logged out")
 	}
 }
 
@@ -123,7 +123,7 @@ func OAuth2Google(s Session) http.HandlerFunc {
 			return
 		}
 
-		response.HTMLText(w, http.StatusOK, "You logged in!")
+		response.JSONText(w, http.StatusOK, "logged in")
 	}
 }
 

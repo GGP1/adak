@@ -33,6 +33,8 @@ type Logger struct {
 	Level         Level
 	Time          string
 	ShowTimestamp bool
+
+	disable bool
 }
 
 // New creates a new logger.
@@ -45,7 +47,9 @@ func New() *Logger {
 }
 
 func (l *Logger) log(level Level, message string) {
-	var lvl string
+	if l.disable {
+		return
+	}
 
 	if l.ShowTimestamp {
 		l.Time = time.Now().Format("15:04:05 02/01/2006") + " "
@@ -53,6 +57,7 @@ func (l *Logger) log(level Level, message string) {
 		l.Time = ""
 	}
 
+	var lvl string
 	switch level {
 	case Info:
 		lvl = "INFO"
@@ -67,6 +72,11 @@ func (l *Logger) log(level Level, message string) {
 	log := fmt.Sprintf("%s%s - %s: %s", l.Time, l.Prefix, lvl, message)
 
 	fmt.Fprintln(l.Out, log)
+}
+
+// Disable turns off the logger.
+func (l *Logger) Disable() {
+	l.disable = true
 }
 
 // Info provides useful information about the server.

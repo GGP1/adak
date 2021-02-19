@@ -23,7 +23,7 @@ func TestHome(t *testing.T) {
 	// 	}
 	// 	t.Logf("\tTest 1: When checking the body.")
 	// 	{
-	// 		b, err := ioutil.ReadAll(res.Body)
+	// 		b, err := os.ReadAll(res.Body)
 	// 		if err != nil {
 	// 			t.Errorf("\t%s\tShould read response body: %v", failed, err)
 	// 		}

@@ -2,24 +2,32 @@ package server
 
 import (
 	"context"
-	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
-	"github.com/GGP1/palo/internal/config"
+	"github.com/GGP1/adak/internal/config"
+	"github.com/GGP1/adak/internal/logger"
+	"github.com/pkg/errors"
+
 	"github.com/stripe/stripe-go"
 )
 
 // Server holds a server configurations.
 type Server struct {
 	*http.Server
+	TLS
 	Stripe
 
 	TimeoutShutdown time.Duration
+}
+
+// TLS contains key and certificate files paths.
+type TLS struct {
+	KeyFile  string
+	CertFile string
 }
 
 // Stripe holds stripe configurations.
@@ -29,7 +37,7 @@ type Stripe struct {
 }
 
 // New returns a new server.
-func New(c *config.Configuration, router http.Handler) *Server {
+func New(c *config.Config, router http.Handler) *Server {
 	return &Server{
 		&http.Server{
 			Addr:           c.Server.Host + ":" + c.Server.Port,
@@ -37,6 +45,10 @@ func New(c *config.Configuration, router http.Handler) *Server {
 			ReadTimeout:    c.Server.Timeout.Read * time.Second,
 			WriteTimeout:   c.Server.Timeout.Write * time.Second,
 			MaxHeaderBytes: 1 << 20,
+		},
+		TLS{
+			KeyFile:  c.Server.TLS.KeyFile,
+			CertFile: c.Server.TLS.CertFile,
 		},
 		Stripe{
 			SecretKey: c.Stripe.SecretKey,
@@ -49,7 +61,6 @@ func New(c *config.Configuration, router http.Handler) *Server {
 // Start runs the server listening for errors.
 func (srv *Server) Start(ctx context.Context) error {
 	stripe.Key = srv.Stripe.SecretKey
-
 	stripe.DefaultLeveledLogger = &stripe.LeveledLogger{
 		Level: srv.Stripe.Level,
 	}
@@ -57,7 +68,9 @@ func (srv *Server) Start(ctx context.Context) error {
 	serverErr := make(chan error, 1)
 
 	go func() {
-		fmt.Println("Listening on", srv.Addr)
+		// logger.Log.Infof("Listening on https://%s", srv.Addr)
+		// serverErr <- srv.ListenAndServeTLS(srv.CertFile, srv.KeyFile)
+		logger.Log.Infof("Listening on http://%s", srv.Addr)
 		serverErr <- srv.ListenAndServe()
 	}()
 
@@ -67,10 +80,10 @@ func (srv *Server) Start(ctx context.Context) error {
 	// Shutdown
 	select {
 	case err := <-serverErr:
-		return fmt.Errorf("error: Listening and serving failed %s", err)
+		return errors.Errorf("Listening and serving failed %s", err)
 
 	case <-shutdown:
-		log.Println("main: Start shutdown")
+		logger.Log.Info("Start shutdown")
 
 		// Give outstanding requests a deadline for completion
 		ctx, cancel := context.WithTimeout(ctx, srv.TimeoutShutdown)
@@ -78,12 +91,14 @@ func (srv *Server) Start(ctx context.Context) error {
 
 		// Asking listener to shutdown and load shed
 		if err := srv.Shutdown(ctx); err != nil {
-			return fmt.Errorf("main: Graceful shutdown did not complete in %v: %v", srv.TimeoutShutdown, err)
+			return errors.Wrapf(err, "Graceful shutdown did not complete in %v", srv.TimeoutShutdown)
 		}
 
 		if err := srv.Close(); err != nil {
-			return fmt.Errorf("main: Couldn't stop server gracefully: %v", err)
+			return errors.Wrap(err, "Couldn't stop server gracefully")
 		}
+
+		logger.Log.Info("Server shutdown gracefully")
 		return nil
 	}
 }

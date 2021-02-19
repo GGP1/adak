@@ -5,10 +5,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/GGP1/palo/internal/token"
-	"github.com/GGP1/palo/pkg/review"
-	"github.com/GGP1/palo/pkg/shopping/cart"
-	"github.com/GGP1/palo/pkg/shopping/ordering"
+	"github.com/GGP1/adak/internal/logger"
+	"github.com/GGP1/adak/internal/token"
+	"github.com/GGP1/adak/pkg/review"
+	"github.com/GGP1/adak/pkg/shopping/cart"
+	"github.com/GGP1/adak/pkg/shopping/ordering"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
@@ -22,6 +23,7 @@ type Repository interface {
 	Get(ctx context.Context) ([]ListUser, error)
 	GetByEmail(ctx context.Context, email string) (User, error)
 	GetByID(ctx context.Context, id string) (ListUser, error)
+	GetByUsername(ctx context.Context, username string) (User, error)
 	Search(ctx context.Context, search string) ([]ListUser, error)
 	Update(ctx context.Context, u *UpdateUser, id string) error
 }
@@ -33,6 +35,7 @@ type Service interface {
 	Get(ctx context.Context) ([]ListUser, error)
 	GetByEmail(ctx context.Context, email string) (User, error)
 	GetByID(ctx context.Context, id string) (ListUser, error)
+	GetByUsername(ctx context.Context, username string) (User, error)
 	Search(ctx context.Context, search string) ([]ListUser, error)
 	Update(ctx context.Context, u *UpdateUser, id string) error
 }
@@ -57,24 +60,24 @@ func (s *service) Create(ctx context.Context, user *AddUser) error {
 	(id, cart_id, username, email, password, created_at, updated_at)
 	VALUES ($1, $2, $3, $4, $5, $6, $7)`
 
-	_, err := s.GetByEmail(ctx, user.Email)
-	if err == nil {
+	if _, err := s.GetByEmail(ctx, user.Email); err == nil {
 		return errors.New("email is already taken")
 	}
 
-	_, err = s.GetByUsername(ctx, user.Username)
-	if err == nil {
+	if _, err := s.GetByUsername(ctx, user.Username); err == nil {
 		return errors.New("useraname is already taken")
 	}
 
-	hash, err := bcrypt.GenerateFromPassword([]byte(user.Password), 24)
+	// Setting a value other than default blocks forever
+	hash, err := bcrypt.GenerateFromPassword([]byte(user.Password), bcrypt.DefaultCost)
 	if err != nil {
-		return err
+		logger.Log.Errorf("failed generating user's password hash: %v", err)
+		return errors.Wrap(err, "failed generating the password hash")
 	}
 	user.Password = string(hash)
 
 	// Create a cart for each user
-	cartID := token.GenerateRunes(30)
+	cartID := token.RandString(30)
 	user.CartID = cartID
 
 	cart := cart.New(user.CartID)
@@ -82,15 +85,17 @@ func (s *service) Create(ctx context.Context, user *AddUser) error {
 	_, err = s.DB.ExecContext(ctx, cartQuery, cart.ID, cart.Counter, cart.Weight,
 		cart.Discount, cart.Taxes, cart.Subtotal, cart.Total)
 	if err != nil {
+		logger.Log.Errorf("failed creating user's cart: %v", err)
 		return errors.Wrap(err, "couldn't create the cart")
 	}
 
-	userID := token.GenerateRunes(30)
+	userID := token.RandString(30)
 	user.CreatedAt = time.Now()
 
 	_, err = s.DB.ExecContext(ctx, userQuery, userID, cart.ID, user.Username, user.Email,
 		user.Password, user.CreatedAt, user.UpdatedAt)
 	if err != nil {
+		logger.Log.Errorf("failed creating user: %v", err)
 		return errors.Wrap(err, "couldn't create the user")
 	}
 
@@ -101,6 +106,7 @@ func (s *service) Create(ctx context.Context, user *AddUser) error {
 func (s *service) Delete(ctx context.Context, id string) error {
 	_, err := s.DB.ExecContext(ctx, "DELETE FROM users WHERE id=$1", id)
 	if err != nil {
+		logger.Log.Errorf("failed deleting user: %v", err)
 		return errors.Wrap(err, "couldn't delete the user")
 	}
 
@@ -112,6 +118,7 @@ func (s *service) Get(ctx context.Context) ([]ListUser, error) {
 	var users []ListUser
 
 	if err := s.DB.SelectContext(ctx, &users, "SELECT id, cart_id, username, email FROM users"); err != nil {
+		logger.Log.Errorf("failed listing users: %v", err)
 		return nil, errors.Wrap(err, "couldn't find the users")
 	}
 
@@ -146,6 +153,7 @@ func (s *service) GetByID(ctx context.Context, id string) (ListUser, error) {
 	}
 
 	if err := s.DB.SelectContext(ctx, &reviews, "SELECT * FROM reviews WHERE user_id=$1", id); err != nil {
+		logger.Log.Errorf("failed listing user's reviews: %v", err)
 		return ListUser{}, errors.Wrap(err, "couldn't find the reviews")
 	}
 
@@ -183,6 +191,7 @@ func (s *service) Search(ctx context.Context, search string) ([]ListUser, error)
 	}
 
 	if err := s.DB.SelectContext(ctx, &users, q, search); err != nil {
+		logger.Log.Errorf("failed searching users: %v", err)
 		return nil, errors.Wrap(err, "couldn't find the users")
 	}
 
@@ -198,6 +207,7 @@ func (s *service) Search(ctx context.Context, search string) ([]ListUser, error)
 func (s *service) Update(ctx context.Context, u *UpdateUser, id string) error {
 	_, err := s.DB.ExecContext(ctx, "UPDATE users SET username=$2 WHERE id=$1", id, u.Username)
 	if err != nil {
+		logger.Log.Errorf("failed updating user: %v", err)
 		return errors.Wrap(err, "couldn't update the user")
 	}
 
@@ -217,6 +227,7 @@ func getRelationships(ctx context.Context, db *sqlx.DB, users []ListUser) ([]Lis
 			)
 
 			if err := db.Select(&reviews, "SELECT * FROM reviews WHERE user_id=$1", user.ID); err != nil {
+				logger.Log.Errorf("failed listing user's reviews: %v", err)
 				errCh <- errors.Wrap(err, "couldn't find the reviews")
 			}
 

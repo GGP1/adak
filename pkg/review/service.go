@@ -4,7 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/GGP1/palo/internal/token"
+	"github.com/GGP1/adak/internal/logger"
+	"github.com/GGP1/adak/internal/token"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
@@ -14,7 +15,7 @@ import (
 type Repository interface {
 	Create(ctx context.Context, r *Review, userID string) error
 	Delete(ctx context.Context, id string) error
-	Get(ctx context.Context) ([]Review, error)
+	Get(ctx context.Context) ([]*Review, error)
 	GetByID(ctx context.Context, id string) (Review, error)
 }
 
@@ -22,7 +23,7 @@ type Repository interface {
 type Service interface {
 	Create(ctx context.Context, r *Review, userID string) error
 	Delete(ctx context.Context, id string) error
-	Get(ctx context.Context) ([]Review, error)
+	Get(ctx context.Context) ([]*Review, error)
 	GetByID(ctx context.Context, id string) (Review, error)
 }
 
@@ -42,11 +43,12 @@ func (s *service) Create(ctx context.Context, r *Review, userID string) error {
 	(id, stars, comment, user_id, product_id, shop_id, created_at, updated_at)
 	VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`
 
-	id := token.GenerateRunes(30)
+	id := token.RandString(30)
 	r.CreatedAt = time.Now()
 
 	_, err := s.DB.ExecContext(ctx, q, id, r.Stars, r.Comment, userID, r.ProductID, r.ShopID, r.CreatedAt, r.UpdatedAt)
 	if err != nil {
+		logger.Log.Errorf("failed creating review: %v", err)
 		return errors.Wrap(err, "couldn't create the review")
 	}
 
@@ -57,6 +59,7 @@ func (s *service) Create(ctx context.Context, r *Review, userID string) error {
 func (s *service) Delete(ctx context.Context, id string) error {
 	_, err := s.DB.ExecContext(ctx, "DELETE FROM reviews WHERE id=$1", id)
 	if err != nil {
+		logger.Log.Errorf("failed deleting review: %v", err)
 		return errors.Wrap(err, "couldn't delete the review")
 	}
 
@@ -64,10 +67,11 @@ func (s *service) Delete(ctx context.Context, id string) error {
 }
 
 // Get returns a list with all the reviews stored in the database.
-func (s *service) Get(ctx context.Context) ([]Review, error) {
-	var reviews []Review
+func (s *service) Get(ctx context.Context) ([]*Review, error) {
+	var reviews []*Review
 
 	if err := s.DB.SelectContext(ctx, &reviews, "SELECT * FROM reviews"); err != nil {
+		logger.Log.Errorf("failed listing reviews: %v", err)
 		return nil, errors.Wrap(err, "couldn't find the reviews")
 	}
 

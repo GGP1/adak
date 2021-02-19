@@ -4,7 +4,8 @@ import (
 	"context"
 	"time"
 
-	"github.com/GGP1/palo/pkg/user"
+	"github.com/GGP1/adak/internal/logger"
+	"github.com/GGP1/adak/pkg/user"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
@@ -15,14 +16,14 @@ import (
 type Repository interface {
 	ChangeEmail(ctx context.Context, id, newEmail, token string) error
 	ChangePassword(ctx context.Context, id, oldPass, newPass string) error
-	ValidateUserEmail(ctx context.Context, id, confirmationCode string, verifiedAt time.Time) error
+	ValidateUserEmail(ctx context.Context, id, confirmationCode string, verified bool) error
 }
 
 // Service provides user account operations.
 type Service interface {
 	ChangeEmail(ctx context.Context, id, newEmail, token string) error
 	ChangePassword(ctx context.Context, id, oldPass, newPass string) error
-	ValidateUserEmail(ctx context.Context, id, confirmationCode string, verifiedAt time.Time) error
+	ValidateUserEmail(ctx context.Context, id, confirmationCode string, verified bool) error
 }
 
 type service struct {
@@ -49,6 +50,7 @@ func (s *service) ChangeEmail(ctx context.Context, id, newEmail, token string) e
 
 	_, err := s.DB.ExecContext(ctx, "UPDATE users set email=$2 WHERE id=$1", id, newEmail)
 	if err != nil {
+		logger.Log.Errorf("failed updating the user's email: %v", err)
 		return errors.Wrap(err, "couldn't change the email")
 	}
 
@@ -73,12 +75,14 @@ func (s *service) ChangePassword(ctx context.Context, id, oldPass, newPass strin
 
 	newPassHash, err := bcrypt.GenerateFromPassword([]byte(newPass), bcrypt.DefaultCost)
 	if err != nil {
+		logger.Log.Errorf("failed generating user's password hash: %v", err)
 		return errors.Wrap(err, "couldn't generate the password hash")
 	}
 	user.Password = string(newPassHash)
 
 	_, err = s.DB.ExecContext(ctx, "UPDATE users SET password=$2 WHERE id=$1", user.ID, user.Password)
 	if err != nil {
+		logger.Log.Errorf("failed updating user's password: %v", err)
 		return errors.Wrap(err, "couldn't change the password")
 	}
 
@@ -86,11 +90,12 @@ func (s *service) ChangePassword(ctx context.Context, id, oldPass, newPass strin
 }
 
 // ValidateUserEmail sets the time when the user validated its email and the token he received.
-func (s *service) ValidateUserEmail(ctx context.Context, id, confirmationCode string, verifiedAt time.Time) error {
-	q := "UPDATE users SET email_verified_at=$2, confirmation_code=$3 WHERE id=$1"
+func (s *service) ValidateUserEmail(ctx context.Context, id, confirmationCode string, verified bool) error {
+	q := "UPDATE users SET verified_email=$2, confirmation_code=$3 WHERE id=$1"
 
-	_, err := s.DB.ExecContext(ctx, q, id, verifiedAt, confirmationCode)
+	_, err := s.DB.ExecContext(ctx, q, id, verified, confirmationCode)
 	if err != nil {
+		logger.Log.Errorf("failed validating the user: %v", err)
 		return errors.Wrap(err, "couldn't validate the user")
 	}
 

@@ -3,7 +3,6 @@ package auth
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 	"sync"
 	"time"
@@ -32,16 +31,16 @@ type userData struct {
 }
 
 type session struct {
+	sync.RWMutex
+
 	DB *sqlx.DB
 
-	sync.RWMutex
 	// user session
 	store map[string]userData
 	// time to wait after failing x times (increments every fail)
 	delay map[string]time.Time
 	// number of tries to log in
 	tries map[string][]struct{}
-
 	// last time the user logged in
 	cleaned time.Time
 	// session length
@@ -101,14 +100,14 @@ func (s *session) Login(ctx context.Context, w http.ResponseWriter, r *http.Requ
 	ip := tracking.GetUserIP(r)
 
 	if !s.delay[ip].IsZero() && s.delay[ip].Sub(time.Now()) > 0 {
-		return fmt.Errorf("please wait %v before trying again", s.delay[ip].Sub(time.Now()))
+		return errors.Errorf("please wait %v before trying again", s.delay[ip].Sub(time.Now()))
 	}
 
 	var user User
-	q := `SELECT id, cart_id, username, email, password, verified_email FROM users WHERE email=$1`
+	query := `SELECT id, cart_id, username, email, password, verified_email FROM users WHERE email=$1`
 
 	// Check if the email exists and if it is verified
-	if err := s.DB.GetContext(ctx, &user, q, email); err != nil {
+	if err := s.DB.GetContext(ctx, &user, query, email); err != nil {
 		s.loginDelay(ip)
 		return errors.New("invalid email or password")
 	}
@@ -153,10 +152,10 @@ func (s *session) Login(ctx context.Context, w http.ResponseWriter, r *http.Requ
 // Login authenticates users using OAuth2.
 func (s *session) LoginOAuth(ctx context.Context, w http.ResponseWriter, r *http.Request, email string) error {
 	var user User
-	q := `SELECT id, cart_id, username, email, password, verified_email FROM users WHERE email=$1`
+	query := `SELECT id, cart_id, username, email, password, verified_email FROM users WHERE email=$1`
 
 	// Check if the email exists and if it is verified
-	if err := s.DB.GetContext(ctx, &user, q, email); err != nil {
+	if err := s.DB.GetContext(ctx, &user, query, email); err != nil {
 		return errors.New("please register before logging in")
 	}
 
@@ -222,6 +221,6 @@ func (s *session) loginDelay(ip string) {
 
 	s.tries[ip] = append(s.tries[ip], struct{}{})
 
-	d := (len(s.tries[ip]) * 2)
-	s.delay[ip] = time.Now().Add(time.Second * time.Duration(d))
+	delay := (len(s.tries[ip]) * 2)
+	s.delay[ip] = time.Now().Add(time.Second * time.Duration(delay))
 }

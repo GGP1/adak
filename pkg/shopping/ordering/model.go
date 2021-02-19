@@ -21,28 +21,34 @@ type Order struct {
 }
 
 // OrderCart represents the cart ordered by the user.
+//
+// Amounts to be provided in a currency’s smallest unit.
+// 100 = 1 USD.
 type OrderCart struct {
-	OrderID  string  `json:"order_id" db:"order_id"`
-	Counter  int     `json:"counter"`
-	Weight   float64 `json:"weight"`
-	Discount float64 `json:"discount"`
-	Taxes    float64 `json:"taxes"`
-	Subtotal float64 `json:"subtotal"`
-	Total    float64 `json:"total"`
+	OrderID  string `json:"order_id" db:"order_id"`
+	Counter  int    `json:"counter"`
+	Weight   int64  `json:"weight"`
+	Discount int64  `json:"discount"`
+	Taxes    int64  `json:"taxes"`
+	Subtotal int64  `json:"subtotal"`
+	Total    int64  `json:"total"`
 }
 
 // OrderProduct represents a product placed into the cart ordered by the user.
+//
+// Amounts to be provided in a currency’s smallest unit.
+// 100 = 1 USD.
 type OrderProduct struct {
-	ProductID   string  `json:"product_id" db:"product_id"`
-	OrderID     string  `json:"order_id" db:"order_id"`
-	Quantity    int     `json:"quantity"`
-	Brand       string  `json:"brand"`
-	Category    string  `json:"category"`
-	Type        string  `json:"type"`
-	Description string  `json:"description,omitempty"`
-	Weight      float64 `json:"weight"`
-	Discount    float64 `json:"discount"`
-	Taxes       float64 `json:"taxes"`
-	Subtotal    float64 `json:"subtotal"`
-	Total       float64 `json:"total"`
+	ProductID   string `json:"product_id" db:"product_id"`
+	OrderID     string `json:"order_id" db:"order_id"`
+	Quantity    int    `json:"quantity"`
+	Brand       string `json:"brand"`
+	Category    string `json:"category"`
+	Type        string `json:"type"`
+	Description string `json:"description,omitempty"`
+	Weight      int64  `json:"weight"`
+	Discount    int64  `json:"discount"`
+	Taxes       int64  `json:"taxes"`
+	Subtotal    int64  `json:"subtotal"`
+	Total       int64  `json:"total"`
 }

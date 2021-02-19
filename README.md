@@ -4,7 +4,7 @@
 [![GitHub license](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/GGP1/adak/blob/master/LICENSE)
 [![Go Report Card](https://goreportcard.com/badge/github.com/GGP1/adak)](https://goreportcard.com/report/github.com/GGP1/adak)
 
-Adak is an e-commerce server developed for educational purposes.
+Adak is an e-commerce REST-API developed for educational purposes.
 
 This project has two versions: **monolithic** and **microservices**.
 
@@ -12,16 +12,17 @@ For the microservices version please change to the [microservices](https://githu
 
 ## Features
 
+- Hexagonal architecture
 - Authentication
     - Password encryption using [bcrypt](https://pkg.go.dev/golang.org/x/crypto/bcrypt)
     - Email verification
     - Distinction between users and admins
     - Incremental delay when login from the same ip fails multiple times (for mitigating brute force attacks)
+- LRU cache
 - Rate limiter to protect against API abuse and DDoS attacks (DDoSing is stil possible but it will require a high number of computers faking handshakes in parallel)
-- Context cancelling
+- Context cancelling and graceful shutdown
 - API documentation using Swagger
 - Requests and services logging
-- Graceful shutdown
 - Connection encrypted with TLS (self-signed certificate as it wont be used in production)
 - Input sanitization and unicode normalization to NFC
 - Encrypted cookies using ChaCha20-Poly1305 and hex encoding/decoding
@@ -39,9 +40,11 @@ For the microservices version please change to the [microservices](https://githu
 
 The server will be listening on port **4000** and the documentation on port **8080**.
 
+To run the API's documentation in a container execute `docker run --rm -p 8080:8080 gastonpalomeque/adak-api` 
+
 #### Manually
 
-> Requires postgres server to be installed
+> Requires postgres server, Go and Git to be installed
 
 *Clone the repository*: `git clone https://www.github.com/GGP1/adak.git`
 
@@ -50,8 +53,6 @@ The server will be listening on port **4000** and the documentation on port **80
 *Run the server*: `go run cmd/main.go`
 
 ## Documentation
-
-Please head over to the [API docs](/api/swagger/README.md) for further details.
 
 ### Endpoints
 

@@ -10,7 +10,7 @@ RUN go build -o adak -ldflags="-s -w" ./cmd/main.go
 
 # -------------------------
 
-FROM alpine:3.12.1
+FROM alpine:3.13.2
 
 COPY --from=builder /go/src/app/adak /usr/bin/
 

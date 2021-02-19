@@ -2,13 +2,14 @@ package main
 
 import (
 	"context"
-	"log"
 
-	"github.com/GGP1/palo/cmd/server"
-	"github.com/GGP1/palo/internal/config"
-	"github.com/GGP1/palo/pkg/http/rest"
-	"github.com/GGP1/palo/pkg/storage"
+	"github.com/GGP1/adak/cmd/server"
+	"github.com/GGP1/adak/internal/config"
+	"github.com/GGP1/adak/internal/logger"
+	"github.com/GGP1/adak/pkg/http/rest"
+	"github.com/GGP1/adak/pkg/postgres"
 
+	lru "github.com/hashicorp/golang-lru"
 	_ "github.com/lib/pq"
 )
 
@@ -18,20 +19,24 @@ func main() {
 
 	conf, err := config.New()
 	if err != nil {
-		log.Fatal(err)
+		logger.Log.Fatal(err)
 	}
 
-	db, close, err := storage.PostgresConnect(ctx, &conf.Database)
+	db, err := postgres.Connect(ctx, &conf.Database)
 	if err != nil {
-		log.Fatal(err)
+		logger.Log.Fatal(err)
 	}
-	defer close()
+	defer db.Close()
 
-	router := rest.NewRouter(db)
+	cache, err := lru.New(conf.Cache.Size)
+	if err != nil {
+		logger.Log.Fatalf("couldn't create the cache: %v", err)
+	}
 
+	router := rest.NewRouter(db, cache)
 	srv := server.New(conf, router)
 
 	if err := srv.Start(ctx); err != nil {
-		log.Fatal(err)
+		logger.Log.Fatal(err)
 	}
 }

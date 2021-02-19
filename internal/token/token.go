@@ -7,25 +7,25 @@ import (
 	"github.com/pkg/errors"
 )
 
-var letterRunes = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ")
+var pool = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ123456789")
 
-// GenerateRunes generates a random string.
-func GenerateRunes(length int) string {
+// RandString returns a random string.
+func RandString(length int) string {
 	b := make([]rune, length)
 
 	for i := range b {
-		// Don't handle error as it is always greater than 0
-		n, _ := rand.Int(rand.Reader, big.NewInt(int64(len(letterRunes))))
-		b[i] = letterRunes[n.Int64()]
+		// Don't handle error as len(pool) is always greater than 0
+		n, _ := rand.Int(rand.Reader, big.NewInt(int64(len(pool))))
+		b[i] = pool[n.Int64()]
 	}
 
 	return string(b)
 }
 
 // CheckPermits cheks if the user is trying to perform and action on his own
-// account or not. If true, return an error.
+// account (return nil) or not (return error).
 func CheckPermits(paramID, cookieID string) error {
-	userID, err := ParseFixedJWT(cookieID)
+	userID, err := GetUserID(cookieID)
 	if err != nil {
 		return err
 	}

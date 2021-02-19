@@ -2,6 +2,7 @@ package shop
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/GGP1/adak/internal/response"
@@ -9,11 +10,13 @@ import (
 
 	"github.com/go-chi/chi"
 	validator "github.com/go-playground/validator/v10"
+	lru "github.com/hashicorp/golang-lru"
 )
 
 // Handler handles shop endpoints.
 type Handler struct {
 	Service Service
+	Cache   *lru.Cache
 }
 
 // Create creates a new shop and saves it.
@@ -53,7 +56,7 @@ func (h *Handler) Delete() http.HandlerFunc {
 			return
 		}
 
-		response.HTMLText(w, http.StatusOK, "Shop deleted successfully.")
+		response.JSONText(w, http.StatusOK, fmt.Sprintf("shop %q deleted", id))
 	}
 }
 
@@ -78,12 +81,18 @@ func (h *Handler) GetByID() http.HandlerFunc {
 		id := chi.URLParam(r, "id")
 		ctx := r.Context()
 
+		if cShop, ok := h.Cache.Get(id); ok {
+			response.JSON(w, http.StatusOK, cShop)
+			return
+		}
+
 		shop, err := h.Service.GetByID(ctx, id)
 		if err != nil {
 			response.Error(w, http.StatusNotFound, err)
 			return
 		}
 
+		h.Cache.Add(id, shop)
 		response.JSON(w, http.StatusOK, shop)
 	}
 }
@@ -127,6 +136,6 @@ func (h *Handler) Update() http.HandlerFunc {
 			return
 		}
 
-		response.HTMLText(w, http.StatusOK, "Shop updated successfully.")
+		response.JSONText(w, http.StatusOK, fmt.Sprintf("shop %q updated", id))
 	}
 }

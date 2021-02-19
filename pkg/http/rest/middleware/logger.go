@@ -2,10 +2,10 @@ package middleware
 
 import (
 	"fmt"
-	"math/rand"
 	"net/http"
-	"strconv"
 	"time"
+
+	"github.com/GGP1/adak/internal/token"
 )
 
 const (
@@ -44,9 +44,7 @@ func LogFormatter(next http.Handler) http.Handler {
 		start := time.Now()
 
 		// Each request must have a id with it
-		n := rand.Int()
-		reqID := strconv.Itoa(n)
-
+		reqID := token.RandString(30)
 		w.Header().Set("X-Request-ID", reqID)
 
 		lrw := newLoggingResponseWriter(w)
@@ -60,13 +58,12 @@ func LogFormatter(next http.Handler) http.Handler {
 
 		statusColor := statusCodeColor(status)
 		methodColor := methodColor(method)
-		resetColor := resetColor()
 
-		log := fmt.Sprintf("[PALO] %v | %s %3d %s | %-10v | %s %-7s %s | %#v",
+		log := fmt.Sprintf("%v [ADAK] | %s %3d %s | %-10v | %s %-7s %s | %#v",
 			timestamp,
-			statusColor, status, resetColor,
+			statusColor, status, reset,
 			latency,
-			methodColor, method, resetColor,
+			methodColor, method, reset,
 			path)
 
 		fmt.Println(log)
@@ -107,8 +104,4 @@ func methodColor(reqMethod string) string {
 	default:
 		return reset
 	}
-}
-
-func resetColor() string {
-	return reset
 }

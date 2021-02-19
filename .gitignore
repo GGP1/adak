@@ -3,5 +3,6 @@ TODO.txt
 
 postgres-data
 
-pkg/auth/adminList.go
+api/swagger/index.html
 cmd/server/certs
+pkg/auth/adminList.go

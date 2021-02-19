@@ -3,7 +3,8 @@ package cart
 import (
 	"context"
 	"fmt"
-	"math"
+
+	"github.com/GGP1/adak/internal/logger"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
@@ -19,7 +20,7 @@ func New(id string) *Cart {
 		Taxes:    0,
 		Subtotal: 0,
 		Total:    0,
-		Products: []*Product{},
+		Products: []Product{},
 	}
 }
 
@@ -30,15 +31,16 @@ func Add(ctx context.Context, db *sqlx.DB, cartID string, p *Product, quantity i
 		sum  int
 	)
 
-	pQuery := `INSERT INTO cart_products
+	productsQuery := `INSERT INTO cart_products
 	(id, cart_id, quantity, brand, category, type, description, weight, 
 	discount, taxes, subtotal, total)
 	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`
 
-	cQuery := `UPDATE carts SET counter=$2, weight=$3, discount=$4, taxes=$5, 
+	cartQuery := `UPDATE carts SET counter=$2, weight=$3, discount=$4, taxes=$5, 
 	subtotal=$6, total=$7 WHERE id=$1`
 
 	if err := db.GetContext(ctx, &cart, "SELECT * FROM carts WHERE id=$1", cartID); err != nil {
+		logger.Log.Errorf("failed listing cart: %v", err)
 		return nil, errors.Wrap(err, "couldn't find the cart")
 	}
 
@@ -49,23 +51,25 @@ func Add(ctx context.Context, db *sqlx.DB, cartID string, p *Product, quantity i
 	p.CartID = cartID
 	p.Total = p.Total + p.Subtotal + taxes - discount
 
-	// math.Ceil(x*100)/100 is used to round floats
+	cart.mu.Lock()
 	for i := 0; i < quantity; i++ {
 		cart.Counter++
 		p.Quantity++
-		cart.Weight += math.Ceil(p.Weight*100) / 100
-		cart.Discount += math.Ceil(discount*100) / 100
-		cart.Taxes += math.Ceil(taxes*100) / 100
-		cart.Subtotal += math.Ceil(p.Subtotal*100) / 100
+		cart.Weight += p.Weight
+		cart.Discount += discount
+		cart.Taxes += taxes
+		cart.Subtotal += p.Subtotal
 		cart.Total = cart.Total + p.Subtotal + taxes - discount
 	}
+	cart.mu.Unlock()
 
 	db.QueryRow("SELECT SUM(quantity) FROM cart_products WHERE id=$1 AND cart_id=$2", p.ID, cartID).Scan(&sum)
 	// Create the product.
 	if sum == 0 {
-		_, err := db.ExecContext(ctx, pQuery, p.ID, cartID, p.Quantity, p.Brand, p.Category, p.Type, p.Description,
+		_, err := db.ExecContext(ctx, productsQuery, p.ID, cartID, p.Quantity, p.Brand, p.Category, p.Type, p.Description,
 			p.Weight, p.Discount, p.Taxes, p.Subtotal, p.Total)
 		if err != nil {
+			logger.Log.Errorf("failed creating cart's products: %v", err)
 			return nil, errors.Wrap(err, "couldn't create the product")
 		}
 	}
@@ -75,13 +79,15 @@ func Add(ctx context.Context, db *sqlx.DB, cartID string, p *Product, quantity i
 
 		_, err := db.ExecContext(ctx, "UPDATE cart_products SET quantity=$2 WHERE cart_id=$1", cartID, p.Quantity)
 		if err != nil {
+			logger.Log.Errorf("failed updating cart's products: %v", err)
 			return nil, errors.Wrap(err, "couldn't update the product")
 		}
 	}
 
-	_, err := db.ExecContext(ctx, cQuery, cartID, cart.Counter, cart.Weight, cart.Discount, cart.Taxes, cart.Subtotal,
+	_, err := db.ExecContext(ctx, cartQuery, cartID, cart.Counter, cart.Weight, cart.Discount, cart.Taxes, cart.Subtotal,
 		cart.Total)
 	if err != nil {
+		logger.Log.Errorf("failed updating the cart: %v", err)
 		return nil, errors.Wrap(err, "couldn't update the cart")
 	}
 
@@ -89,10 +95,11 @@ func Add(ctx context.Context, db *sqlx.DB, cartID string, p *Product, quantity i
 }
 
 // Checkout returns the cart total.
-func Checkout(ctx context.Context, db *sqlx.DB, cartID string) (float64, error) {
+func Checkout(ctx context.Context, db *sqlx.DB, cartID string) (int64, error) {
 	var cart Cart
 
 	if err := db.GetContext(ctx, &cart, "SELECT * FROM carts WHERE id=$1", cartID); err != nil {
+		logger.Log.Errorf("failed listing cart: %v", err)
 		return 0, errors.Wrap(err, "couldn't find the cart")
 	}
 
@@ -105,6 +112,7 @@ func Checkout(ctx context.Context, db *sqlx.DB, cartID string) (float64, error) 
 func Delete(ctx context.Context, db *sqlx.DB, cartID string) error {
 	_, err := db.ExecContext(ctx, "DELETE FROM carts WHERE id=$1", cartID)
 	if err != nil {
+		logger.Log.Errorf("failed deleting cart: %v", err)
 		return errors.New("couldn't delete the cart")
 	}
 
@@ -112,23 +120,25 @@ func Delete(ctx context.Context, db *sqlx.DB, cartID string) error {
 }
 
 // Get returns the user cart.
-func Get(ctx context.Context, db *sqlx.DB, cartID string) (Cart, error) {
+func Get(ctx context.Context, db *sqlx.DB, cartID string) (*Cart, error) {
 	var (
 		cart     Cart
-		products []*Product
+		products []Product
 	)
 
 	if err := db.GetContext(ctx, &cart, "SELECT * FROM carts WHERE id=$1", cartID); err != nil {
-		return Cart{}, errors.Wrap(err, "couldn't find the cart")
+		logger.Log.Errorf("failed listing cart: %v", err)
+		return nil, errors.Wrap(err, "couldn't find the cart")
 	}
 
 	if err := db.SelectContext(ctx, &products, "SELECT * FROM cart_products WHERE cart_id=$1", cartID); err != nil {
-		return Cart{}, errors.Wrap(err, "couldn't find the cart products")
+		logger.Log.Errorf("failed listing cart's products: %v", err)
+		return nil, errors.Wrap(err, "couldn't find the cart products")
 	}
 
 	cart.Products = products
 
-	return cart, nil
+	return &cart, nil
 }
 
 // Products returns the cart products.
@@ -136,6 +146,7 @@ func Products(ctx context.Context, db *sqlx.DB, cartID string) ([]Product, error
 	var products []Product
 
 	if err := db.SelectContext(ctx, &products, "SELECT * FROM cart_products WHERE cart_id=$1", cartID); err != nil {
+		logger.Log.Errorf("failed listing cart's products: %v", err)
 		return nil, errors.Wrap(err, "couldn't find the cart products")
 	}
 
@@ -157,20 +168,23 @@ func Remove(ctx context.Context, db *sqlx.DB, cartID string, pID string, quantit
 	subtotal=$6, total=$7 WHERE id=$1`
 
 	if err := db.GetContext(ctx, &cart, "SELECT * FROM carts WHERE id=$1", cartID); err != nil {
+		logger.Log.Errorf("failed deleting cart: %v", err)
 		return errors.Wrap(err, "couldn't find the cart")
 	}
 
 	if err := db.GetContext(ctx, &p, "SELECT * FROM cart_products WHERE id = $1 AND cart_id=$2", pID, cartID); err != nil {
+		logger.Log.Errorf("failed listing cart's products: %v", err)
 		return errors.New("couldn't find the product")
 	}
 
 	if quantity > p.Quantity {
-		return fmt.Errorf("quantity inserted (%d) is higher than the stock of products (%d)", quantity, p.Quantity)
+		return errors.Errorf("quantity inserted (%d) is higher than the stock of products (%d)", quantity, p.Quantity)
 	}
 
 	if quantity == p.Quantity {
 		_, err := db.ExecContext(ctx, "DELETE FROM cart_products WHERE id=$1 AND cart_id=$2", pID, cartID)
 		if err != nil {
+			logger.Log.Errorf("failed deleting cart's products: %v", err)
 			return errors.Wrap(err, "couldn't delete the product")
 		}
 	}
@@ -185,20 +199,22 @@ func Remove(ctx context.Context, db *sqlx.DB, cartID string, pID string, quantit
 	taxes := (p.Subtotal / 100) * p.Taxes
 	discount := (p.Subtotal / 100) * p.Discount
 
-	// math.Ceil(x*100)/100 is used to round float numbers
+	cart.mu.Lock()
 	for i := 0; i < quantity; i++ {
 		cart.Counter--
 		p.Quantity--
-		cart.Weight -= math.Ceil(p.Weight*100) / 100
-		cart.Discount -= math.Ceil(discount*100) / 100
-		cart.Taxes -= math.Ceil(taxes*100) / 100
-		cart.Subtotal -= math.Ceil(p.Subtotal*100) / 100
+		cart.Weight -= p.Weight
+		cart.Discount -= discount
+		cart.Taxes -= taxes
+		cart.Subtotal -= p.Subtotal
 		cart.Total = cart.Total - p.Subtotal - taxes + discount
 	}
+	cart.mu.Unlock()
 
 	_, err := db.ExecContext(ctx, cQuery, cartID, cart.Counter, cart.Weight, cart.Discount, cart.Taxes, cart.Subtotal,
 		cart.Total)
 	if err != nil {
+		logger.Log.Errorf("failed updating cart: %v", err)
 		return errors.Wrap(err, "couldn't update the cart")
 	}
 
@@ -212,11 +228,13 @@ func Reset(ctx context.Context, db *sqlx.DB, cartID string) error {
 
 	_, err := db.ExecContext(ctx, "DELETE FROM cart_products WHERE cart_id=$1", cartID)
 	if err != nil {
+		logger.Log.Errorf("failed deleting cart's products: %v", err)
 		return errors.Wrap(err, "couldn't delete cart products")
 	}
 
 	_, err = db.ExecContext(ctx, cQuery, cartID, 0, 0, 0, 0, 0, 0)
 	if err != nil {
+		logger.Log.Errorf("failed resetting cart: %v", err)
 		return errors.Wrap(err, "couldn't reset the cart")
 	}
 
@@ -228,6 +246,7 @@ func Size(ctx context.Context, db *sqlx.DB, cartID string) (int, error) {
 	var cart Cart
 
 	if err := db.GetContext(ctx, &cart, "SELECT * FROM carts WHERE id=$1", cartID); err != nil {
+		logger.Log.Errorf("failed listing cart: %v", err)
 		return 0, errors.Wrap(err, "couldn't find the cart")
 	}
 
@@ -239,11 +258,12 @@ func String(ctx context.Context, db *sqlx.DB, cartID string) (string, error) {
 	var c Cart
 
 	if err := db.GetContext(ctx, &c, "SELECT * FROM carts WHERE id=$1", cartID); err != nil {
+		logger.Log.Errorf("failed listing cart: %v", err)
 		return "", errors.Wrap(err, "couldn't find the cart")
 	}
 
-	const details = `The cart has %d products, a weight of %2.fkg, $%2.f of discounts, 
-	$%2.f of taxes and a total of $%2.f`
+	const details = `The cart has %d products, a weight of %2.dkg, $%2.d of discounts, 
+	$%2.d of taxes and a total of $%2.d`
 
-	return fmt.Sprintf(details, c.Counter, c.Weight, c.Discount, c.Taxes, c.Total), nil
+	return fmt.Sprintf(details, c.Counter, (c.Weight / 1000), (c.Discount / 100), (c.Taxes / 100), (c.Total / 100)), nil
 }

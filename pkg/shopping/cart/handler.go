@@ -2,6 +2,7 @@ package cart
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -10,13 +11,15 @@ import (
 	"github.com/GGP1/adak/internal/sanitize"
 
 	"github.com/go-chi/chi"
+	lru "github.com/hashicorp/golang-lru"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 )
 
 // Handler manages cart endpoints.
 type Handler struct {
-	DB *sqlx.DB
+	DB    *sqlx.DB
+	Cache *lru.Cache
 }
 
 // Add appends a product to the cart.
@@ -336,12 +339,18 @@ func (h *Handler) Get() http.HandlerFunc {
 			return
 		}
 
+		if cCart, ok := h.Cache.Get(cartID); ok {
+			response.JSON(w, http.StatusOK, cCart)
+			return
+		}
+
 		cart, err := Get(ctx, h.DB, cartID)
 		if err != nil {
 			response.Error(w, http.StatusNotFound, err)
 			return
 		}
 
+		h.Cache.Add(cartID, cart)
 		response.JSON(w, http.StatusOK, cart)
 	}
 }
@@ -390,7 +399,7 @@ func (h *Handler) Remove() http.HandlerFunc {
 			return
 		}
 
-		response.HTMLText(w, http.StatusOK, "Successfully removed the product from the cart")
+		response.JSONText(w, http.StatusOK, fmt.Sprintf("product %q deleted from cart %q", id, cartID))
 	}
 }
 
@@ -409,7 +418,7 @@ func (h *Handler) Reset() http.HandlerFunc {
 			return
 		}
 
-		response.HTMLText(w, http.StatusOK, "Cart reseted")
+		response.JSONText(w, http.StatusOK, fmt.Sprintf("cart %q reseted", cartID))
 	}
 }
 

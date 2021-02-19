@@ -3,9 +3,11 @@ package tracking
 
 import (
 	"context"
+	"crypto/rand"
 	"net/http"
 	"strings"
 
+	"github.com/GGP1/adak/internal/logger"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 )
@@ -33,10 +35,15 @@ type Hitter struct {
 }
 
 // NewService returns a new user tracker.
-func NewService(db *sqlx.DB, salt string) Tracker {
+func NewService(db *sqlx.DB) Tracker {
+	salt := make([]byte, 8)
+	if _, err := rand.Read(salt); err != nil {
+		logger.Log.Errorf("failed reading salt: %v", err)
+	}
+
 	return &Hitter{
 		DB:   db,
-		salt: salt,
+		salt: string(salt),
 	}
 }
 
@@ -55,6 +62,7 @@ func (h *Hitter) Get(ctx context.Context) ([]Hit, error) {
 	var hits []Hit
 
 	if err := h.DB.SelectContext(ctx, &hits, "SELECT * FROM hits"); err != nil {
+		logger.Log.Errorf("failed listing hits: %v", err)
 		return nil, errors.Wrap(err, "couldn't find the hits")
 	}
 
@@ -77,6 +85,7 @@ func (h *Hitter) Hit(ctx context.Context, r *http.Request) error {
 		_, err = h.DB.ExecContext(ctx, q, hit.ID, hit.Footprint, hit.Path, hit.URL,
 			hit.Language, hit.UserAgent, hit.Referer, hit.Date)
 		if err != nil {
+			logger.Log.Errorf("failed creating hit: %v", err)
 			return errors.Wrap(err, "couldn't save the hit")
 		}
 	}
@@ -88,11 +97,12 @@ func (h *Hitter) Hit(ctx context.Context, r *http.Request) error {
 func (h *Hitter) Search(ctx context.Context, query string) ([]Hit, error) {
 	var hits []Hit
 
-	q := `SELECT * FROM hits WHERE
-	to_tsvector(id || ' ' || footprint || ' ' || 
+	q := `SELECT * FROM hits WHERE to_tsvector(
+	id || ' ' || footprint || ' ' || 
 	path || ' ' || url || ' ' || 
 	language || ' ' || referer || ' ' || 
-	user_agent || ' ' || date) @@ to_tsquery($1)`
+	user_agent || ' ' || date
+	) @@ to_tsquery($1)`
 
 	if strings.ContainsAny(query, ";-\\|@#~€¬<>_()[]}{¡'") {
 		return nil, errors.New("invalid search")
@@ -116,27 +126,4 @@ func (h *Hitter) SearchByField(ctx context.Context, field, value string) ([]Hit,
 	}
 
 	return hits, nil
-}
-
-// Check headers commonly used by bots.
-// If the user is a bot return true, else return false.
-func ignoreHit(r *http.Request) bool {
-	if r.Header.Get("X-Moz") == "prefetch" ||
-		r.Header.Get("X-Purpose") == "prefetch" ||
-		r.Header.Get("X-Purpose") == "preview" ||
-		r.Header.Get("Purpose") == "prefetch" ||
-		r.Header.Get("Purpose") == "preview" {
-		return true
-	}
-
-	userAgent := strings.ToLower(r.Header.Get("User-Agent"))
-
-	for _, botUserAgent := range userAgentBotlist {
-		if strings.Contains(userAgent, botUserAgent) {
-			return true
-		}
-
-	}
-
-	return false
 }

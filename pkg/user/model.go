@@ -5,8 +5,8 @@ import (
 	"image"
 	"time"
 
-	"github.com/GGP1/palo/pkg/review"
-	"github.com/GGP1/palo/pkg/shopping/ordering"
+	"github.com/GGP1/adak/pkg/review"
+	"github.com/GGP1/adak/pkg/shopping/ordering"
 
 	"github.com/pkg/errors"
 	qrcode "github.com/skip2/go-qrcode"
@@ -20,7 +20,7 @@ type User struct {
 	Username         string           `json:"username"`
 	Email            string           `json:"email" validate:"email"`
 	Password         string           `json:"password"`
-	EmailVerifiedAt  time.Time        `json:"-" db:"email_verified_at"`
+	VerifiedEmail    bool             `json:"-" db:"verified_email"`
 	ConfirmationCode string           `json:"-" db:"confirmation_code"`
 	Orders           []ordering.Order `json:"orders,omitempty"`
 	Reviews          []review.Review  `json:"reviews,omitempty"`

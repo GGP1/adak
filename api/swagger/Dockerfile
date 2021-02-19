@@ -1,5 +1,4 @@
-# Replace the release candidate once the 1.16 image is published
-FROM golang:1.16rc1-alpine3.13 AS builder
+FROM golang:1.16.0-alpine3.13 AS builder
 
 COPY . /adak
 

@@ -1,34 +1,38 @@
-// Package storage implements functions for the manipulation of databases.
-package storage
+// Package postgres implements functions for the manipulation of databases.
+package postgres
 
 import (
 	"context"
 	"fmt"
 
-	"github.com/GGP1/palo/internal/config"
+	"github.com/GGP1/adak/internal/config"
+	"github.com/GGP1/adak/internal/logger"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 )
 
-// PostgresConnect creates a connection with the database using the postgres driver
+// Connect creates a connection with the database using the postgres driver
 // and checks the existence of all the tables.
+//
 // It returns a pointer to the sql.DB struct, the close function and an error.
-func PostgresConnect(ctx context.Context, c *config.DatabaseConfiguration) (*sqlx.DB, func() error, error) {
-	url := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=%s",
-		c.Username, c.Password, c.Host, c.Port, c.Name, c.SSLMode)
+func Connect(ctx context.Context, c *config.DatabaseConfig) (*sqlx.DB, error) {
+	url := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
+		c.Host, c.Port, c.Username, c.Password, c.Name, c.SSLMode)
 
 	db, err := sqlx.Open("postgres", url)
 	if err != nil {
-		return nil, nil, errors.Wrap(err, "couldn't open the database")
+		return nil, errors.Wrap(err, "couldn't open the database")
 	}
 
 	if err := db.Ping(); err != nil {
-		return nil, nil, errors.Wrap(err, "database connection died")
+		return nil, errors.Wrap(err, "database connection died")
 	}
 
 	db.MustExecContext(ctx, tables)
 
-	return db, db.Close, nil
+	logger.Log.Infof("Postgres listening on %s:%s", c.Host, c.Port)
+
+	return db, nil
 }
 
 // Order matters
@@ -40,7 +44,7 @@ CREATE TABLE IF NOT EXISTS users
     username text NOT NULL,
     email text NOT NULL,
     password text NOT NULL,
-    email_verified_at timestamp,
+    verified_email boolean,
     confirmation_code text,
     created_at timestamp with time zone DEFAULT NOW(),
     updated_at timestamp DEFAULT NULL,
@@ -76,11 +80,11 @@ CREATE TABLE IF NOT EXISTS products
     category text NOT NULL,
     type text NOT NULL,
     description text,
-    weight numeric NOT NULL,
-    taxes numeric,
-    discount numeric,
-    subtotal numeric NOT NULL,
-    total numeric NOT NULL,
+    weight integer NOT NULL,
+    taxes integer,
+    discount integer,
+    subtotal integer NOT NULL,
+    total integer NOT NULL,
     created_at timestamp with time zone DEFAULT NOW(),
     updated_at timestamp with time zone,
     CONSTRAINT products_pkey PRIMARY KEY (id),
@@ -107,11 +111,11 @@ CREATE TABLE IF NOT EXISTS carts
 (
     id text NOT NULL,
     counter integer,
-    weight numeric,
-    discount numeric,
-    taxes numeric,
-    subtotal numeric,
-    total numeric,
+    weight integer,
+    discount integer,
+    taxes integer,
+    subtotal integer,
+    total integer,
     CONSTRAINT carts_pkey PRIMARY KEY (id)
 );
 
@@ -124,11 +128,11 @@ CREATE TABLE IF NOT EXISTS cart_products
     category text,
     type text,
     description text,
-    weight numeric,
-    taxes numeric,
-    discount numeric,
-    subtotal numeric,
-    total numeric,
+    weight integer,
+    taxes integer,
+    discount integer,
+    subtotal integer,
+    total integer,
     CONSTRAINT cart_products_pkey PRIMARY KEY (id),
     FOREIGN KEY (cart_id) REFERENCES carts (id) ON DELETE CASCADE ON UPDATE CASCADE
 );
@@ -168,11 +172,11 @@ CREATE TABLE IF NOT EXISTS order_carts
 (
     order_id text NOT NULL,
     counter integer,
-    weight numeric,
-    discount numeric,
-    taxes numeric,
-    subtotal numeric,
-    total numeric,
+    weight integer,
+    discount integer,
+    taxes integer,
+    subtotal integer,
+    total integer,
     FOREIGN KEY (order_id) REFERENCES orders (id) ON DELETE CASCADE ON UPDATE CASCADE
 );
 
@@ -185,10 +189,10 @@ CREATE TABLE IF NOT EXISTS order_products
     category text,
     type text,
     description text,
-    weight numeric,
-    discount numeric,
-    taxes numeric,
-    subtotal numeric,
-    total numeric
+    weight integer,
+    discount integer,
+    taxes integer,
+    subtotal integer,
+    total integer
 );
 `

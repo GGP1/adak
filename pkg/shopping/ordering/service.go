@@ -5,8 +5,9 @@ import (
 	"context"
 	"time"
 
-	"github.com/GGP1/palo/internal/token"
-	"github.com/GGP1/palo/pkg/shopping/cart"
+	"github.com/GGP1/adak/internal/logger"
+	"github.com/GGP1/adak/internal/token"
+	"github.com/GGP1/adak/pkg/shopping/cart"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
@@ -22,16 +23,16 @@ const (
 )
 
 // New creates an order.
-func New(ctx context.Context, db *sqlx.DB, userID string, oParams OrderParams, deliveryDate time.Time, c cart.Cart) (*Order, error) {
+func New(ctx context.Context, db *sqlx.DB, userID string, oParams OrderParams, deliveryDate time.Time, c *cart.Cart) (*Order, error) {
 	orderQuery := `INSERT INTO orders
 	(id, user_id, currency, address, city, country, state, zip_code, status, ordered_at, delivery_date, cart_id)
 	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`
 
-	orderCQuery := `INSERT INTO order_carts
+	orderCartsQuery := `INSERT INTO order_carts
 	(order_id, counter, weight, discount, taxes, subtotal, total)
 	VALUES ($1, $2, $3, $4, $5, $6, $7)`
 
-	orderPQuery := `INSERT INTO order_products
+	orderProdQuery := `INSERT INTO order_products
 	(product_id, order_id, quantity, brand, category, type, description, weight, discount, taxes, subtotal, total)
 	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`
 
@@ -39,7 +40,7 @@ func New(ctx context.Context, db *sqlx.DB, userID string, oParams OrderParams, d
 		return nil, errors.New("ordering 0 products is not permitted")
 	}
 
-	id := token.GenerateRunes(30)
+	id := token.RandString(30)
 
 	order := Order{
 		ID:           id,
@@ -65,10 +66,11 @@ func New(ctx context.Context, db *sqlx.DB, userID string, oParams OrderParams, d
 
 	// Save order products
 	for _, product := range c.Products {
-		_, err := db.ExecContext(ctx, orderPQuery, product.ID, id, product.Quantity, product.Brand,
+		_, err := db.ExecContext(ctx, orderProdQuery, product.ID, id, product.Quantity, product.Brand,
 			product.Category, product.Type, product.Description, product.Weight,
 			product.Discount, product.Taxes, product.Subtotal, product.Total)
 		if err != nil {
+			logger.Log.Errorf("failed creating order's products: %v", err)
 			return nil, errors.Wrap(err, "couldn't create order products")
 		}
 	}
@@ -77,17 +79,20 @@ func New(ctx context.Context, db *sqlx.DB, userID string, oParams OrderParams, d
 	_, err := db.ExecContext(ctx, orderQuery, id, userID, oParams.Currency, oParams.Address, oParams.City, oParams.Country,
 		oParams.State, oParams.ZipCode, PendingState, time.Now(), deliveryDate, c.ID)
 	if err != nil {
+		logger.Log.Errorf("failed creating order: %v", err)
 		return nil, errors.Wrap(err, "couldn't create the order")
 	}
 
 	// Save order cart
-	_, err = db.ExecContext(ctx, orderCQuery, id, c.Counter, c.Weight, c.Discount,
+	_, err = db.ExecContext(ctx, orderCartsQuery, id, c.Counter, c.Weight, c.Discount,
 		c.Taxes, c.Subtotal, c.Total)
 	if err != nil {
+		logger.Log.Errorf("failed creating order's cart: %v", err)
 		return nil, errors.Wrap(err, "couldn't create the order cart")
 	}
 
 	if err := cart.Reset(ctx, db, c.ID); err != nil {
+		logger.Log.Errorf("failed resetting cart after an order: %v", err)
 		return nil, errors.Wrap(err, "couldn't reset the cart")
 	}
 
@@ -97,16 +102,19 @@ func New(ctx context.Context, db *sqlx.DB, userID string, oParams OrderParams, d
 // Delete removes an order.
 func Delete(ctx context.Context, db *sqlx.DB, orderID string) error {
 	if _, err := db.ExecContext(ctx, "DELETE FROM orders WHERE id=$1", orderID); err != nil {
+		logger.Log.Errorf("failed deleting order: %v", err)
 		return errors.Wrap(err, "couldn't delete the order")
 	}
 
 	_, err := db.ExecContext(ctx, "DELETE FROM order_carts WHERE order_id=$1", orderID)
 	if err != nil {
+		logger.Log.Errorf("failed deleting order's cart: %v", err)
 		return errors.Wrap(err, "couldn't delete the order cart")
 	}
 
 	_, err = db.ExecContext(ctx, "DELETE FROM order_products WHERE order_id=$1", orderID)
 	if err != nil {
+		logger.Log.Errorf("failed deleting order's products: %v", err)
 		return errors.Wrap(err, "couldn't delete the order products")
 	}
 
@@ -118,6 +126,7 @@ func Get(ctx context.Context, db *sqlx.DB) ([]Order, error) {
 	var orders []Order
 
 	if err := db.SelectContext(ctx, &orders, "SELECT * FROM orders"); err != nil {
+		logger.Log.Errorf("failed listing orders: %v", err)
 		return nil, errors.Wrap(err, "couldn't find the orders")
 	}
 
@@ -142,10 +151,12 @@ func GetByID(ctx context.Context, db *sqlx.DB, orderID string) (Order, error) {
 	}
 
 	if err := db.GetContext(ctx, &cart, "SELECT * FROM order_carts WHERE order_id=$1", order.ID); err != nil {
+		logger.Log.Errorf("failed order's cart: %v", err)
 		return Order{}, errors.Wrap(err, "couldn't find the order cart")
 	}
 
 	if err := db.SelectContext(ctx, &products, "SELECT * FROM order_products WHERE order_id=$1", order.ID); err != nil {
+		logger.Log.Errorf("failed order's products: %v", err)
 		return Order{}, errors.Wrap(err, "couldn't find the order products")
 	}
 
@@ -175,6 +186,7 @@ func GetByUserID(ctx context.Context, db *sqlx.DB, userID string) ([]Order, erro
 func UpdateStatus(ctx context.Context, db *sqlx.DB, oID, oStatus string) error {
 	_, err := db.ExecContext(ctx, "UPDATE orders SET status=$2 WHERE id=$1", oID, oStatus)
 	if err != nil {
+		logger.Log.Errorf("failed updating order's status: %v", err)
 		return errors.Wrap(err, "couldn't update the order status")
 	}
 
@@ -202,10 +214,12 @@ func getRelationships(ctx context.Context, db *sqlx.DB, orders []Order) ([]Order
 			}
 
 			if err := db.GetContext(ctx, &cart, "SELECT * FROM order_carts WHERE order_id=$1", order.ID); err != nil {
+				logger.Log.Errorf("failed listing order's cart: %v", err)
 				errCh <- errors.Wrap(err, "couldn't find the order cart")
 			}
 
 			if err := db.SelectContext(ctx, &products, "SELECT * FROM order_products WHERE order_id=$1", order.ID); err != nil {
+				logger.Log.Errorf("failed order's products: %v", err)
 				errCh <- errors.Wrap(err, "couldn't find the order products")
 			}
 
