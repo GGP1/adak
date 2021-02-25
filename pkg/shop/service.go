@@ -6,9 +6,9 @@ import (
 	"net"
 	"strings"
 
-	"github.com/GGP1/palo/internal/token"
-	"github.com/GGP1/palo/pkg/product"
-	"github.com/GGP1/palo/pkg/review"
+	"github.com/GGP1/adak/internal/token"
+	"github.com/GGP1/adak/pkg/product"
+	"github.com/GGP1/adak/pkg/review"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"

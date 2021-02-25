@@ -2,13 +2,13 @@
 // versions:
 // 	protoc-gen-go v1.25.0
 // 	protoc        v3.13.0
-// source: github.com/GGP1/palo/pkg/product/product.proto
+// source: github.com/GGP1/adak/pkg/product/product.proto
 
 package product
 
 import (
 	context "context"
-	review "github.com/GGP1/palo/pkg/review"
+	review "github.com/GGP1/adak/pkg/review"
 	proto "github.com/golang/protobuf/proto"
 	timestamp "github.com/golang/protobuf/ptypes/timestamp"
 	grpc "google.golang.org/grpc"
@@ -1423,5 +1423,5 @@ var _Products_serviceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "github.com/GGP1/palo/pkg/product/product.proto",
+	Metadata: "github.com/GGP1/adak/pkg/product/product.proto",
 }

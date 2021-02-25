@@ -1,6 +1,6 @@
-module github.com/GGP1/palo
+module github.com/GGP1/adak
 
-go 1.15
+go 1.16
 
 require (
 	github.com/dgrijalva/jwt-go v3.2.0+incompatible

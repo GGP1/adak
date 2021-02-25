@@ -3,20 +3,20 @@ package rest
 import (
 	"net/http"
 
-	"github.com/GGP1/palo/cmd/server"
-	"github.com/GGP1/palo/internal/config"
-	"github.com/GGP1/palo/pkg/auth"
-	"github.com/GGP1/palo/pkg/product"
-	"github.com/GGP1/palo/pkg/review"
-	"github.com/GGP1/palo/pkg/shop"
-	"github.com/GGP1/palo/pkg/shopping/cart"
-	"github.com/GGP1/palo/pkg/shopping/ordering"
-	"github.com/GGP1/palo/pkg/shopping/payment/stripe"
-	"github.com/GGP1/palo/pkg/user"
-	"github.com/GGP1/palo/pkg/user/account"
+	"github.com/GGP1/adak/cmd/server"
+	"github.com/GGP1/adak/internal/config"
+	"github.com/GGP1/adak/pkg/auth"
+	"github.com/GGP1/adak/pkg/product"
+	"github.com/GGP1/adak/pkg/review"
+	"github.com/GGP1/adak/pkg/shop"
+	"github.com/GGP1/adak/pkg/shopping/cart"
+	"github.com/GGP1/adak/pkg/shopping/ordering"
+	"github.com/GGP1/adak/pkg/shopping/payment/stripe"
+	"github.com/GGP1/adak/pkg/user"
+	"github.com/GGP1/adak/pkg/user/account"
 
 	// m -> middleware
-	m "github.com/GGP1/palo/pkg/http/rest/middleware"
+	m "github.com/GGP1/adak/pkg/http/rest/middleware"
 
 	"github.com/go-chi/chi"
 	"google.golang.org/grpc"
@@ -25,7 +25,7 @@ import (
 // Frontend implements the frontend service.
 type Frontend struct {
 	server         *server.Server
-	config         *config.Configuration
+	config         *config.Config
 	accountClient  account.AccountsClient
 	productClient  product.ProductsClient
 	reviewClient   review.ReviewsClient
@@ -37,7 +37,9 @@ type Frontend struct {
 }
 
 // NewFrontend returns the frontend server.
-func NewFrontend(config *config.Configuration, accountConn, productConn, reviewConn, shopConn, userConn, orderingConn, sessionConn, shoppingConn *grpc.ClientConn) *Frontend {
+func NewFrontend(config *config.Config, accountConn,
+	productConn, reviewConn, shopConn, userConn, orderingConn,
+	sessionConn, shoppingConn *grpc.ClientConn) *Frontend {
 	return &Frontend{
 		config:         config,
 		accountClient:  account.NewAccountsClient(accountConn),

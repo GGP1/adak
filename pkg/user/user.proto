@@ -2,10 +2,10 @@ syntax = "proto3";
 package user;
 
 import "google/protobuf/timestamp.proto";
-import "github.com/GGP1/palo/pkg/review/review.proto";
-import "github.com/GGP1/palo/pkg/shopping/ordering/ordering.proto";
+import "github.com/GGP1/adak/pkg/review/review.proto";
+import "github.com/GGP1/adak/pkg/shopping/ordering/ordering.proto";
 
-option go_package = "github.com/GGP1/palo/pkg/user";
+option go_package = "github.com/GGP1/adak/pkg/user";
 
 service Users {
     rpc Create (CreateRequest) returns (CreateResponse);

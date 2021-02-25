@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/GGP1/palo/internal/response"
-	"github.com/GGP1/palo/internal/sanitize"
-	"github.com/GGP1/palo/pkg/product"
+	"github.com/GGP1/adak/internal/response"
+	"github.com/GGP1/adak/internal/sanitize"
+	"github.com/GGP1/adak/pkg/product"
 	"github.com/go-playground/validator/v10"
 
 	"github.com/go-chi/chi"
@@ -19,7 +19,7 @@ func (s *Frontend) ProductCreate() http.HandlerFunc {
 		ctx := r.Context()
 
 		if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
-			response.Error(w, r, http.StatusBadRequest, err)
+			response.Error(w, http.StatusBadRequest, err)
 			return
 		}
 		defer r.Body.Close()
@@ -31,11 +31,11 @@ func (s *Frontend) ProductCreate() http.HandlerFunc {
 
 		_, err := s.productClient.Create(ctx, &product.CreateRequest{Product: &p})
 		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
+			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
 
-		response.JSON(w, r, http.StatusCreated, &p)
+		response.JSON(w, http.StatusCreated, &p)
 	}
 }
 
@@ -47,11 +47,11 @@ func (s *Frontend) ProductDelete() http.HandlerFunc {
 
 		_, err := s.productClient.Delete(ctx, &product.DeleteRequest{ID: id})
 		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
+			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
 
-		response.HTMLText(w, r, http.StatusOK, "Product deleted successfully.")
+		response.HTMLText(w, http.StatusOK, "Product deleted successfully.")
 	}
 }
 
@@ -62,11 +62,11 @@ func (s *Frontend) ProductGet() http.HandlerFunc {
 
 		get, err := s.productClient.Get(ctx, &product.GetRequest{})
 		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
+			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
 
-		response.JSON(w, r, http.StatusOK, get.Products)
+		response.JSON(w, http.StatusOK, get.Products)
 	}
 }
 
@@ -78,11 +78,11 @@ func (s *Frontend) ProductGetByID() http.HandlerFunc {
 
 		getByID, err := s.productClient.GetByID(ctx, &product.GetByIDRequest{ID: id})
 		if err != nil {
-			response.Error(w, r, http.StatusNotFound, err)
+			response.Error(w, http.StatusNotFound, err)
 			return
 		}
 
-		response.JSON(w, r, http.StatusOK, getByID.Product)
+		response.JSON(w, http.StatusOK, getByID.Product)
 	}
 }
 
@@ -93,17 +93,17 @@ func (s *Frontend) ProductSearch() http.HandlerFunc {
 		ctx := r.Context()
 
 		if err := sanitize.Normalize(&query); err != nil {
-			response.Error(w, r, http.StatusBadRequest, err)
+			response.Error(w, http.StatusBadRequest, err)
 			return
 		}
 
 		search, err := s.productClient.Search(ctx, &product.SearchRequest{Search: query})
 		if err != nil {
-			response.Error(w, r, http.StatusNotFound, err)
+			response.Error(w, http.StatusNotFound, err)
 			return
 		}
 
-		response.JSON(w, r, http.StatusOK, search.Products)
+		response.JSON(w, http.StatusOK, search.Products)
 	}
 }
 
@@ -115,17 +115,17 @@ func (s *Frontend) ProductUpdate() http.HandlerFunc {
 		ctx := r.Context()
 
 		if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
-			response.Error(w, r, http.StatusBadRequest, err)
+			response.Error(w, http.StatusBadRequest, err)
 			return
 		}
 		defer r.Body.Close()
 
 		_, err := s.productClient.Update(ctx, &product.UpdateRequest{Product: &p, ID: id})
 		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
+			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
 
-		response.JSON(w, r, http.StatusOK, &p)
+		response.JSON(w, http.StatusOK, &p)
 	}
 }

@@ -4,12 +4,12 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/GGP1/palo/internal/email"
-	"github.com/GGP1/palo/internal/response"
-	"github.com/GGP1/palo/internal/sanitize"
-	"github.com/GGP1/palo/internal/token"
-	"github.com/GGP1/palo/pkg/user"
-	"github.com/GGP1/palo/pkg/user/account"
+	"github.com/GGP1/adak/internal/email"
+	"github.com/GGP1/adak/internal/response"
+	"github.com/GGP1/adak/internal/sanitize"
+	"github.com/GGP1/adak/internal/token"
+	"github.com/GGP1/adak/pkg/user"
+	"github.com/GGP1/adak/pkg/user/account"
 
 	"github.com/pkg/errors"
 
@@ -29,17 +29,17 @@ func (s *Frontend) AccountChangeEmail() http.HandlerFunc {
 		ctx := r.Context()
 
 		if err := sanitize.Normalize(&email); err != nil {
-			response.Error(w, r, http.StatusBadRequest, err)
+			response.Error(w, http.StatusBadRequest, err)
 			return
 		}
 
 		_, err := s.accountClient.ChangeEmail(ctx, &account.ChangeEmailRequest{ID: id, NewEmail: email, Token: token})
 		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
+			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
 
-		response.HTMLText(w, r, http.StatusOK, "You have successfully changed your email!")
+		response.HTMLText(w, http.StatusOK, "You have successfully changed your email!")
 	}
 }
 
@@ -57,17 +57,17 @@ func (s *Frontend) AccountChangePassword() http.HandlerFunc {
 
 		userID, err := token.ParseFixedJWT(uID.Value)
 		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
+			response.Error(w, http.StatusInternalServerError, err)
 		}
 
 		if err := json.NewDecoder(r.Body).Decode(&changePass); err != nil {
-			response.Error(w, r, http.StatusBadRequest, err)
+			response.Error(w, http.StatusBadRequest, err)
 			return
 		}
 		defer r.Body.Close()
 
 		if err := sanitize.Normalize(&changePass.NewPassword); err != nil {
-			response.Error(w, r, http.StatusBadRequest, err)
+			response.Error(w, http.StatusBadRequest, err)
 			return
 		}
 
@@ -77,11 +77,11 @@ func (s *Frontend) AccountChangePassword() http.HandlerFunc {
 			NewPass: changePass.NewPassword,
 		})
 		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
+			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
 
-		response.HTMLText(w, r, http.StatusOK, "Password changed successfully.")
+		response.HTMLText(w, http.StatusOK, "Password changed successfully.")
 	}
 }
 
@@ -92,38 +92,38 @@ func (s *Frontend) AccountSendChangeConfirmation() http.HandlerFunc {
 		ctx := r.Context()
 
 		if err := json.NewDecoder(r.Body).Decode(&new); err != nil {
-			response.Error(w, r, http.StatusBadRequest, err)
+			response.Error(w, http.StatusBadRequest, err)
 			return
 		}
 		defer r.Body.Close()
 
 		if err := sanitize.Normalize(&new.Email); err != nil {
-			response.Error(w, r, http.StatusBadRequest, err)
+			response.Error(w, http.StatusBadRequest, err)
 			return
 		}
 
 		_, err := s.userClient.GetByEmail(ctx, &user.GetByEmailRequest{Email: new.Email})
 		if err == nil {
-			response.Error(w, r, http.StatusBadRequest, errors.New("email is already taken"))
+			response.Error(w, http.StatusBadRequest, errors.New("email is already taken"))
 			return
 		}
 
 		uID, _ := r.Cookie("UID")
 		userID, err := token.ParseFixedJWT(uID.Value)
 		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
+			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
 
 		u, err := s.userClient.GetByID(ctx, &user.GetByIDRequest{ID: userID})
 		if err != nil {
-			response.Error(w, r, http.StatusNotFound, err)
+			response.Error(w, http.StatusNotFound, err)
 			return
 		}
 
 		token, err := token.GenerateJWT(u.User.Email)
 		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, errors.Wrap(err, "could not generate the jwt token"))
+			response.Error(w, http.StatusInternalServerError, errors.Wrap(err, "could not generate the jwt token"))
 			return
 		}
 
@@ -132,10 +132,10 @@ func (s *Frontend) AccountSendChangeConfirmation() http.HandlerFunc {
 
 		select {
 		case err := <-errCh:
-			response.Error(w, r, http.StatusInternalServerError, errors.Wrap(err, "failed sending confirmation email"))
+			response.Error(w, http.StatusInternalServerError, errors.Wrap(err, "failed sending confirmation email"))
 			return
 		default:
-			response.HTMLText(w, r, http.StatusOK, "We sent you an email to confirm that it is you.")
+			response.HTMLText(w, http.StatusOK, "We sent you an email to confirm that it is you.")
 		}
 	}
 }
@@ -153,10 +153,10 @@ func (s *Frontend) AccountSendEmailValidation() http.HandlerFunc {
 			VerifiedEmail:    true,
 		})
 		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
+			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
 
-		response.HTMLText(w, r, http.StatusOK, "You have successfully validated your email!")
+		response.HTMLText(w, http.StatusOK, "You have successfully validated your email!")
 	}
 }

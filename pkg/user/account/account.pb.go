@@ -2,7 +2,7 @@
 // versions:
 // 	protoc-gen-go v1.25.0
 // 	protoc        v3.13.0
-// source: github.com/GGP1/palo/pkg/user/account/account.proto
+// source: github.com/GGP1/adak/pkg/user/account/account.proto
 
 package account
 
@@ -755,5 +755,5 @@ var _Accounts_serviceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "github.com/GGP1/palo/pkg/user/account/account.proto",
+	Metadata: "github.com/GGP1/adak/pkg/user/account/account.proto",
 }

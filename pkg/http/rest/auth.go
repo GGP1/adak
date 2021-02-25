@@ -7,10 +7,10 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/GGP1/palo/internal/response"
-	"github.com/GGP1/palo/internal/sanitize"
-	"github.com/GGP1/palo/internal/token"
-	"github.com/GGP1/palo/pkg/auth"
+	"github.com/GGP1/adak/internal/response"
+	"github.com/GGP1/adak/internal/sanitize"
+	"github.com/GGP1/adak/internal/token"
+	"github.com/GGP1/adak/pkg/auth"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
 
@@ -38,7 +38,7 @@ func (s *Frontend) Login() http.HandlerFunc {
 
 		sID, err := r.Cookie("SID")
 		if err != nil {
-			response.Error(w, r, http.StatusBadRequest, err)
+			response.Error(w, http.StatusBadRequest, err)
 			return
 		}
 
@@ -50,7 +50,7 @@ func (s *Frontend) Login() http.HandlerFunc {
 		}
 
 		if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
-			response.Error(w, r, http.StatusBadRequest, err)
+			response.Error(w, http.StatusBadRequest, err)
 			return
 		}
 		defer r.Body.Close()
@@ -61,13 +61,13 @@ func (s *Frontend) Login() http.HandlerFunc {
 		}
 
 		if err := sanitize.Normalize(&user.Email, &user.Password); err != nil {
-			response.Error(w, r, http.StatusBadRequest, err)
+			response.Error(w, http.StatusBadRequest, err)
 			return
 		}
 
 		login, err := s.sessionClient.Login(ctx, &auth.LoginRequest{Email: user.Email, Password: user.Password})
 		if err != nil {
-			response.Error(w, r, http.StatusUnauthorized, err)
+			response.Error(w, http.StatusUnauthorized, err)
 			return
 		}
 
@@ -80,7 +80,7 @@ func (s *Frontend) Login() http.HandlerFunc {
 
 		userID, err := token.GenerateFixedJWT(user.ID)
 		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, errors.Wrap(err, "failed generating a jwt token"))
+			response.Error(w, http.StatusInternalServerError, errors.Wrap(err, "failed generating a jwt token"))
 			return
 		}
 
@@ -91,7 +91,7 @@ func (s *Frontend) Login() http.HandlerFunc {
 		// -CID- used to identify which cart belongs to each user
 		auth.SetCookie(w, "CID", user.CartID, "/", int(login.SessionLength))
 
-		response.HTMLText(w, r, http.StatusOK, "You logged in!")
+		response.HTMLText(w, http.StatusOK, "You logged in!")
 	}
 }
 
@@ -101,15 +101,14 @@ func (s *Frontend) Logout() http.HandlerFunc {
 		ctx := r.Context()
 		sID, err := r.Cookie("SID")
 		if err != nil {
-			response.Error(w, r, http.StatusBadRequest, errors.New("error: you cannot log out without a session"))
+			response.Error(w, http.StatusBadRequest, errors.New("error: you cannot log out without a session"))
 			return
 		}
 
 		// Logout user from the session
 		s.sessionClient.Logout(ctx, &auth.LogoutRequest{SessionID: sID.Value})
 
-		_, err = r.Cookie("AID")
-		if err == nil {
+		if _, err := r.Cookie("AID"); err == nil {
 			auth.DeleteCookie(w, "AID")
 		}
 
@@ -117,7 +116,7 @@ func (s *Frontend) Logout() http.HandlerFunc {
 		auth.DeleteCookie(w, "UID")
 		auth.DeleteCookie(w, "CID")
 
-		response.HTMLText(w, r, http.StatusOK, "You are now logged out.")
+		response.HTMLText(w, http.StatusOK, "You are now logged out.")
 	}
 }
 
@@ -135,12 +134,12 @@ func (s *Frontend) OAUTH2Google() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		content, err := userInfoGoogle(r.FormValue("state"), r.FormValue("code"))
 		if err != nil {
-			response.Error(w, r, http.StatusBadRequest, err)
+			response.Error(w, http.StatusBadRequest, err)
 			return
 		}
 		res := fmt.Sprintf("Content: %s", content)
 
-		response.HTMLText(w, r, http.StatusOK, res)
+		response.HTMLText(w, http.StatusOK, res)
 	}
 }
 

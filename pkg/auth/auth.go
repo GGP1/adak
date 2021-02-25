@@ -9,8 +9,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/GGP1/palo/internal/token"
-	"github.com/GGP1/palo/pkg/user"
+	"github.com/GGP1/adak/internal/token"
+	"github.com/GGP1/adak/pkg/user"
 	"google.golang.org/grpc"
 
 	"github.com/jmoiron/sqlx"

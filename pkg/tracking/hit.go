@@ -7,7 +7,7 @@ import (
 	"strings"
 	"time"
 
-	"github.com/GGP1/palo/internal/token"
+	"github.com/GGP1/adak/internal/token"
 )
 
 // Hit represents a single data point/page visit.

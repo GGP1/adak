@@ -2,14 +2,14 @@
 // versions:
 // 	protoc-gen-go v1.25.0
 // 	protoc        v3.13.0
-// source: github.com/GGP1/palo/pkg/shop/shop.proto
+// source: github.com/GGP1/adak/pkg/shop/shop.proto
 
 package shop
 
 import (
 	context "context"
-	product "github.com/GGP1/palo/pkg/product"
-	review "github.com/GGP1/palo/pkg/review"
+	product "github.com/GGP1/adak/pkg/product"
+	review "github.com/GGP1/adak/pkg/review"
 	proto "github.com/golang/protobuf/proto"
 	timestamp "github.com/golang/protobuf/ptypes/timestamp"
 	grpc "google.golang.org/grpc"
@@ -1458,5 +1458,5 @@ var _Shops_serviceDesc = grpc.ServiceDesc{
 		},
 	},
 	Streams:  []grpc.StreamDesc{},
-	Metadata: "github.com/GGP1/palo/pkg/shop/shop.proto",
+	Metadata: "github.com/GGP1/adak/pkg/shop/shop.proto",
 }

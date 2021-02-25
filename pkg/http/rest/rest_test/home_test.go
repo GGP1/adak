@@ -7,10 +7,10 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/GGP1/palo/internal/config"
-	"github.com/GGP1/palo/pkg/http/rest"
-	"github.com/GGP1/palo/pkg/storage"
-	"github.com/GGP1/palo/pkg/tracking"
+	"github.com/GGP1/adak/internal/config"
+	"github.com/GGP1/adak/pkg/http/rest"
+	"github.com/GGP1/adak/pkg/postgres"
+	"github.com/GGP1/adak/pkg/tracking"
 )
 
 func TestHome(t *testing.T) {
@@ -23,11 +23,11 @@ func TestHome(t *testing.T) {
 		t.Fatalf("Creating config failed: %v", err)
 	}
 
-	db, close, err := storage.PostgresConnect(ctx, &conf.Database)
+	db, err := postgres.Connect(ctx, &conf.Database)
 	if err != nil {
 		t.Fatalf("Database failed connecting: %v", err)
 	}
-	defer close()
+	defer db.Close()
 
 	trackingService := tracking.NewService(db, "")
 

@@ -2,9 +2,9 @@ syntax = "proto3";
 package product;
 
 import "google/protobuf/timestamp.proto";
-import "github.com/GGP1/palo/pkg/review/review.proto";
+import "github.com/GGP1/adak/pkg/review/review.proto";
 
-option go_package = "github.com/GGP1/palo/pkg/product";
+option go_package = "github.com/GGP1/adak/pkg/product";
 
 service Products {
     rpc Create (CreateRequest) returns (CreateResponse);

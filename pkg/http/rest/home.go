@@ -1,14 +1,12 @@
-/*
-Package rest contains all the functions related to the rest api
-*/
+// Package rest contains all the functions related to the rest api
 package rest
 
 import (
 	"net/http"
 	"strings"
 
-	"github.com/GGP1/palo/internal/response"
-	"github.com/GGP1/palo/pkg/tracking"
+	"github.com/GGP1/adak/internal/response"
+	"github.com/GGP1/adak/pkg/tracking"
 )
 
 // Home gives users a welcome and takes non-invasive information from them.
@@ -17,24 +15,23 @@ func Home(t tracking.Tracker) http.HandlerFunc {
 		ctx := r.Context()
 
 		if err := t.Hit(ctx, r); err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
+			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
 
 		lang := r.Header.Get("Accept-Language")
 
 		if lang != "" {
-			sentence := getLanguage(lang)
-			response.HTMLText(w, r, http.StatusOK, sentence)
+			message := getLanguage(lang)
+			response.HTMLText(w, http.StatusOK, message)
 			return
 		}
 
-		response.HTMLText(w, r, http.StatusOK, "Welcome to the Palo home page")
+		response.HTMLText(w, http.StatusOK, "Welcome to the Adak home page")
 	}
 }
 
 func getLanguage(lang string) string {
-	english := "en-US"
 	spanish := "es-ES"
 	chinese := "zh-CN"
 	portuguese := "pt-BR"
@@ -48,30 +45,26 @@ func getLanguage(lang string) string {
 	langs := strings.Split(lang, ";")
 	parts := strings.Split(langs[0], ",")
 
-	var sentence string
-
 	switch parts[0] {
-	case english:
-		sentence = "Welcome to the Palo home page"
 	case spanish:
-		sentence = "Bienvenido a la página principal de Palo"
+		return "Bienvenido a la página principal de Adak"
 	case portuguese:
-		sentence = "Bem-vindo ao página principal do Palo"
+		return "Bem-vindo ao página principal do Adak"
 	case chinese:
-		sentence = "歡迎來到帕洛首頁"
+		return "歡迎來到帕洛首頁"
 	case german:
-		sentence = "Wilkommen auf der Palo homepage"
+		return "Wilkommen auf der Adak homepage"
 	case french:
-		sentence = "Bienvenue sur la page d'accueil de Palo"
+		return "Bienvenue sur la page d'accueil de Adak"
 	case italian:
-		sentence = "Benvenuti nella home page di Palo"
+		return "Benvenuti nella home page di Adak"
 	case russian:
-		sentence = "Добро пожаловать на домашнюю страницу Пало"
+		return "Добро пожаловать на домашнюю страницу Пало"
 	case hindi:
-		sentence = "पालो होम पेज पर आपका स्वागत है"
+		return "पालो होम पेज पर आपका स्वागत है"
 	case japanese:
-		sentence = "パロのホームページへようこそ"
+		return "パロのホームページへようこそ"
+	default:
+		return "Welcome to the Adak home page"
 	}
-
-	return sentence
 }

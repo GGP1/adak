@@ -46,7 +46,6 @@ func LogFormatter(next http.Handler) http.Handler {
 		// Each request must have a id with it
 		n := rand.Int()
 		reqID := strconv.Itoa(n)
-
 		w.Header().Set("X-Request-ID", reqID)
 
 		lrw := newLoggingResponseWriter(w)
@@ -62,7 +61,7 @@ func LogFormatter(next http.Handler) http.Handler {
 		methodColor := methodColor(method)
 		resetColor := resetColor()
 
-		log := fmt.Sprintf("[PALO] %v | %s %3d %s | %-10v | %s %-7s %s | %#v",
+		log := fmt.Sprintf("[ADAK] %v | %s %3d %s | %-10v | %s %-7s %s | %#v",
 			timestamp,
 			statusColor, status, resetColor,
 			latency,

@@ -1,26 +1,37 @@
-version: '3'
-
+version: "3.8" 
 services:
-  server:
-    build: ./
-    ports:
-      - 5000:8080
-  postgres:
-    image: postgres:latest
-    environment: 
+  db:
+    image: postgres:13.1-alpine
+    environment:
       POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
-    volumes:
-      - palo-postgres:/var/lib/postgresql/data
     ports:
-      - 6000:6000
-    depends_on: 
-      - server
-  frontend:
+      - 5432:5432
+    volumes: 
+      - ./postgres-data:/var/lib/postgresql/data
+
+  adak:
     build: .
-    entrypoint: frontend
+    restart: always
+    environment:
+      SV_HOST: 0.0.0.0 # Do not bind to 127.0.0.1 as Docker can't reach the app inside the container.
+      SV_PORT: 4000
+      POSTGRES_HOST: db
+      POSTGRES_PORT: 5432
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: postgres
     ports:
-      - "4000:9000"
+      - 4000:4000
+    depends_on:
+      - db
+  
+  frontend:
+    image: adak_adak
+    entrypoint: main frontend
+    ports:
+      - 9000:9000
     links:
       - account
       - product
@@ -31,6 +42,8 @@ services:
       - session
       - shopping
     depends_on:
+      - db
+      - adak
       - account
       - product
       - review
@@ -40,42 +53,43 @@ services:
       - session
       - shopping
   account:
-    build: .
-    entrypoint: account
+    image: adak_adak
+    entrypoint: main account
     links:
       - user
   product:
-    build: .
-    entrypoint: product
+    image: adak_adak
+    entrypoint: main product
     links:
       - review
   review:
-    build: .
-    entrypoint: review
+    image: adak_adak
+    entrypoint: main review
   shop:
-    build: .
-    entrypoint: shop
+    image: adak_adak
+    entrypoint: main shop
     links:
       - product
       - review
   user:
-    build: .
-    entrypoint: user
+    image: adak_adak
+    entrypoint: main user
     links:
       - ordering
       - shopping
   ordering:
-    build: .
-    entrypoint: ordering
+    image: adak_adak
+    entrypoint: main ordering
     links:
       - shopping
   session:
-    build: .
-    entrypoint: session
+    image: adak_adak
+    entrypoint: main session
     links:
       - user
   shopping:
-    build: .
-    entrypoint: shopping
-volumes: 
-  palo-postgres
+    image: adak_adak
+    entrypoint: main shopping
+
+volumes:
+  postgres-data:

@@ -3,20 +3,21 @@ package main
 import (
 	"context"
 	"flag"
+	"fmt"
 	"log"
 	"os"
 
-	"github.com/GGP1/palo/internal/config"
-	"github.com/GGP1/palo/pkg/auth"
-	"github.com/GGP1/palo/pkg/http/rest"
-	"github.com/GGP1/palo/pkg/product"
-	"github.com/GGP1/palo/pkg/review"
-	"github.com/GGP1/palo/pkg/shop"
-	"github.com/GGP1/palo/pkg/shopping/cart"
-	"github.com/GGP1/palo/pkg/shopping/ordering"
-	"github.com/GGP1/palo/pkg/storage"
-	"github.com/GGP1/palo/pkg/user"
-	"github.com/GGP1/palo/pkg/user/account"
+	"github.com/GGP1/adak/internal/config"
+	"github.com/GGP1/adak/pkg/auth"
+	"github.com/GGP1/adak/pkg/http/rest"
+	"github.com/GGP1/adak/pkg/postgres"
+	"github.com/GGP1/adak/pkg/product"
+	"github.com/GGP1/adak/pkg/review"
+	"github.com/GGP1/adak/pkg/shop"
+	"github.com/GGP1/adak/pkg/shopping/cart"
+	"github.com/GGP1/adak/pkg/shopping/ordering"
+	"github.com/GGP1/adak/pkg/user"
+	"github.com/GGP1/adak/pkg/user/account"
 
 	_ "github.com/lib/pq"
 	"google.golang.org/grpc"
@@ -48,25 +49,20 @@ func main() {
 		log.Fatal(err)
 	}
 
-	db, close, err := storage.PostgresConnect(ctx, &conf.Database)
+	db, err := postgres.Connect(ctx, &conf.Database)
 	if err != nil {
 		log.Fatal(err)
 	}
-	defer close()
+	defer db.Close()
 
 	var srv server
+	fmt.Println(os.Args)
 
 	switch os.Args[1] {
 	case "account":
-		srv = account.NewService(
-			db,
-			initGRPCConn(*useraddr),
-		)
+		srv = account.NewService(db, initGRPCConn(*useraddr))
 	case "product":
-		srv = product.NewService(
-			db,
-			initGRPCConn(*reviewaddr),
-		)
+		srv = product.NewService(db, initGRPCConn(*reviewaddr))
 	case "review":
 		srv = review.NewService(db)
 	case "shop":
@@ -82,15 +78,9 @@ func main() {
 			initGRPCConn(*shoppingaddr),
 		)
 	case "ordering":
-		srv = ordering.NewService(
-			db,
-			initGRPCConn(*shoppingaddr),
-		)
+		srv = ordering.NewService(db, initGRPCConn(*shoppingaddr))
 	case "session":
-		srv = auth.NewSession(
-			db,
-			initGRPCConn(*useraddr),
-		)
+		srv = auth.NewSession(db, initGRPCConn(*useraddr))
 	case "shopping":
 		srv = cart.NewService(db)
 	case "frontend":
@@ -109,8 +99,7 @@ func main() {
 		log.Fatalf("unknown command %s", os.Args[1])
 	}
 
-	err = srv.Run(*port)
-	if err != nil {
+	if err := srv.Run(*port); err != nil {
 		log.Fatalf("failed running frontend server: %v", err)
 	}
 }

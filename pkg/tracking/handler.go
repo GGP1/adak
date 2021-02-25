@@ -3,7 +3,7 @@ package tracking
 import (
 	"net/http"
 
-	"github.com/GGP1/palo/internal/response"
+	"github.com/GGP1/adak/internal/response"
 
 	"github.com/go-chi/chi"
 )
@@ -21,11 +21,11 @@ func (h *Handler) DeleteHit() http.HandlerFunc {
 		ctx := r.Context()
 
 		if err := h.TrackerSv.Delete(ctx, id); err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
+			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
 
-		response.HTMLText(w, r, http.StatusOK, "Successfully deleted the hit")
+		response.HTMLText(w, http.StatusOK, "Successfully deleted the hit")
 	}
 }
 
@@ -36,11 +36,11 @@ func (h *Handler) GetHits() http.HandlerFunc {
 
 		hits, err := h.TrackerSv.Get(ctx)
 		if err != nil {
-			response.Error(w, r, http.StatusNotFound, err)
+			response.Error(w, http.StatusNotFound, err)
 			return
 		}
 
-		response.JSON(w, r, http.StatusOK, hits)
+		response.JSON(w, http.StatusOK, hits)
 	}
 }
 
@@ -53,11 +53,11 @@ func (h *Handler) SearchHit() http.HandlerFunc {
 
 		hits, err := h.TrackerSv.Search(ctx, query)
 		if err != nil {
-			response.Error(w, r, http.StatusNotFound, err)
+			response.Error(w, http.StatusNotFound, err)
 			return
 		}
 
-		response.JSON(w, r, http.StatusOK, hits)
+		response.JSON(w, http.StatusOK, hits)
 	}
 }
 
@@ -71,10 +71,10 @@ func (h *Handler) SearchHitByField() http.HandlerFunc {
 
 		hits, err := h.TrackerSv.SearchByField(ctx, field, value)
 		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
+			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
 
-		response.JSON(w, r, http.StatusOK, hits)
+		response.JSON(w, http.StatusOK, hits)
 	}
 }

@@ -1,31 +1,14 @@
-FROM golang:1.14-alpine AS builder
+FROM golang:1.16.0-alpine3.13 AS builder
 
-########
-# Prep
-########
+COPY . /microservices
+WORKDIR /microservices
 
-# add the source
-COPY . /go/src/palo
-WORKDIR /go/src/palo/
+RUN CGO_ENABLED=0 go build -o adak -ldflags="-s -w" ./cmd/main.go
 
-########
-# Build Go Wrapper
-########
+# --------------------------
 
-# Install go dependencies
-RUN go get -d -v ./...
+FROM scratch
 
-#build the go app
-RUN GOOS=linux GOARCH=amd64 go build -o ./palo ./cmd/main.go
+COPY --from=builder /microservices/adak /bin/adak
 
-########
-# Package into runtime image
-########
-FROM alpine
-
-# copy the executable from the builder image
-COPY --from=builder /go/src/palo .
-
-ENTRYPOINT ["/palo"]
-
-EXPOSE 8080
+# ENTRYPOINT ["/bin/adak"]

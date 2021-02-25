@@ -3,7 +3,7 @@ package cart_test
 import (
 	"testing"
 
-	"github.com/GGP1/palo/pkg/shopping/cart"
+	"github.com/GGP1/adak/pkg/shopping/cart"
 )
 
 func TestCartAddProduct(t *testing.T) {

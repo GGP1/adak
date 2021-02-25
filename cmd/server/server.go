@@ -10,7 +10,7 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/GGP1/palo/internal/config"
+	"github.com/GGP1/adak/internal/config"
 	"github.com/stripe/stripe-go"
 )
 
@@ -29,7 +29,7 @@ type Stripe struct {
 }
 
 // New returns a new server.
-func New(c *config.Configuration, router http.Handler) *Server {
+func New(c *config.Config, router http.Handler) *Server {
 	return &Server{
 		&http.Server{
 			Addr:           c.Server.Host + ":" + c.Server.Port,
@@ -77,13 +77,11 @@ func (srv *Server) Start() error {
 		defer cancel()
 
 		// Asking listener to shutdown and load shed
-		err := srv.Shutdown(ctx)
-		if err != nil {
+		if err := srv.Shutdown(ctx); err != nil {
 			return fmt.Errorf("main: Graceful shutdown did not complete in %v : %v", srv.TimeoutShutdown, err)
 		}
 
-		err = srv.Close()
-		if err != nil {
+		if err := srv.Close(); err != nil {
 			return fmt.Errorf("main: Couldn't stop server gracefully : %v", err)
 		}
 		return nil

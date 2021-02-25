@@ -7,8 +7,8 @@ import (
 	"net"
 	"time"
 
-	"github.com/GGP1/palo/internal/token"
-	"github.com/GGP1/palo/pkg/shopping/cart"
+	"github.com/GGP1/adak/internal/token"
+	"github.com/GGP1/adak/pkg/shopping/cart"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"

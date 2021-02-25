@@ -6,7 +6,7 @@ import (
 	"net"
 	"time"
 
-	"github.com/GGP1/palo/internal/token"
+	"github.com/GGP1/adak/internal/token"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"

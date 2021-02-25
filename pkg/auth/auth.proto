@@ -3,7 +3,7 @@ package auth;
 
 import "google/protobuf/timestamp.proto";
 
-option go_package = "github.com/GGP1/palo/pkg/auth";
+option go_package = "github.com/GGP1/adak/pkg/auth";
 
 service Session {
     rpc AlreadyLoggedIn (AlreadyLoggedInRequest) returns (AlreadyLoggedInResponse);

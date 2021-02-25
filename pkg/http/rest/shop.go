@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/GGP1/palo/internal/response"
-	"github.com/GGP1/palo/internal/sanitize"
-	"github.com/GGP1/palo/pkg/shop"
+	"github.com/GGP1/adak/internal/response"
+	"github.com/GGP1/adak/internal/sanitize"
+	"github.com/GGP1/adak/pkg/shop"
 	"github.com/go-playground/validator/v10"
 
 	"github.com/go-chi/chi"
@@ -19,7 +19,7 @@ func (s *Frontend) ShopCreate() http.HandlerFunc {
 		ctx := r.Context()
 
 		if err := json.NewDecoder(r.Body).Decode(&sp); err != nil {
-			response.Error(w, r, http.StatusBadRequest, err)
+			response.Error(w, http.StatusBadRequest, err)
 			return
 		}
 		defer r.Body.Close()
@@ -31,11 +31,11 @@ func (s *Frontend) ShopCreate() http.HandlerFunc {
 
 		_, err := s.shopClient.Create(ctx, &shop.CreateRequest{Shop: &sp})
 		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
+			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
 
-		response.JSON(w, r, http.StatusCreated, &sp)
+		response.JSON(w, http.StatusCreated, &sp)
 	}
 }
 
@@ -47,11 +47,11 @@ func (s *Frontend) ShopDelete() http.HandlerFunc {
 
 		_, err := s.shopClient.Delete(ctx, &shop.DeleteRequest{ID: id})
 		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
+			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
 
-		response.HTMLText(w, r, http.StatusOK, "Shop deleted successfully.")
+		response.HTMLText(w, http.StatusOK, "Shop deleted successfully.")
 	}
 }
 
@@ -62,11 +62,11 @@ func (s *Frontend) ShopGet() http.HandlerFunc {
 
 		get, err := s.shopClient.Get(ctx, &shop.GetRequest{})
 		if err != nil {
-			response.Error(w, r, http.StatusNotFound, err)
+			response.Error(w, http.StatusNotFound, err)
 			return
 		}
 
-		response.JSON(w, r, http.StatusOK, get.Shops)
+		response.JSON(w, http.StatusOK, get.Shops)
 	}
 }
 
@@ -78,11 +78,11 @@ func (s *Frontend) ShopGetByID() http.HandlerFunc {
 
 		getByID, err := s.shopClient.GetByID(ctx, &shop.GetByIDRequest{ID: id})
 		if err != nil {
-			response.Error(w, r, http.StatusNotFound, err)
+			response.Error(w, http.StatusNotFound, err)
 			return
 		}
 
-		response.JSON(w, r, http.StatusOK, getByID.Shop)
+		response.JSON(w, http.StatusOK, getByID.Shop)
 	}
 }
 
@@ -93,17 +93,17 @@ func (s *Frontend) ShopSearch() http.HandlerFunc {
 		ctx := r.Context()
 
 		if err := sanitize.Normalize(&query); err != nil {
-			response.Error(w, r, http.StatusBadRequest, err)
+			response.Error(w, http.StatusBadRequest, err)
 			return
 		}
 
 		search, err := s.shopClient.Search(ctx, &shop.SearchRequest{Search: query})
 		if err != nil {
-			response.Error(w, r, http.StatusNotFound, err)
+			response.Error(w, http.StatusNotFound, err)
 			return
 		}
 
-		response.JSON(w, r, http.StatusOK, search.Shops)
+		response.JSON(w, http.StatusOK, search.Shops)
 	}
 }
 
@@ -115,17 +115,17 @@ func (s *Frontend) ShopUpdate() http.HandlerFunc {
 		ctx := r.Context()
 
 		if err := json.NewDecoder(r.Body).Decode(&sp); err != nil {
-			response.Error(w, r, http.StatusBadRequest, err)
+			response.Error(w, http.StatusBadRequest, err)
 			return
 		}
 		defer r.Body.Close()
 
 		_, err := s.shopClient.Update(ctx, &shop.UpdateRequest{Shop: &sp, ID: id})
 		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
+			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
 
-		response.HTMLText(w, r, http.StatusOK, "Shop updated successfully.")
+		response.HTMLText(w, http.StatusOK, "Shop updated successfully.")
 	}
 }

@@ -12,9 +12,17 @@ import (
 	"net/smtp"
 	"os"
 
-	"github.com/GGP1/palo/internal/token"
+	"github.com/GGP1/adak/internal/token"
 
 	"github.com/pkg/errors"
+)
+
+var (
+	// Both os.Getenv and viper.GetString work
+	emailSender   = os.Getenv("EMAIL_SENDER")
+	emailPassword = os.Getenv("EMAIL_PASSWORD")
+	emailHost     = os.Getenv("EMAIL_HOST")
+	emailPort     = os.Getenv("EMAIL_PORT")
 )
 
 // Items is a struct that keeps the values passed to the templates.
@@ -28,18 +36,10 @@ type Items struct {
 
 // SendValidation sends a validation email to the user.
 func SendValidation(ctx context.Context, username, email string, errCh chan error) {
-	var (
-		// Both os.Getenv and viper.GetString work
-		emailSender   = os.Getenv("EMAIL_SENDER")
-		emailPassword = os.Getenv("EMAIL_PASSWORD")
-		emailHost     = os.Getenv("EMAIL_HOST")
-		emailPort     = os.Getenv("EMAIL_PORT")
-	)
-
 	token := token.GenerateRunes(20)
 
 	// 	Email content
-	from := mail.Address{Name: "Palo", Address: emailSender}
+	from := mail.Address{Name: "Adak", Address: emailSender}
 	to := mail.Address{Name: username, Address: email}
 	subject := "Validation email"
 	items := Items{
@@ -65,7 +65,7 @@ func SendValidation(ctx context.Context, username, email string, errCh chan erro
 	}
 
 	buf := new(bytes.Buffer)
-	if err = t.Execute(buf, items); err != nil {
+	if err := t.Execute(buf, items); err != nil {
 		errCh <- err
 	}
 
@@ -74,22 +74,15 @@ func SendValidation(ctx context.Context, username, email string, errCh chan erro
 	// Connect to smtp
 	auth := smtp.PlainAuth("", emailSender, emailPassword, emailHost)
 
-	if err = smtp.SendMail(emailHost+":"+emailPort, auth, from.Address, []string{to.Address}, []byte(message)); err != nil {
+	if err := smtp.SendMail(emailHost+":"+emailPort, auth, from.Address, []string{to.Address}, []byte(message)); err != nil {
 		errCh <- errors.Wrap(err, "couldn't send the email")
 	}
 }
 
 // SendChangeConfirmation sends a confirmation email to the user.
 func SendChangeConfirmation(id, username, email, newEmail, token string, errCh chan error) {
-	var (
-		emailSender   = os.Getenv("EMAIL_SENDER")
-		emailPassword = os.Getenv("EMAIL_PASSWORD")
-		emailHost     = os.Getenv("EMAIL_HOST")
-		emailPort     = os.Getenv("EMAIL_PORT")
-	)
-
 	// 	Email content
-	from := mail.Address{Name: "Palo", Address: emailSender}
+	from := mail.Address{Name: "Adak", Address: emailSender}
 	to := mail.Address{Name: username, Address: email}
 	subject := "Email change confirmation"
 	items := Items{

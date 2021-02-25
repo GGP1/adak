@@ -4,10 +4,10 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/GGP1/palo/internal/response"
-	"github.com/GGP1/palo/internal/sanitize"
-	"github.com/GGP1/palo/internal/token"
-	"github.com/GGP1/palo/pkg/review"
+	"github.com/GGP1/adak/internal/response"
+	"github.com/GGP1/adak/internal/sanitize"
+	"github.com/GGP1/adak/internal/token"
+	"github.com/GGP1/adak/pkg/review"
 	"github.com/go-playground/validator/v10"
 
 	"github.com/go-chi/chi"
@@ -23,12 +23,12 @@ func (s *Frontend) ReviewCreate() http.HandlerFunc {
 
 		userID, err := token.ParseFixedJWT(uID.Value)
 		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
+			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
 
 		if err := json.NewDecoder(r.Body).Decode(&rw); err != nil {
-			response.Error(w, r, http.StatusBadRequest, err)
+			response.Error(w, http.StatusBadRequest, err)
 			return
 		}
 		defer r.Body.Close()
@@ -39,17 +39,17 @@ func (s *Frontend) ReviewCreate() http.HandlerFunc {
 		}
 
 		if err := sanitize.Normalize(&rw.Comment); err != nil {
-			response.Error(w, r, http.StatusBadRequest, err)
+			response.Error(w, http.StatusBadRequest, err)
 			return
 		}
 
 		_, err = s.reviewClient.Create(ctx, &review.CreateRequest{Review: &rw, UserID: userID})
 		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
+			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
 
-		response.JSON(w, r, http.StatusCreated, &rw)
+		response.JSON(w, http.StatusCreated, &rw)
 	}
 }
 
@@ -61,11 +61,11 @@ func (s *Frontend) ReviewDelete() http.HandlerFunc {
 
 		_, err := s.reviewClient.Delete(ctx, &review.DeleteRequest{ID: id})
 		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
+			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
 
-		response.HTMLText(w, r, http.StatusOK, "Review deleted successfully.")
+		response.HTMLText(w, http.StatusOK, "Review deleted successfully.")
 	}
 }
 
@@ -76,11 +76,11 @@ func (s *Frontend) ReviewGet() http.HandlerFunc {
 
 		reviews, err := s.reviewClient.Get(ctx, &review.GetRequest{})
 		if err != nil {
-			response.Error(w, r, http.StatusNotFound, err)
+			response.Error(w, http.StatusNotFound, err)
 			return
 		}
 
-		response.JSON(w, r, http.StatusOK, reviews.Reviews)
+		response.JSON(w, http.StatusOK, reviews.Reviews)
 	}
 }
 
@@ -92,10 +92,10 @@ func (s *Frontend) ReviewGetByID() http.HandlerFunc {
 
 		review, err := s.reviewClient.GetByID(ctx, &review.GetByIDRequest{ID: id})
 		if err != nil {
-			response.Error(w, r, http.StatusNotFound, err)
+			response.Error(w, http.StatusNotFound, err)
 			return
 		}
 
-		response.JSON(w, r, http.StatusOK, review.Reviews)
+		response.JSON(w, http.StatusOK, review.Reviews)
 	}
 }

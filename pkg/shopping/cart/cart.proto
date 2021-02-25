@@ -1,6 +1,6 @@
 syntax = "proto3";
 
-option go_package = "github.com/GGP1/palo/pkg/shopping/cart";
+option go_package = "github.com/GGP1/adak/pkg/shopping/cart";
 
 package cart;
 

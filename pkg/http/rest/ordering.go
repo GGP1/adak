@@ -7,12 +7,12 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/GGP1/palo/internal/response"
-	"github.com/GGP1/palo/internal/sanitize"
-	"github.com/GGP1/palo/internal/token"
-	"github.com/GGP1/palo/pkg/shopping/cart"
-	"github.com/GGP1/palo/pkg/shopping/ordering"
-	"github.com/GGP1/palo/pkg/shopping/payment/stripe"
+	"github.com/GGP1/adak/internal/response"
+	"github.com/GGP1/adak/internal/sanitize"
+	"github.com/GGP1/adak/internal/token"
+	"github.com/GGP1/adak/pkg/shopping/cart"
+	"github.com/GGP1/adak/pkg/shopping/ordering"
+	"github.com/GGP1/adak/pkg/shopping/payment/stripe"
 	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/go-chi/chi"
@@ -47,11 +47,11 @@ func (s *Frontend) OrderingDelete() http.HandlerFunc {
 
 		_, err := s.orderingClient.Delete(ctx, &ordering.DeleteRequest{OrderID: id})
 		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
+			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
 
-		response.HTMLText(w, r, http.StatusOK, "The order has been deleted successfully.")
+		response.HTMLText(w, http.StatusOK, "The order has been deleted successfully.")
 	}
 }
 
@@ -62,11 +62,11 @@ func (s *Frontend) OrderingGet() http.HandlerFunc {
 
 		orders, err := s.orderingClient.Get(ctx, &ordering.GetRequest{})
 		if err != nil {
-			response.Error(w, r, http.StatusNotFound, err)
+			response.Error(w, http.StatusNotFound, err)
 			return
 		}
 
-		response.JSON(w, r, http.StatusOK, orders)
+		response.JSON(w, http.StatusOK, orders)
 	}
 }
 
@@ -79,11 +79,11 @@ func (s *Frontend) OrderingGetByID() http.HandlerFunc {
 
 		order, err := s.orderingClient.GetByID(ctx, &ordering.GetByIDRequest{OrderID: id})
 		if err != nil {
-			response.Error(w, r, http.StatusNotFound, err)
+			response.Error(w, http.StatusNotFound, err)
 			return
 		}
 
-		response.JSON(w, r, http.StatusOK, order)
+		response.JSON(w, http.StatusOK, order)
 	}
 }
 
@@ -95,17 +95,17 @@ func (s *Frontend) OrderingGetByUserID() http.HandlerFunc {
 		ctx := r.Context()
 
 		if err := token.CheckPermits(id, uID.Value); err != nil {
-			response.Error(w, r, http.StatusUnauthorized, err)
+			response.Error(w, http.StatusUnauthorized, err)
 			return
 		}
 
 		orders, err := s.orderingClient.GetByUserID(ctx, &ordering.GetByUserIDRequest{UserID: id})
 		if err != nil {
-			response.Error(w, r, http.StatusNotFound, err)
+			response.Error(w, http.StatusNotFound, err)
 			return
 		}
 
-		response.JSON(w, r, http.StatusOK, orders)
+		response.JSON(w, http.StatusOK, orders)
 	}
 }
 
@@ -118,7 +118,7 @@ func (s *Frontend) OrderingNew() http.HandlerFunc {
 		ctx := r.Context()
 
 		if err := json.NewDecoder(r.Body).Decode(&oParams); err != nil {
-			response.Error(w, r, http.StatusBadRequest, err)
+			response.Error(w, http.StatusBadRequest, err)
 		}
 		defer r.Body.Close()
 
@@ -129,14 +129,14 @@ func (s *Frontend) OrderingNew() http.HandlerFunc {
 		}
 
 		if err := sanitize.Normalize(&oParams.Address, &oParams.City, &oParams.Country, &oParams.Currency, &oParams.State, &oParams.ZipCode); err != nil {
-			response.Error(w, r, http.StatusBadRequest, err)
+			response.Error(w, http.StatusBadRequest, err)
 			return
 		}
 
 		// Parse jwt to take the user id
 		userID, err := token.ParseFixedJWT(uID.Value)
 		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
+			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
 
@@ -144,14 +144,14 @@ func (s *Frontend) OrderingNew() http.HandlerFunc {
 		deliveryDate := time.Date(oParams.Date.Year, time.Month(oParams.Date.Month), oParams.Date.Day, oParams.Date.Hour, oParams.Date.Minutes, 0, 0, time.Local)
 
 		if deliveryDate.Sub(time.Now()) < 0 {
-			response.Error(w, r, http.StatusBadRequest, errors.New("past dates are not valid"))
+			response.Error(w, http.StatusBadRequest, errors.New("past dates are not valid"))
 			return
 		}
 
 		// Fetch the user cart
 		cart, err := s.shoppingClient.Get(ctx, &cart.GetRequest{CartID: cID.Value})
 		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
+			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
 
@@ -168,14 +168,14 @@ func (s *Frontend) OrderingNew() http.HandlerFunc {
 			Cart:         cart.Cart,
 		})
 		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
+			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
 
 		// Create payment intent and update the order status
 		_, err = stripe.CreateIntent(order.Order.ID, order.Order.CartID, order.Order.Currency, order.Order.Cart.Total, oParams.Card)
 		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
+			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
 
@@ -184,11 +184,11 @@ func (s *Frontend) OrderingNew() http.HandlerFunc {
 			OrderStatus: ordering.PaidState,
 		})
 		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
+			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
 
 		respond := fmt.Sprintf("Thanks for your purchase! Your products will be delivered on %v.", time.Unix(order.Order.DeliveryDate.Seconds, 0))
-		response.HTMLText(w, r, http.StatusCreated, respond)
+		response.HTMLText(w, http.StatusCreated, respond)
 	}
 }

@@ -3,7 +3,7 @@ package review;
 
 import "google/protobuf/timestamp.proto";
 
-option go_package = "github.com/GGP1/palo/pkg/review";
+option go_package = "github.com/GGP1/adak/pkg/review";
 
 service Reviews {
     rpc Create (CreateRequest) returns (CreateResponse);

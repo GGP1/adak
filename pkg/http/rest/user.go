@@ -4,12 +4,12 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/GGP1/palo/internal/email"
-	"github.com/GGP1/palo/internal/response"
-	"github.com/GGP1/palo/internal/sanitize"
-	"github.com/GGP1/palo/internal/token"
-	"github.com/GGP1/palo/pkg/shopping/cart"
-	"github.com/GGP1/palo/pkg/user"
+	"github.com/GGP1/adak/internal/email"
+	"github.com/GGP1/adak/internal/response"
+	"github.com/GGP1/adak/internal/sanitize"
+	"github.com/GGP1/adak/internal/token"
+	"github.com/GGP1/adak/pkg/shopping/cart"
+	"github.com/GGP1/adak/pkg/user"
 
 	"github.com/go-chi/chi"
 	"github.com/go-playground/validator/v10"
@@ -23,7 +23,7 @@ func (s *Frontend) UserCreate() http.HandlerFunc {
 		ctx := r.Context()
 
 		if err := json.NewDecoder(r.Body).Decode(&addUser); err != nil {
-			response.Error(w, r, http.StatusBadRequest, err)
+			response.Error(w, http.StatusBadRequest, err)
 			return
 		}
 		defer r.Body.Close()
@@ -38,17 +38,17 @@ func (s *Frontend) UserCreate() http.HandlerFunc {
 
 		select {
 		case <-ctx.Done():
-			response.Error(w, r, http.StatusInternalServerError, ctx.Err())
+			response.Error(w, http.StatusInternalServerError, ctx.Err())
 		case <-errCh:
-			response.Error(w, r, http.StatusInternalServerError, errors.Wrap(<-errCh, "failed sending validation email"))
+			response.Error(w, http.StatusInternalServerError, errors.Wrap(<-errCh, "failed sending validation email"))
 		default:
 			_, err := s.userClient.Create(ctx, &user.CreateRequest{User: &addUser})
 			if err != nil {
-				response.Error(w, r, http.StatusBadRequest, err)
+				response.Error(w, http.StatusBadRequest, err)
 				return
 			}
 
-			response.HTMLText(w, r, http.StatusCreated, "Your account was successfully created.\nWe've sent you an email to validate your account.")
+			response.HTMLText(w, http.StatusCreated, "Your account was successfully created.\nWe've sent you an email to validate your account.")
 		}
 	}
 }
@@ -61,28 +61,28 @@ func (s *Frontend) UserDelete() http.HandlerFunc {
 		ctx := r.Context()
 
 		if err := token.CheckPermits(id, uID.Value); err != nil {
-			response.Error(w, r, http.StatusUnauthorized, err)
+			response.Error(w, http.StatusUnauthorized, err)
 			return
 		}
 
 		getByID, err := s.userClient.GetByID(ctx, &user.GetByIDRequest{ID: id})
 		if err != nil {
-			response.Error(w, r, http.StatusNotFound, err)
+			response.Error(w, http.StatusNotFound, err)
 			return
 		}
 
 		_, err = s.shoppingClient.Delete(ctx, &cart.DeleteRequest{CartID: getByID.User.CartID})
 		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
+			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
 
 		_, err = s.userClient.Delete(ctx, &user.DeleteRequest{ID: id})
 		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
+			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
-		response.HTMLText(w, r, http.StatusOK, "User deleted successfully.")
+		response.HTMLText(w, http.StatusOK, "User deleted successfully.")
 
 		http.Redirect(w, r, "/logout", http.StatusTemporaryRedirect)
 	}
@@ -95,11 +95,11 @@ func (s *Frontend) UserGet() http.HandlerFunc {
 
 		users, err := s.userClient.Get(ctx, &user.GetRequest{})
 		if err != nil {
-			response.Error(w, r, http.StatusNotFound, err)
+			response.Error(w, http.StatusNotFound, err)
 			return
 		}
 
-		response.JSON(w, r, http.StatusOK, users)
+		response.JSON(w, http.StatusOK, users)
 	}
 }
 
@@ -111,11 +111,11 @@ func (s *Frontend) UserGetByID() http.HandlerFunc {
 
 		user, err := s.userClient.GetByID(ctx, &user.GetByIDRequest{ID: id})
 		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
+			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
 
-		response.JSON(w, r, http.StatusOK, user)
+		response.JSON(w, http.StatusOK, user)
 	}
 }
 
@@ -126,17 +126,17 @@ func (s *Frontend) UserSearch() http.HandlerFunc {
 		ctx := r.Context()
 
 		if err := sanitize.Normalize(&query); err != nil {
-			response.Error(w, r, http.StatusBadRequest, err)
+			response.Error(w, http.StatusBadRequest, err)
 			return
 		}
 
 		users, err := s.userClient.Search(ctx, &user.SearchRequest{Search: query})
 		if err != nil {
-			response.Error(w, r, http.StatusNotFound, err)
+			response.Error(w, http.StatusNotFound, err)
 			return
 		}
 
-		response.JSON(w, r, http.StatusOK, users)
+		response.JSON(w, http.StatusOK, users)
 	}
 }
 
@@ -149,12 +149,12 @@ func (s *Frontend) UserUpdate() http.HandlerFunc {
 		ctx := r.Context()
 
 		if err := token.CheckPermits(id, uID.Value); err != nil {
-			response.Error(w, r, http.StatusUnauthorized, err)
+			response.Error(w, http.StatusUnauthorized, err)
 			return
 		}
 
 		if err := json.NewDecoder(r.Body).Decode(&updateUser); err != nil {
-			response.Error(w, r, http.StatusBadRequest, err)
+			response.Error(w, http.StatusBadRequest, err)
 			return
 		}
 		defer r.Body.Close()
@@ -166,10 +166,10 @@ func (s *Frontend) UserUpdate() http.HandlerFunc {
 
 		_, err := s.userClient.Update(ctx, &user.UpdateRequest{User: &updateUser, ID: id})
 		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
+			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
 
-		response.HTMLText(w, r, http.StatusOK, "User updated successfully.")
+		response.HTMLText(w, http.StatusOK, "User updated successfully.")
 	}
 }

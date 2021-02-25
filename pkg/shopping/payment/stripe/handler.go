@@ -3,7 +3,7 @@ package stripe
 import (
 	"net/http"
 
-	"github.com/GGP1/palo/internal/response"
+	"github.com/GGP1/adak/internal/response"
 
 	"github.com/go-chi/chi"
 )
@@ -16,10 +16,10 @@ func (h *Handler) GetBalance() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		balance, err := GetBalance()
 		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
+			response.Error(w, http.StatusInternalServerError, err)
 		}
 
-		response.JSON(w, r, http.StatusOK, balance)
+		response.JSON(w, http.StatusOK, balance)
 	}
 }
 
@@ -30,10 +30,10 @@ func (h *Handler) GetEvent() http.HandlerFunc {
 
 		event, err := GetEvent(e)
 		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
+			response.Error(w, http.StatusInternalServerError, err)
 		}
 
-		response.JSON(w, r, http.StatusOK, event)
+		response.JSON(w, http.StatusOK, event)
 	}
 }
 
@@ -44,10 +44,10 @@ func (h *Handler) GetTxBalance() http.HandlerFunc {
 
 		tx, err := GetTxBalance(txID)
 		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
+			response.Error(w, http.StatusInternalServerError, err)
 		}
 
-		response.JSON(w, r, http.StatusOK, tx)
+		response.JSON(w, http.StatusOK, tx)
 	}
 }
 
@@ -56,7 +56,7 @@ func (h *Handler) ListEvents() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		eventList := ListEvents()
 
-		response.JSON(w, r, http.StatusOK, eventList)
+		response.JSON(w, http.StatusOK, eventList)
 	}
 }
 
@@ -65,6 +65,6 @@ func (h *Handler) ListTxs() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		txList := ListTxs()
 
-		response.JSON(w, r, http.StatusOK, txList)
+		response.JSON(w, http.StatusOK, txList)
 	}
 }

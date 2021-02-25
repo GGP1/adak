@@ -13,25 +13,24 @@ import (
 )
 
 var (
-	configuration          *Configuration
-	configFileName         = "config"
-	configFileExt          = ".yml"
-	configType             = "yaml"
-	appName                = "palo"
-	configurationDirectory = filepath.Join(osConfigDirectory(runtime.GOOS), appName)
-	configFileAbsPath      = filepath.Join(configurationDirectory, configFileName)
+	configFileName    = "config"
+	configFileExt     = ".yml"
+	configType        = "yaml"
+	appName           = "adak"
+	configDir         = filepath.Join(getConfigDir(runtime.GOOS), appName)
+	configFileAbsPath = filepath.Join(configDir, configFileName)
 )
 
-// Configuration constains all the server configurations.
-type Configuration struct {
-	Database DatabaseConfiguration
-	Server   ServerConfiguration
-	Email    EmailConfiguration
-	Stripe   StripeConfiguration
+// Config constains all the server configurations.
+type Config struct {
+	Database DatabaseConfig
+	Server   ServerConfig
+	Email    EmailConfig
+	Stripe   StripeConfig
 }
 
-// DatabaseConfiguration hols the database attributes.
-type DatabaseConfiguration struct {
+// DatabaseConfig hols the database attributes.
+type DatabaseConfig struct {
 	Username string
 	Password string
 	Host     string
@@ -40,8 +39,13 @@ type DatabaseConfiguration struct {
 	SSLMode  string
 }
 
-// ServerConfiguration holds the server attributes.
-type ServerConfiguration struct {
+// CacheConfig is the LRU-cache configuration.
+type CacheConfig struct {
+	Size int
+}
+
+// ServerConfig holds the server attributes.
+type ServerConfig struct {
 	Host    string
 	Port    string
 	Timeout struct {
@@ -51,8 +55,8 @@ type ServerConfiguration struct {
 	}
 }
 
-// EmailConfiguration holds email attributes.
-type EmailConfiguration struct {
+// EmailConfig holds email attributes.
+type EmailConfig struct {
 	Host        string
 	Port        string
 	Sender      string
@@ -60,8 +64,8 @@ type EmailConfiguration struct {
 	AdminEmails string
 }
 
-// StripeConfiguration hold stripe attributes
-type StripeConfiguration struct {
+// StripeConfig hold stripe attributes
+type StripeConfig struct {
 	SecretKey string
 	Logger    struct {
 		Level stripe.Level
@@ -69,18 +73,20 @@ type StripeConfiguration struct {
 }
 
 // New sets up the configuration with the values the user gave.
-func New() (*Configuration, error) {
-	viper.AddConfigPath(configurationDirectory)
+func New() (*Config, error) {
+	viper.AddConfigPath(configDir)
 	viper.SetConfigName(configFileName)
 	viper.SetConfigType(configType)
 
-	path := os.Getenv("PALO_CONFIG")
-	if filepath.Ext(path) == "" {
-		path += "/.env"
-	}
+	path := os.Getenv("ADAK_CONFIG")
+	if path != "" {
+		if filepath.Ext(path) == "" {
+			path = filepath.Join(path, ".env")
+		}
 
-	if err := godotenv.Load(path); err != nil {
-		return nil, errors.Wrap(err, "env loading failed")
+		if err := godotenv.Load(path); err != nil {
+			return nil, errors.Wrap(err, "env loading failed")
+		}
 	}
 
 	// Bind envs
@@ -94,38 +100,40 @@ func New() (*Configuration, error) {
 	}
 
 	// Read or create configuration file
-	if err := readConfiguration(); err != nil {
+	if err := loadConfig(); err != nil {
 		return nil, errors.Wrap(err, "read configuration failed")
 	}
 
 	// Auto read env variables
 	viper.AutomaticEnv()
+	config := &Config{}
 
 	// Unmarshal config file to struct
-	if err := viper.Unmarshal(&configuration); err != nil {
+	if err := viper.Unmarshal(config); err != nil {
 		return nil, errors.Wrap(err, "unmarshal configuration failed")
 	}
 
-	return configuration, nil
+	return config, nil
 }
 
 // read configuration from file.
-func readConfiguration() error {
-	err := viper.ReadInConfig() // Find and read the config file
-	if err != nil {
+func loadConfig() error {
+	// Find and read the config file
+	if err := viper.ReadInConfig(); err != nil {
 		// if file does not exist, simply create one
 		if _, err := os.Stat(configFileAbsPath + configFileExt); os.IsNotExist(err) {
-			if err := os.MkdirAll(configurationDirectory, 0755); err != nil {
+			if err := os.MkdirAll(configDir, 0755); err != nil {
 				return errors.New("failed creating folder")
 			}
-			if _, err := os.Create(configFileAbsPath + configFileExt); err != nil {
+			f, err := os.Create(configFileAbsPath + configFileExt)
+			if err != nil {
 				return errors.New("failed creating file")
 			}
+			f.Close()
 		} else {
 			return err
 		}
 
-		// Write defaults
 		if err := viper.WriteConfig(); err != nil {
 			return err
 		}
@@ -134,7 +142,7 @@ func readConfiguration() error {
 	return nil
 }
 
-func osConfigDirectory(osName string) string {
+func getConfigDir(osName string) string {
 	if os.Getenv("SV_DIR") != "" {
 		return os.Getenv("SV_DIR")
 	}
@@ -161,6 +169,8 @@ var (
 		"database.port":     "5432",
 		"database.name":     "postgres",
 		"database.sslmode":  "disable",
+		// Cache
+		"cache.size": 100,
 		// Server
 		"server.host":             "localhost",
 		"server.port":             "7070",
@@ -171,7 +181,7 @@ var (
 		// Email
 		"email.host":     "smtp.default.com",
 		"email.port":     "587",
-		"email.sender":   "default@palo.com",
+		"email.sender":   "default@adak.com",
 		"email.password": "default",
 		"email.admins":   "../pkg/auth/",
 		// Stripe
@@ -183,12 +193,14 @@ var (
 
 	envVars = map[string]string{
 		// Database
-		"database.username": "DB_USERNAME",
-		"database.password": "DB_PASSWORD",
-		"database.host":     "DB_HOST",
-		"database.port":     "DB_PORT",
-		"database.name":     "DB_NAME",
-		"database.sslmode":  "DB_SSL",
+		"database.username": "POSTGRES_USERNAME",
+		"database.password": "POSTGRES_PASSWORD",
+		"database.host":     "POSTGRES_HOST",
+		"database.port":     "POSTGRES_PORT",
+		"database.name":     "POSTGRES_NAME",
+		"database.sslmode":  "POSTGRES_SSL",
+		// Cache
+		"cache.size": "CACHE_SIZE",
 		// Server
 		"server.host":             "SV_HOST",
 		"server.port":             "SV_PORT",

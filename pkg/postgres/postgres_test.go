@@ -1,10 +1,10 @@
-package storage_test
+package postgres_test
 
 import (
 	"fmt"
 	"testing"
 
-	"github.com/GGP1/palo/internal/config"
+	"github.com/GGP1/adak/internal/config"
 
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq"

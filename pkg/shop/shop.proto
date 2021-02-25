@@ -2,10 +2,10 @@ syntax = "proto3";
 package shop;
 
 import "google/protobuf/timestamp.proto";
-import "github.com/GGP1/palo/pkg/product/product.proto";
-import "github.com/GGP1/palo/pkg/review/review.proto";
+import "github.com/GGP1/adak/pkg/product/product.proto";
+import "github.com/GGP1/adak/pkg/review/review.proto";
 
-option go_package = "github.com/GGP1/palo/pkg/shop";
+option go_package = "github.com/GGP1/adak/pkg/shop";
 
 service Shops {
     rpc Create (CreateRequest) returns (CreateResponse);

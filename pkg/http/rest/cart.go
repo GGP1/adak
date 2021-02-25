@@ -5,9 +5,9 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/GGP1/palo/internal/response"
-	"github.com/GGP1/palo/internal/sanitize"
-	"github.com/GGP1/palo/pkg/shopping/cart"
+	"github.com/GGP1/adak/internal/response"
+	"github.com/GGP1/adak/internal/sanitize"
+	"github.com/GGP1/adak/pkg/shopping/cart"
 
 	"github.com/go-chi/chi"
 	"github.com/pkg/errors"
@@ -27,16 +27,16 @@ func (s *Frontend) CartAdd() http.HandlerFunc {
 
 		quantity, err := strconv.Atoi(q)
 		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
+			response.Error(w, http.StatusInternalServerError, err)
 		}
 
 		if quantity == 0 {
-			response.Error(w, r, http.StatusBadRequest, errors.New("quantity must be higher than zero"))
+			response.Error(w, http.StatusBadRequest, errors.New("quantity must be higher than zero"))
 			return
 		}
 
 		if err = json.NewDecoder(r.Body).Decode(&product); err != nil {
-			response.Error(w, r, http.StatusBadRequest, err)
+			response.Error(w, http.StatusBadRequest, err)
 			return
 		}
 		defer r.Body.Close()
@@ -48,11 +48,11 @@ func (s *Frontend) CartAdd() http.HandlerFunc {
 			Quantity: int64(quantity),
 		})
 		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
+			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
 
-		response.JSON(w, r, http.StatusCreated, cart)
+		response.JSON(w, http.StatusCreated, cart)
 	}
 }
 
@@ -66,11 +66,11 @@ func (s *Frontend) CartCheckout() http.HandlerFunc {
 			CartID: c.Value,
 		})
 		if err != nil {
-			response.Error(w, r, http.StatusNotFound, err)
+			response.Error(w, http.StatusNotFound, err)
 			return
 		}
 
-		response.JSON(w, r, http.StatusOK, checkout)
+		response.JSON(w, http.StatusOK, checkout)
 	}
 }
 
@@ -82,7 +82,7 @@ func (s *Frontend) CartFilterByBrand() http.HandlerFunc {
 		ctx := r.Context()
 
 		if err := sanitize.Normalize(&brand); err != nil {
-			response.Error(w, r, http.StatusBadRequest, err)
+			response.Error(w, http.StatusBadRequest, err)
 			return
 		}
 
@@ -91,11 +91,11 @@ func (s *Frontend) CartFilterByBrand() http.HandlerFunc {
 			Field:  brand,
 		})
 		if err != nil {
-			response.Error(w, r, http.StatusNotFound, err)
+			response.Error(w, http.StatusNotFound, err)
 			return
 		}
 
-		response.JSON(w, r, http.StatusOK, products)
+		response.JSON(w, http.StatusOK, products)
 	}
 }
 
@@ -107,7 +107,7 @@ func (s *Frontend) CartFilterByCategory() http.HandlerFunc {
 		ctx := r.Context()
 
 		if err := sanitize.Normalize(&category); err != nil {
-			response.Error(w, r, http.StatusBadRequest, err)
+			response.Error(w, http.StatusBadRequest, err)
 			return
 		}
 
@@ -116,11 +116,11 @@ func (s *Frontend) CartFilterByCategory() http.HandlerFunc {
 			Field:  category,
 		})
 		if err != nil {
-			response.Error(w, r, http.StatusNotFound, err)
+			response.Error(w, http.StatusNotFound, err)
 			return
 		}
 
-		response.JSON(w, r, http.StatusOK, products)
+		response.JSON(w, http.StatusOK, products)
 	}
 }
 
@@ -134,13 +134,13 @@ func (s *Frontend) CartFilterByDiscount() http.HandlerFunc {
 
 		minD, err := strconv.ParseFloat(min, 64)
 		if err != nil {
-			response.Error(w, r, http.StatusBadRequest, errInvalidMinNumber)
+			response.Error(w, http.StatusBadRequest, errInvalidMinNumber)
 			return
 		}
 
 		maxD, err := strconv.ParseFloat(max, 64)
 		if err != nil {
-			response.Error(w, r, http.StatusBadRequest, errInvalidMaxNumber)
+			response.Error(w, http.StatusBadRequest, errInvalidMaxNumber)
 			return
 		}
 
@@ -150,11 +150,11 @@ func (s *Frontend) CartFilterByDiscount() http.HandlerFunc {
 			Max:    maxD,
 		})
 		if err != nil {
-			response.Error(w, r, http.StatusNotFound, err)
+			response.Error(w, http.StatusNotFound, err)
 			return
 		}
 
-		response.JSON(w, r, http.StatusOK, products)
+		response.JSON(w, http.StatusOK, products)
 	}
 }
 
@@ -168,13 +168,13 @@ func (s *Frontend) CartFilterBySubtotal() http.HandlerFunc {
 
 		minS, err := strconv.ParseFloat(min, 64)
 		if err != nil {
-			response.Error(w, r, http.StatusBadRequest, errInvalidMinNumber)
+			response.Error(w, http.StatusBadRequest, errInvalidMinNumber)
 			return
 		}
 
 		maxS, err := strconv.ParseFloat(max, 64)
 		if err != nil {
-			response.Error(w, r, http.StatusBadRequest, errInvalidMaxNumber)
+			response.Error(w, http.StatusBadRequest, errInvalidMaxNumber)
 			return
 		}
 
@@ -184,11 +184,11 @@ func (s *Frontend) CartFilterBySubtotal() http.HandlerFunc {
 			Max:    maxS,
 		})
 		if err != nil {
-			response.Error(w, r, http.StatusNotFound, err)
+			response.Error(w, http.StatusNotFound, err)
 			return
 		}
 
-		response.JSON(w, r, http.StatusOK, products)
+		response.JSON(w, http.StatusOK, products)
 	}
 }
 
@@ -202,13 +202,13 @@ func (s *Frontend) CartFilterByTaxes() http.HandlerFunc {
 
 		minT, err := strconv.ParseFloat(min, 64)
 		if err != nil {
-			response.Error(w, r, http.StatusBadRequest, errInvalidMinNumber)
+			response.Error(w, http.StatusBadRequest, errInvalidMinNumber)
 			return
 		}
 
 		maxT, err := strconv.ParseFloat(max, 64)
 		if err != nil {
-			response.Error(w, r, http.StatusBadRequest, errInvalidMaxNumber)
+			response.Error(w, http.StatusBadRequest, errInvalidMaxNumber)
 			return
 		}
 
@@ -218,11 +218,11 @@ func (s *Frontend) CartFilterByTaxes() http.HandlerFunc {
 			Max:    maxT,
 		})
 		if err != nil {
-			response.Error(w, r, http.StatusNotFound, err)
+			response.Error(w, http.StatusNotFound, err)
 			return
 		}
 
-		response.JSON(w, r, http.StatusOK, products)
+		response.JSON(w, http.StatusOK, products)
 	}
 }
 
@@ -236,13 +236,13 @@ func (s *Frontend) CartFilterByTotal() http.HandlerFunc {
 
 		minT, err := strconv.ParseFloat(min, 64)
 		if err != nil {
-			response.Error(w, r, http.StatusBadRequest, errInvalidMinNumber)
+			response.Error(w, http.StatusBadRequest, errInvalidMinNumber)
 			return
 		}
 
 		maxT, err := strconv.ParseFloat(max, 64)
 		if err != nil {
-			response.Error(w, r, http.StatusBadRequest, errInvalidMaxNumber)
+			response.Error(w, http.StatusBadRequest, errInvalidMaxNumber)
 			return
 		}
 
@@ -252,11 +252,11 @@ func (s *Frontend) CartFilterByTotal() http.HandlerFunc {
 			Max:    maxT,
 		})
 		if err != nil {
-			response.Error(w, r, http.StatusNotFound, err)
+			response.Error(w, http.StatusNotFound, err)
 			return
 		}
 
-		response.JSON(w, r, http.StatusOK, products)
+		response.JSON(w, http.StatusOK, products)
 	}
 }
 
@@ -268,7 +268,7 @@ func (s *Frontend) CartFilterByType() http.HandlerFunc {
 		ctx := r.Context()
 
 		if err := sanitize.Normalize(&pType); err != nil {
-			response.Error(w, r, http.StatusBadRequest, err)
+			response.Error(w, http.StatusBadRequest, err)
 			return
 		}
 
@@ -277,11 +277,11 @@ func (s *Frontend) CartFilterByType() http.HandlerFunc {
 			Field:  pType,
 		})
 		if err != nil {
-			response.Error(w, r, http.StatusNotFound, err)
+			response.Error(w, http.StatusNotFound, err)
 			return
 		}
 
-		response.JSON(w, r, http.StatusOK, products)
+		response.JSON(w, http.StatusOK, products)
 	}
 }
 
@@ -295,13 +295,13 @@ func (s *Frontend) CartFilterByWeight() http.HandlerFunc {
 
 		minW, err := strconv.ParseFloat(min, 64)
 		if err != nil {
-			response.Error(w, r, http.StatusBadRequest, errInvalidMinNumber)
+			response.Error(w, http.StatusBadRequest, errInvalidMinNumber)
 			return
 		}
 
 		maxW, err := strconv.ParseFloat(max, 64)
 		if err != nil {
-			response.Error(w, r, http.StatusBadRequest, errInvalidMaxNumber)
+			response.Error(w, http.StatusBadRequest, errInvalidMaxNumber)
 			return
 		}
 
@@ -311,11 +311,11 @@ func (s *Frontend) CartFilterByWeight() http.HandlerFunc {
 			Max:    maxW,
 		})
 		if err != nil {
-			response.Error(w, r, http.StatusNotFound, err)
+			response.Error(w, http.StatusNotFound, err)
 			return
 		}
 
-		response.JSON(w, r, http.StatusOK, products)
+		response.JSON(w, http.StatusOK, products)
 	}
 }
 
@@ -327,11 +327,11 @@ func (s *Frontend) CartGet() http.HandlerFunc {
 
 		cart, err := s.shoppingClient.Get(ctx, &cart.GetRequest{CartID: c.Value})
 		if err != nil {
-			response.Error(w, r, http.StatusNotFound, err)
+			response.Error(w, http.StatusNotFound, err)
 			return
 		}
 
-		response.JSON(w, r, http.StatusOK, cart)
+		response.JSON(w, http.StatusOK, cart)
 	}
 }
 
@@ -345,11 +345,11 @@ func (s *Frontend) CartProducts() http.HandlerFunc {
 			CartID: c.Value,
 		})
 		if err != nil {
-			response.Error(w, r, http.StatusNotFound, err)
+			response.Error(w, http.StatusNotFound, err)
 			return
 		}
 
-		response.JSON(w, r, http.StatusOK, items)
+		response.JSON(w, http.StatusOK, items)
 	}
 }
 
@@ -363,7 +363,7 @@ func (s *Frontend) CartRemove() http.HandlerFunc {
 
 		quantity, err := strconv.Atoi(q)
 		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
+			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
 
@@ -373,11 +373,11 @@ func (s *Frontend) CartRemove() http.HandlerFunc {
 			Quantity:  int64(quantity),
 		})
 		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
+			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
 
-		response.HTMLText(w, r, http.StatusOK, "Successfully removed the product from the cart")
+		response.HTMLText(w, http.StatusOK, "Successfully removed the product from the cart")
 	}
 }
 
@@ -391,11 +391,11 @@ func (s *Frontend) CartReset() http.HandlerFunc {
 			CartID: c.Value,
 		})
 		if err != nil {
-			response.Error(w, r, http.StatusInternalServerError, err)
+			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
 
-		response.HTMLText(w, r, http.StatusOK, "Cart reseted")
+		response.HTMLText(w, http.StatusOK, "Cart reseted")
 	}
 }
 
@@ -409,10 +409,10 @@ func (s *Frontend) CartSize() http.HandlerFunc {
 			CartID: c.Value,
 		})
 		if err != nil {
-			response.Error(w, r, http.StatusNotFound, err)
+			response.Error(w, http.StatusNotFound, err)
 			return
 		}
 
-		response.JSON(w, r, http.StatusOK, size)
+		response.JSON(w, http.StatusOK, size)
 	}
 }
