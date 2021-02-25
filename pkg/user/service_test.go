@@ -37,7 +37,7 @@ func NewUserService(t *testing.T) (context.Context, func() error, Service) {
 	conf, err := config.New()
 	assert.NoError(t, err)
 
-	conf.Database = config.DatabaseConfig{
+	conf.Database = config.Database{
 		Host:     "localhost",
 		Port:     "6000",
 		Username: "test",

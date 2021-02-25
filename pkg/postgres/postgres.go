@@ -15,7 +15,7 @@ import (
 // and checks the existence of all the tables.
 //
 // It returns a pointer to the sql.DB struct, the close function and an error.
-func Connect(ctx context.Context, c *config.DatabaseConfig) (*sqlx.DB, error) {
+func Connect(ctx context.Context, c *config.Database) (*sqlx.DB, error) {
 	url := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
 		c.Host, c.Port, c.Username, c.Password, c.Name, c.SSLMode)
 

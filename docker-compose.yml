@@ -15,6 +15,7 @@ services:
     build: .
     restart: always
     environment:
+      ADMIN_EMAILS: test@gmail.com # Replace this with the admins email (it's a slice)
       SV_HOST: 0.0.0.0 # Do not bind to 127.0.0.1 as Docker can't reach the app inside the container.
       SV_PORT: 4000
       POSTGRES_HOST: db

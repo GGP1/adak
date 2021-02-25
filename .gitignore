@@ -5,4 +5,3 @@ postgres-data
 
 api/swagger/index.html
 cmd/server/certs
-pkg/auth/adminList.go

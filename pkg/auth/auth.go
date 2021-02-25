@@ -10,6 +10,7 @@ import (
 	"github.com/GGP1/adak/internal/cookie"
 	"github.com/GGP1/adak/internal/token"
 	"github.com/GGP1/adak/pkg/tracking"
+	"github.com/spf13/viper"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
@@ -121,7 +122,8 @@ func (s *session) Login(ctx context.Context, w http.ResponseWriter, r *http.Requ
 		return errors.New("invalid email or password")
 	}
 
-	for _, admin := range AdminList {
+	// Maps would have a better performance but some configuration files do not support them.
+	for _, admin := range viper.GetStringSlice("admin.emails") {
 		if admin == user.Email {
 			admID := token.RandString(8)
 			cookie.Set(w, "AID", admID, "/", s.length)
@@ -159,7 +161,8 @@ func (s *session) LoginOAuth(ctx context.Context, w http.ResponseWriter, r *http
 		return errors.New("please register before logging in")
 	}
 
-	for _, admin := range AdminList {
+	// Maps would have a better performance but some configuration files do not support them.
+	for _, admin := range viper.GetStringSlice("admin.emails") {
 		if admin == user.Email {
 			admID := token.RandString(8)
 			cookie.Set(w, "AID", admID, "/", s.length)

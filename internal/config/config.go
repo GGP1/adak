@@ -24,15 +24,21 @@ var (
 
 // Config constains all the server configurations.
 type Config struct {
-	Database DatabaseConfig
-	Cache    CacheConfig
-	Server   ServerConfig
-	Email    EmailConfig
-	Stripe   StripeConfig
+	Admin    Admin
+	Database Database
+	Cache    Cache
+	Server   Server
+	Email    Email
+	Stripe   Stripe
 }
 
-// DatabaseConfig hols the database attributes.
-type DatabaseConfig struct {
+// Admin contains the admins emails.
+type Admin struct {
+	Emails []string
+}
+
+// Database hols the database attributes.
+type Database struct {
 	Username string
 	Password string
 	Host     string
@@ -41,13 +47,13 @@ type DatabaseConfig struct {
 	SSLMode  string
 }
 
-// CacheConfig is the LRU-cache configuration.
-type CacheConfig struct {
+// Cache is the LRU-cache configuration.
+type Cache struct {
 	Size int
 }
 
-// ServerConfig holds the server attributes.
-type ServerConfig struct {
+// Server holds the server attributes.
+type Server struct {
 	Host string
 	Port string
 	TLS  struct {
@@ -61,8 +67,8 @@ type ServerConfig struct {
 	}
 }
 
-// EmailConfig holds email attributes.
-type EmailConfig struct {
+// Email holds email attributes.
+type Email struct {
 	Host        string
 	Port        string
 	Sender      string
@@ -70,8 +76,8 @@ type EmailConfig struct {
 	AdminEmails string
 }
 
-// StripeConfig hold stripe attributes
-type StripeConfig struct {
+// Stripe hold stripe attributes
+type Stripe struct {
 	SecretKey string
 	Logger    struct {
 		Level stripe.Level
@@ -175,6 +181,8 @@ func getConfigDir(osName string) string {
 // Declared at the end to avoid scrolling
 var (
 	defaults = map[string]interface{}{
+		// Admins
+		"admin.emails": []string{},
 		// Database
 		"database.username": "postgres",
 		"database.password": "password",
@@ -207,6 +215,8 @@ var (
 	}
 
 	envVars = map[string]string{
+		// Admins
+		"admin.emails": "ADMIN_EMAILS",
 		// Database
 		"database.username": "POSTGRES_USERNAME",
 		"database.password": "POSTGRES_PASSWORD",

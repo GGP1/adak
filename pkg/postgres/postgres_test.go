@@ -30,6 +30,6 @@ func TestPostgresErrors(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
 	defer cancel()
 
-	_, err := postgres.Connect(ctx, &config.DatabaseConfig{})
+	_, err := postgres.Connect(ctx, &config.Database{})
 	assert.Error(t, err)
 }
