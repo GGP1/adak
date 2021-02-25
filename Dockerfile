@@ -1,4 +1,4 @@
-FROM golang:1.15-alpine AS builder
+FROM golang:1.16.0-alpine3.13 AS builder
 
 COPY . /go/src/app
 

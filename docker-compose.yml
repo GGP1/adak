@@ -29,8 +29,7 @@ services:
       - db
 
   adak-api:
-    build:
-      context: ./api/swagger
+    image: gastonpalomeque/adak-api
     ports:
       - 8080:8080
     
