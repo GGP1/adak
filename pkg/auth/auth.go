@@ -219,9 +219,6 @@ func (s *session) Logout(w http.ResponseWriter, r *http.Request, c *http.Cookie)
 
 // loginDelay increments the time that the user will have to wait after failing.
 func (s *session) loginDelay(ip string) {
-	s.Lock()
-	defer s.Unlock()
-
 	s.tries[ip] = append(s.tries[ip], struct{}{})
 
 	delay := (len(s.tries[ip]) * 2)
