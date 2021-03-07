@@ -1,10 +1,12 @@
 FROM golang:1.16.0-alpine3.13 AS builder
 
-COPY . /go/src/app
-
 WORKDIR /go/src/app
 
-RUN go get -d -v ./...
+COPY go.mod .
+
+RUN go mod download
+
+COPY . .
 
 RUN go build -o adak -ldflags="-s -w" ./cmd/main.go
 
