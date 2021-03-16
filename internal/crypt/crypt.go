@@ -27,12 +27,14 @@ func Encrypt(key, data []byte) ([]byte, error) {
 
 	nonce := make([]byte, AEAD.NonceSize())
 
-	_, err = io.ReadFull(rand.Reader, nonce)
-	if err != nil {
+	if _, err := io.ReadFull(rand.Reader, nonce); err != nil {
 		return nil, errEncrypt
 	}
 
-	ciphertext := AEAD.Seal(nonce, nonce, data, nil)
+	dst := make([]byte, AEAD.NonceSize())
+	copy(dst, nonce)
+
+	ciphertext := AEAD.Seal(dst, nonce, data, nil)
 
 	return ciphertext, nil
 }
