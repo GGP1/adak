@@ -121,15 +121,14 @@ func (s *service) GetByID(ctx context.Context, id string) (Product, error) {
 
 // Search looks for the products that contain the value specified. (Only text fields)
 func (s *service) Search(ctx context.Context, search string) ([]Product, error) {
-	var products []Product
-
-	q := `SELECT * FROM products WHERE
-	to_tsvector(id || ' ' || shop_id || ' ' || brand || ' ' || type || ' ' || category || ' ' || description)
-	@@ to_tsquery($1)`
-
-	if strings.ContainsAny(search, ";-\\|@#~€¬<>_()[]}{¡'") {
+	if strings.ContainsAny(search, ";-\\|@#~€¬<>_()[]}{¡^'") {
 		return nil, errors.New("invalid search")
 	}
+
+	products := []Product{}
+	q := `SELECT * FROM products WHERE
+	to_tsvector(id || ' ' || shop_id || ' ' || brand || ' ' || type || ' ' || category || ' ' || description)
+	@@ plainto_tsquery($1)`
 
 	if err := s.DB.SelectContext(ctx, &products, q, search); err != nil {
 		logger.Log.Errorf("failed searching products: %v", err)

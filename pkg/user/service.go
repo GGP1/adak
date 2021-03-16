@@ -180,15 +180,14 @@ func (s *service) GetByUsername(ctx context.Context, username string) (User, err
 
 // Search looks for the users that contain the value specified. (Only text fields)
 func (s *service) Search(ctx context.Context, search string) ([]ListUser, error) {
-	var users []ListUser
-
-	q := `SELECT * FROM users WHERE
-	to_tsvector(id || ' ' || username || ' ' || email) 
-	@@ to_tsquery($1)`
-
-	if strings.ContainsAny(search, ";-\\|@#~€¬<>_()[]}{¡'") {
+	if strings.ContainsAny(search, ";-\\|@#~€¬<>_()[]}{¡^'") {
 		return nil, errors.New("invalid search")
 	}
+
+	users := []ListUser{}
+	q := `SELECT id, cart_id, username, email FROM users WHERE
+	to_tsvector(id || ' ' || username || ' ' || email) 
+	@@ plainto_tsquery($1)`
 
 	if err := s.DB.SelectContext(ctx, &users, q, search); err != nil {
 		logger.Log.Errorf("failed searching users: %v", err)

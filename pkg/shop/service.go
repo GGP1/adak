@@ -139,14 +139,13 @@ func (s *service) GetByID(ctx context.Context, id string) (Shop, error) {
 
 // Search looks for the shops that contain the value specified. (Only text fields)
 func (s *service) Search(ctx context.Context, search string) ([]Shop, error) {
-	var shops []Shop
-
-	q := `SELECT * FROM shops WHERE
-	to_tsvector(id || ' ' || name) @@ to_tsquery($1)`
-
-	if strings.ContainsAny(search, ";-\\|@#~€¬<>_()[]}{¡'") {
+	if strings.ContainsAny(search, ";-\\|@#~€¬<>_()[]}{¡^'") {
 		return nil, errors.New("invalid search")
 	}
+
+	shops := []Shop{}
+	q := `SELECT * FROM shops WHERE
+	to_tsvector(id || ' ' || name) @@ plainto_tsquery($1)`
 
 	if err := s.DB.SelectContext(ctx, &shops, q, search); err != nil {
 		logger.Log.Errorf("failed listing shops: %v", err)

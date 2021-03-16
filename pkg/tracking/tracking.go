@@ -95,18 +95,17 @@ func (h *Hitter) Hit(ctx context.Context, r *http.Request) error {
 
 // Search looks for a value and returns a slice of the hits that contain that value.
 func (h *Hitter) Search(ctx context.Context, query string) ([]Hit, error) {
-	var hits []Hit
+	if strings.ContainsAny(query, ";-\\|@#~€¬<>_()[]}{¡^'") {
+		return nil, errors.New("invalid search")
+	}
 
+	hits := []Hit{}
 	q := `SELECT * FROM hits WHERE to_tsvector(
 	id || ' ' || footprint || ' ' || 
 	path || ' ' || url || ' ' || 
 	language || ' ' || referer || ' ' || 
 	user_agent || ' ' || date
-	) @@ to_tsquery($1)`
-
-	if strings.ContainsAny(query, ";-\\|@#~€¬<>_()[]}{¡'") {
-		return nil, errors.New("invalid search")
-	}
+	) @@ plainto_tsquery($1)`
 
 	if err := h.DB.SelectContext(ctx, &hits, q, query); err != nil {
 		return nil, errors.New("no hits found")
