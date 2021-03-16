@@ -8,11 +8,11 @@ RUN go mod download
 
 COPY . .
 
-RUN go build -o adak -ldflags="-s -w" ./cmd/main.go
+RUN CGO_ENABLED=0 go build -o adak -ldflags="-s -w" ./cmd/main.go
 
 # -------------------------
 
-FROM alpine:3.13.2
+FROM scratch
 
 COPY --from=builder /go/src/app/adak /usr/bin/
 
