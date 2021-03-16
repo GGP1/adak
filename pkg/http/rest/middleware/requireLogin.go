@@ -1,15 +1,17 @@
 package middleware
 
 import (
+	"errors"
 	"net/http"
+
+	"github.com/GGP1/adak/internal/response"
 )
 
 // RequireLogin verifies if the user is logged in.
 func RequireLogin(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		_, err := r.Cookie("SID")
-		if err != nil {
-			http.Error(w, "Please log in to access.", http.StatusUnauthorized)
+		if _, err := r.Cookie("SID"); err != nil {
+			response.Error(w, http.StatusUnauthorized, errors.New("please log in to access"))
 			return
 		}
 

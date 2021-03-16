@@ -32,7 +32,7 @@ func (h *Handler) Create() http.HandlerFunc {
 		defer r.Body.Close()
 
 		if err := validator.New().StructCtx(ctx, shop); err != nil {
-			http.Error(w, err.(validator.ValidationErrors).Error(), http.StatusBadRequest)
+			response.Error(w, http.StatusBadRequest, err.(validator.ValidationErrors))
 			return
 		}
 
