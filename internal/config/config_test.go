@@ -49,8 +49,7 @@ func TestLoadConfigCreate(t *testing.T) {
 	os.Chdir("testdata")
 	dir, _ := os.Getwd()
 	configDir = dir
-	configFileAbsPath = filepath.Join(dir, "mock_config")
-	configFileExt = ".yaml"
+	configFilename = "mock_config"
 
 	err := loadConfig()
 	assert.NoError(t, err, "loadConfig()")

@@ -14,12 +14,8 @@ import (
 )
 
 var (
-	configFilename    = "config"
-	configFileExt     = ".yml"
-	configType        = "yaml"
-	appName           = "adak"
-	configDir         = filepath.Join(getConfigDir(runtime.GOOS), appName)
-	configFileAbsPath = filepath.Join(configDir, configFilename)
+	configFilename = "config"
+	configDir      = filepath.Join(getConfigDir(runtime.GOOS), "adak")
 )
 
 // Config constains all the server configurations.
@@ -89,7 +85,7 @@ type Stripe struct {
 func New() (*Config, error) {
 	viper.AddConfigPath(configDir)
 	viper.SetConfigName(configFilename)
-	viper.SetConfigType(configType)
+	viper.SetConfigType("yaml")
 
 	path := os.Getenv("ADAK_CONFIG")
 	if path != "" {
@@ -137,12 +133,14 @@ func New() (*Config, error) {
 func loadConfig() error {
 	// Find and read the config file
 	if err := viper.ReadInConfig(); err != nil {
+		configAbsPath := filepath.Join(configDir, configFilename+".yml")
+
 		// if file does not exist, simply create one
-		if _, err := os.Stat(configFileAbsPath + configFileExt); os.IsNotExist(err) {
+		if _, err := os.Stat(configAbsPath); os.IsNotExist(err) {
 			if err := os.MkdirAll(configDir, 0755); err != nil {
 				return errors.New("failed creating folder")
 			}
-			f, err := os.Create(configFileAbsPath + configFileExt)
+			f, err := os.Create(configAbsPath)
 			if err != nil {
 				return errors.New("failed creating file")
 			}
@@ -165,7 +163,7 @@ func getConfigDir(osName string) string {
 		return os.Getenv("SV_DIR")
 	}
 
-	switch osName {
+	switch runtime.GOOS {
 	case "windows":
 		return os.Getenv("APPDATA")
 	case "darwin":
