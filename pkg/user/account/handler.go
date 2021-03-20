@@ -51,8 +51,12 @@ type changePassword struct {
 func (h *Handler) ChangePassword() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var changePass changePassword
-		uID, _ := cookie.Get(r, "UID")
 		ctx := r.Context()
+		uID, err := cookie.Get(r, "UID")
+		if err != nil {
+			response.Error(w, http.StatusForbidden, err)
+			return
+		}
 
 		userID, err := token.GetUserID(uID.Value)
 		if err != nil {
@@ -80,6 +84,11 @@ func (h *Handler) SendChangeConfirmation(u user.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var new changeEmail
 		ctx := r.Context()
+		uID, err := cookie.Get(r, "UID")
+		if err != nil {
+			response.Error(w, http.StatusForbidden, err)
+			return
+		}
 
 		if err := json.NewDecoder(r.Body).Decode(&new); err != nil {
 			response.Error(w, http.StatusBadRequest, err)
@@ -92,7 +101,6 @@ func (h *Handler) SendChangeConfirmation(u user.Service) http.HandlerFunc {
 			return
 		}
 
-		uID, _ := cookie.Get(r, "UID")
 		userID, err := token.GetUserID(uID.Value)
 		if err != nil {
 			response.Error(w, http.StatusForbidden, err)
