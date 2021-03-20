@@ -67,7 +67,7 @@ func (h *Handler) Get() http.HandlerFunc {
 
 		products, err := h.Service.Get(ctx)
 		if err != nil {
-			response.Error(w, http.StatusInternalServerError, err)
+			response.Error(w, http.StatusNotFound, err)
 			return
 		}
 

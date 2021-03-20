@@ -29,6 +29,12 @@ func (h *Handler) Add() http.HandlerFunc {
 		q := chi.URLParam(r, "quantity")
 		ctx := r.Context()
 
+		cartID, err := cookie.Get(r, "CID")
+		if err != nil {
+			response.Error(w, http.StatusForbidden, err)
+			return
+		}
+
 		quantity, err := strconv.Atoi(q)
 		if err != nil {
 			response.Error(w, http.StatusInternalServerError, err)
@@ -40,13 +46,11 @@ func (h *Handler) Add() http.HandlerFunc {
 			return
 		}
 
-		if err = json.NewDecoder(r.Body).Decode(&product); err != nil {
+		if err := json.NewDecoder(r.Body).Decode(&product); err != nil {
 			response.Error(w, http.StatusBadRequest, err)
 			return
 		}
 		defer r.Body.Close()
-
-		cartID, _ := cookie.Get(r, "CID")
 
 		cart, err := Add(ctx, h.DB, cartID.Value, &product, quantity)
 		if err != nil {
@@ -64,7 +68,7 @@ func (h *Handler) Checkout() http.HandlerFunc {
 		ctx := r.Context()
 		cartID, err := cookie.Get(r, "CID")
 		if err != nil {
-			response.Error(w, http.StatusInternalServerError, err)
+			response.Error(w, http.StatusForbidden, err)
 			return
 		}
 
@@ -83,7 +87,7 @@ func (h *Handler) FilterByBrand() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		cartID, err := cookie.Get(r, "CID")
 		if err != nil {
-			response.Error(w, http.StatusInternalServerError, err)
+			response.Error(w, http.StatusForbidden, err)
 			return
 		}
 
@@ -110,7 +114,7 @@ func (h *Handler) FilterByCategory() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		cartID, err := cookie.Get(r, "CID")
 		if err != nil {
-			response.Error(w, http.StatusInternalServerError, err)
+			response.Error(w, http.StatusForbidden, err)
 			return
 		}
 
@@ -137,7 +141,7 @@ func (h *Handler) FilterByDiscount() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		cartID, err := cookie.Get(r, "CID")
 		if err != nil {
-			response.Error(w, http.StatusInternalServerError, err)
+			response.Error(w, http.StatusForbidden, err)
 			return
 		}
 
@@ -171,7 +175,7 @@ func (h *Handler) FilterBySubtotal() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		cartID, err := cookie.Get(r, "CID")
 		if err != nil {
-			response.Error(w, http.StatusInternalServerError, err)
+			response.Error(w, http.StatusForbidden, err)
 			return
 		}
 
@@ -205,7 +209,7 @@ func (h *Handler) FilterByTaxes() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		cartID, err := cookie.Get(r, "CID")
 		if err != nil {
-			response.Error(w, http.StatusInternalServerError, err)
+			response.Error(w, http.StatusForbidden, err)
 			return
 		}
 
@@ -239,7 +243,7 @@ func (h *Handler) FilterByTotal() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		cartID, err := cookie.Get(r, "CID")
 		if err != nil {
-			response.Error(w, http.StatusInternalServerError, err)
+			response.Error(w, http.StatusForbidden, err)
 			return
 		}
 
@@ -273,7 +277,7 @@ func (h *Handler) FilterByType() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		cartID, err := cookie.Get(r, "CID")
 		if err != nil {
-			response.Error(w, http.StatusInternalServerError, err)
+			response.Error(w, http.StatusForbidden, err)
 			return
 		}
 
@@ -300,7 +304,7 @@ func (h *Handler) FilterByWeight() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		cartID, err := cookie.Get(r, "CID")
 		if err != nil {
-			response.Error(w, http.StatusInternalServerError, err)
+			response.Error(w, http.StatusForbidden, err)
 			return
 		}
 
@@ -335,7 +339,7 @@ func (h *Handler) Get() http.HandlerFunc {
 		ctx := r.Context()
 		cartID, err := cookie.Get(r, "CID")
 		if err != nil {
-			response.Error(w, http.StatusInternalServerError, err)
+			response.Error(w, http.StatusForbidden, err)
 			return
 		}
 
@@ -361,7 +365,7 @@ func (h *Handler) Products() http.HandlerFunc {
 		ctx := r.Context()
 		cartID, err := cookie.Get(r, "CID")
 		if err != nil {
-			response.Error(w, http.StatusInternalServerError, err)
+			response.Error(w, http.StatusForbidden, err)
 			return
 		}
 
@@ -380,7 +384,7 @@ func (h *Handler) Remove() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		cartID, err := cookie.Get(r, "CID")
 		if err != nil {
-			response.Error(w, http.StatusInternalServerError, err)
+			response.Error(w, http.StatusForbidden, err)
 			return
 		}
 
@@ -409,7 +413,7 @@ func (h *Handler) Reset() http.HandlerFunc {
 		ctx := r.Context()
 		cartID, err := cookie.Get(r, "CID")
 		if err != nil {
-			response.Error(w, http.StatusInternalServerError, err)
+			response.Error(w, http.StatusForbidden, err)
 			return
 		}
 
@@ -428,7 +432,7 @@ func (h *Handler) Size() http.HandlerFunc {
 		ctx := r.Context()
 		cartID, err := cookie.Get(r, "CID")
 		if err != nil {
-			response.Error(w, http.StatusInternalServerError, err)
+			response.Error(w, http.StatusForbidden, err)
 			return
 		}
 

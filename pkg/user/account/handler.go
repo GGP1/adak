@@ -11,9 +11,8 @@ import (
 	"github.com/GGP1/adak/internal/token"
 	"github.com/GGP1/adak/pkg/user"
 
-	"github.com/pkg/errors"
-
 	"github.com/go-chi/chi"
+	"github.com/pkg/errors"
 )
 
 // Handler handles account endpoints.
@@ -57,7 +56,7 @@ func (h *Handler) ChangePassword() http.HandlerFunc {
 
 		userID, err := token.GetUserID(uID.Value)
 		if err != nil {
-			response.Error(w, http.StatusInternalServerError, err)
+			response.Error(w, http.StatusForbidden, err)
 			return
 		}
 
@@ -96,7 +95,7 @@ func (h *Handler) SendChangeConfirmation(u user.Service) http.HandlerFunc {
 		uID, _ := cookie.Get(r, "UID")
 		userID, err := token.GetUserID(uID.Value)
 		if err != nil {
-			response.Error(w, http.StatusInternalServerError, err)
+			response.Error(w, http.StatusForbidden, err)
 			return
 		}
 

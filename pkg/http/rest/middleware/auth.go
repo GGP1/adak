@@ -27,7 +27,7 @@ func (a *Auth) AdminsOnly(next http.Handler) http.Handler {
 
 		sessionID, err := cookie.Get(r, "SID")
 		if err != nil {
-			response.Error(w, http.StatusUnauthorized, errors.New("Unauthorized"))
+			response.Error(w, http.StatusForbidden, errors.New("Unauthorized"))
 			return
 		}
 
@@ -54,7 +54,7 @@ func (a *Auth) RequireLogin(next http.Handler) http.Handler {
 
 		sessionID, err := cookie.Get(r, "SID")
 		if err != nil {
-			response.Error(w, http.StatusUnauthorized, errors.New("please log in to access"))
+			response.Error(w, http.StatusForbidden, errors.New("please log in to access"))
 			return
 		}
 

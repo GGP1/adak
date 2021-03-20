@@ -33,7 +33,7 @@ func (h *Handler) Create() http.HandlerFunc {
 
 		userID, err := token.GetUserID(uID.Value)
 		if err != nil {
-			response.Error(w, http.StatusInternalServerError, err)
+			response.Error(w, http.StatusForbidden, err)
 			return
 		}
 

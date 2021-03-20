@@ -69,7 +69,7 @@ func (h *Handler) SearchHitByField() http.HandlerFunc {
 
 		hits, err := h.Service.SearchByField(ctx, field, value)
 		if err != nil {
-			response.Error(w, http.StatusInternalServerError, err)
+			response.Error(w, http.StatusNotFound, err)
 			return
 		}
 
