@@ -7,7 +7,6 @@ import (
 
 	"github.com/GGP1/adak/internal/cookie"
 	"github.com/GGP1/adak/internal/response"
-	"github.com/GGP1/adak/internal/token"
 
 	"github.com/go-chi/chi"
 	validator "github.com/go-playground/validator/v10"
@@ -25,13 +24,8 @@ func (h *Handler) Create() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var review Review
 		ctx := r.Context()
-		uID, err := cookie.Get(r, "UID")
-		if err != nil {
-			http.Redirect(w, r, "http://localhost:4000/login", http.StatusTemporaryRedirect)
-			return
-		}
 
-		userID, err := token.GetUserID(uID.Value)
+		userID, err := cookie.Get(r, "UID")
 		if err != nil {
 			response.Error(w, http.StatusForbidden, err)
 			return
@@ -48,7 +42,7 @@ func (h *Handler) Create() http.HandlerFunc {
 			return
 		}
 
-		if err := h.Service.Create(ctx, &review, userID); err != nil {
+		if err := h.Service.Create(ctx, &review, userID.Value); err != nil {
 			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}

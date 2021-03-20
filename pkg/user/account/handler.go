@@ -52,13 +52,8 @@ func (h *Handler) ChangePassword() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var changePass changePassword
 		ctx := r.Context()
-		uID, err := cookie.Get(r, "UID")
-		if err != nil {
-			response.Error(w, http.StatusForbidden, err)
-			return
-		}
 
-		userID, err := token.GetUserID(uID.Value)
+		userID, err := cookie.Get(r, "UID")
 		if err != nil {
 			response.Error(w, http.StatusForbidden, err)
 			return
@@ -70,7 +65,7 @@ func (h *Handler) ChangePassword() http.HandlerFunc {
 		}
 		defer r.Body.Close()
 
-		if err := h.Service.ChangePassword(ctx, userID, changePass.OldPassword, changePass.NewPassword); err != nil {
+		if err := h.Service.ChangePassword(ctx, userID.Value, changePass.OldPassword, changePass.NewPassword); err != nil {
 			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
@@ -84,11 +79,6 @@ func (h *Handler) SendChangeConfirmation(u user.Service) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var new changeEmail
 		ctx := r.Context()
-		uID, err := cookie.Get(r, "UID")
-		if err != nil {
-			response.Error(w, http.StatusForbidden, err)
-			return
-		}
 
 		if err := json.NewDecoder(r.Body).Decode(&new); err != nil {
 			response.Error(w, http.StatusBadRequest, err)
@@ -101,24 +91,19 @@ func (h *Handler) SendChangeConfirmation(u user.Service) http.HandlerFunc {
 			return
 		}
 
-		userID, err := token.GetUserID(uID.Value)
+		userID, err := cookie.Get(r, "UID")
 		if err != nil {
 			response.Error(w, http.StatusForbidden, err)
 			return
 		}
 
-		user, err := u.GetByID(ctx, userID)
+		user, err := u.GetByID(ctx, userID.Value)
 		if err != nil {
 			response.Error(w, http.StatusNotFound, err)
 			return
 		}
 
-		token, err := token.GenerateJWT(user.Email)
-		if err != nil {
-			response.Error(w, http.StatusInternalServerError, errors.Wrap(err, "could not generate the jwt token"))
-			return
-		}
-
+		token := token.RandString(20)
 		if err := email.SendChangeConfirmation(user.ID, user.Username, user.Email, token, new.Email); err != nil {
 			response.Error(w, http.StatusInternalServerError, err)
 			return
