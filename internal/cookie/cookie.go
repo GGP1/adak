@@ -44,7 +44,7 @@ func Get(r *http.Request, name string) (*http.Cookie, error) {
 	return cookie, nil
 }
 
-// Like Get but returns only the cookie value.
+// GetValue is like Get but returns only the value.
 func GetValue(r *http.Request, name string) (string, error) {
 	cookie, err := Get(r, name)
 	if err != nil {
