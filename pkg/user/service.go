@@ -10,6 +10,7 @@ import (
 	"github.com/GGP1/adak/pkg/review"
 	"github.com/GGP1/adak/pkg/shopping/cart"
 	"github.com/GGP1/adak/pkg/shopping/ordering"
+	"github.com/spf13/viper"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
@@ -21,7 +22,7 @@ type Repository interface {
 	Create(ctx context.Context, user *AddUser) error
 	Delete(ctx context.Context, id string) error
 	Get(ctx context.Context) ([]ListUser, error)
-	GetByEmail(ctx context.Context, email string) (User, error)
+	GetByEmail(ctx context.Context, email string) (ListUser, error)
 	GetByID(ctx context.Context, id string) (ListUser, error)
 	GetByUsername(ctx context.Context, username string) (User, error)
 	Search(ctx context.Context, search string) ([]ListUser, error)
@@ -33,9 +34,9 @@ type Service interface {
 	Create(ctx context.Context, user *AddUser) error
 	Delete(ctx context.Context, id string) error
 	Get(ctx context.Context) ([]ListUser, error)
-	GetByEmail(ctx context.Context, email string) (User, error)
+	GetByEmail(ctx context.Context, email string) (ListUser, error)
 	GetByID(ctx context.Context, id string) (ListUser, error)
-	GetByUsername(ctx context.Context, username string) (User, error)
+	GetByUsername(ctx context.Context, username string) (ListUser, error)
 	Search(ctx context.Context, search string) ([]ListUser, error)
 	Update(ctx context.Context, u *UpdateUser, id string) error
 }
@@ -60,10 +61,11 @@ func (s *service) Create(ctx context.Context, user *AddUser) error {
 	(id, cart_id, username, email, password, created_at, updated_at)
 	VALUES ($1, $2, $3, $4, $5, $6, $7)`
 
+	// TODO: 2 database calls is too expensive, maybe use a trie with 2 booleans (1 email, 2 username)?
+	// type Trie struct { abcedary}
 	if _, err := s.GetByEmail(ctx, user.Email); err == nil {
 		return errors.New("email is already taken")
 	}
-
 	if _, err := s.GetByUsername(ctx, user.Username); err == nil {
 		return errors.New("useraname is already taken")
 	}
@@ -91,6 +93,14 @@ func (s *service) Create(ctx context.Context, user *AddUser) error {
 
 	userID := token.RandString(30)
 	user.CreatedAt = time.Now()
+
+	// Maps would have a better performance but some configuration files do not support them.
+	for _, admin := range viper.GetStringSlice("admin.emails") {
+		if admin == user.Email {
+			user.IsAdmin = true
+			break
+		}
+	}
 
 	_, err = s.DB.ExecContext(ctx, userQuery, userID, cart.ID, user.Username, user.Email,
 		user.Password, user.CreatedAt, user.UpdatedAt)
@@ -131,11 +141,11 @@ func (s *service) Get(ctx context.Context) ([]ListUser, error) {
 }
 
 // GetByEmail retrieves the user requested from the database.
-func (s *service) GetByEmail(ctx context.Context, email string) (User, error) {
-	var user User
+func (s *service) GetByEmail(ctx context.Context, email string) (ListUser, error) {
+	var user ListUser
 
 	if err := s.DB.GetContext(ctx, &user, "SELECT id, email, username FROM users WHERE email=$1", email); err != nil {
-		return User{}, errors.Wrap(err, "couldn't find the user")
+		return ListUser{}, errors.Wrap(err, "couldn't find the user")
 	}
 
 	return user, nil
@@ -168,11 +178,11 @@ func (s *service) GetByID(ctx context.Context, id string) (ListUser, error) {
 }
 
 // GetByUsername retrieves the user requested from the database.
-func (s *service) GetByUsername(ctx context.Context, username string) (User, error) {
-	var user User
+func (s *service) GetByUsername(ctx context.Context, username string) (ListUser, error) {
+	var user ListUser
 
 	if err := s.DB.GetContext(ctx, &user, "SELECT id FROM users WHERE username=$1", username); err != nil {
-		return User{}, errors.Wrap(err, "couldn't find the user")
+		return ListUser{}, errors.Wrap(err, "couldn't find the user")
 	}
 
 	return user, nil

@@ -108,7 +108,7 @@ func TestGetByUsername(t *testing.T) {
 	ctx, close, s := NewUserService(t)
 	defer close()
 
-	user, err := s.GetByEmail(ctx, u.Email)
+	user, err := s.GetByUsername(ctx, u.Email)
 	assert.NoError(t, err)
 
 	assert.Equal(t, u.Username, user.Username)

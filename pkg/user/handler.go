@@ -6,6 +6,7 @@ import (
 	"image"
 	"net/http"
 
+	"github.com/GGP1/adak/internal/cookie"
 	"github.com/GGP1/adak/internal/email"
 	"github.com/GGP1/adak/internal/response"
 	"github.com/GGP1/adak/internal/sanitize"
@@ -73,7 +74,7 @@ func (h *Handler) Create() http.HandlerFunc {
 func (h *Handler) Delete(db *sqlx.DB, s auth.Session) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
-		uID, _ := r.Cookie("UID")
+		uID, _ := cookie.Get(r, "UID")
 		ctx := r.Context()
 
 		if err := token.CheckPermits(id, uID.Value); err != nil {
@@ -97,8 +98,7 @@ func (h *Handler) Delete(db *sqlx.DB, s auth.Session) http.HandlerFunc {
 			return
 		}
 
-		s.Logout(w, r, uID)
-
+		s.Logout(w, r)
 		response.JSONText(w, http.StatusOK, fmt.Sprintf("user %q deleted", id))
 	}
 }
@@ -229,7 +229,7 @@ func (h *Handler) Update() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var user UpdateUser
 		id := chi.URLParam(r, "id")
-		uID, _ := r.Cookie("UID")
+		uID, _ := cookie.Get(r, "UID")
 		ctx := r.Context()
 
 		if err := token.CheckPermits(id, uID.Value); err != nil {

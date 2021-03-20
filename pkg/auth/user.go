@@ -8,6 +8,7 @@ type User struct {
 	Email        string `json:"email" validate:"email,required"`
 	Password     string `json:"password" validate:"required,min=6"`
 	VerfiedEmail bool   `json:"-" db:"verified_email"`
+	IsAdmin      bool   `json:"-" db:"is_admin"`
 }
 
 // UserAuth is the login request used to authenticate users.

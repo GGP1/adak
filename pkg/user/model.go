@@ -21,6 +21,7 @@ type User struct {
 	Email            string           `json:"email" validate:"email"`
 	Password         string           `json:"password"`
 	VerifiedEmail    bool             `json:"-" db:"verified_email"`
+	IsAdmin          bool             `json:"-" db:"is_admin"`
 	ConfirmationCode string           `json:"-" db:"confirmation_code"`
 	Orders           []ordering.Order `json:"orders,omitempty"`
 	Reviews          []review.Review  `json:"reviews,omitempty"`
@@ -35,6 +36,7 @@ type AddUser struct {
 	Username  string    `json:"username" validate:"required,max=25"`
 	Email     string    `json:"email" validate:"email,required"`
 	Password  string    `json:"password" validate:"required,min=6"`
+	IsAdmin   bool      `json:"-" db:"is_admin"`
 	CreatedAt time.Time `json:"created_at" db:"created_at"`
 	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`
 }
@@ -45,6 +47,7 @@ type ListUser struct {
 	CartID   string           `json:"cart_id" db:"cart_id"`
 	Username string           `json:"username"`
 	Email    string           `json:"email" validate:"email"`
+	IsAdmin  bool             `json:"-" db:"is_admin"`
 	Orders   []ordering.Order `json:"orders,omitempty"`
 	Reviews  []review.Review  `json:"reviews,omitempty"`
 }

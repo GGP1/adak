@@ -20,7 +20,7 @@ func (s *mockSession) Login(ctx context.Context, w http.ResponseWriter, r *http.
 func (s *mockSession) LoginOAuth(ctx context.Context, w http.ResponseWriter, r *http.Request, email string) error {
 	return nil
 }
-func (s *mockSession) Logout(w http.ResponseWriter, r *http.Request, c *http.Cookie) {}
+func (s *mockSession) Logout(w http.ResponseWriter, r *http.Request) {}
 
 func TestLoginHandler(t *testing.T) {
 	// Actually I should use the real session instead

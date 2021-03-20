@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/GGP1/adak/internal/cookie"
 	"github.com/GGP1/adak/internal/response"
 	"github.com/GGP1/adak/internal/token"
 
@@ -24,7 +25,7 @@ func (h *Handler) Create() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var review Review
 		ctx := r.Context()
-		uID, err := r.Cookie("UID")
+		uID, err := cookie.Get(r, "UID")
 		if err != nil {
 			http.Redirect(w, r, "http://localhost:4000/login", http.StatusTemporaryRedirect)
 			return

@@ -30,7 +30,7 @@ func TestGet(t *testing.T) {
 	r := httptest.NewRequest("GET", "/", nil)
 
 	expected := "adak"
-	ciphertext, err := crypt.Encrypt(secretKey, []byte(expected))
+	ciphertext, err := crypt.Encrypt([]byte(expected))
 	assert.NoError(t, err)
 
 	name := "test-get"
@@ -43,7 +43,7 @@ func TestGet(t *testing.T) {
 	got, err := Get(r, name)
 	assert.NoError(t, err)
 
-	assert.Equal(t, expected, got)
+	assert.Equal(t, expected, got.Value)
 }
 
 func TestGetErrors(t *testing.T) {
@@ -64,6 +64,28 @@ func TestGetErrors(t *testing.T) {
 		_, err := Get(r, "test")
 		assert.Error(t, err)
 
+	})
+}
+
+func TestIsSet(t *testing.T) {
+	r := httptest.NewRequest("GET", "/", nil)
+
+	t.Run("Not set", func(t *testing.T) {
+		if IsSet(r, "not-set") {
+			t.Error("Expected false, got true")
+		}
+	})
+
+	t.Run("Set", func(t *testing.T) {
+		r.AddCookie(&http.Cookie{
+			Name:  "set",
+			Value: "test",
+			Path:  "/",
+		})
+
+		if !IsSet(r, "set") {
+			t.Error("Expected true, got false")
+		}
 	})
 }
 
