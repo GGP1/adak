@@ -25,7 +25,7 @@ func (h *Handler) Create() http.HandlerFunc {
 		var review Review
 		ctx := r.Context()
 
-		userID, err := cookie.Get(r, "UID")
+		userID, err := cookie.GetValue(r, "UID")
 		if err != nil {
 			response.Error(w, http.StatusForbidden, err)
 			return
@@ -42,7 +42,7 @@ func (h *Handler) Create() http.HandlerFunc {
 			return
 		}
 
-		if err := h.Service.Create(ctx, &review, userID.Value); err != nil {
+		if err := h.Service.Create(ctx, &review, userID); err != nil {
 			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}

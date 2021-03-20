@@ -183,14 +183,14 @@ func (s *session) Logout(w http.ResponseWriter, r *http.Request) {
 		cookie.Delete(w, "AID")
 	}
 
-	sessionID, _ := cookie.Get(r, "SID")
+	sessionID, _ := cookie.GetValue(r, "SID")
 
 	cookie.Delete(w, "SID")
 	cookie.Delete(w, "UID")
 	cookie.Delete(w, "CID")
 
 	s.Lock()
-	delete(s.store, sessionID.Value)
+	delete(s.store, sessionID)
 	s.Unlock()
 
 	if time.Now().Sub(s.cleaned) > (time.Minute * 30) {

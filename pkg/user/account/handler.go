@@ -53,7 +53,7 @@ func (h *Handler) ChangePassword() http.HandlerFunc {
 		var changePass changePassword
 		ctx := r.Context()
 
-		userID, err := cookie.Get(r, "UID")
+		userID, err := cookie.GetValue(r, "UID")
 		if err != nil {
 			response.Error(w, http.StatusForbidden, err)
 			return
@@ -65,7 +65,7 @@ func (h *Handler) ChangePassword() http.HandlerFunc {
 		}
 		defer r.Body.Close()
 
-		if err := h.Service.ChangePassword(ctx, userID.Value, changePass.OldPassword, changePass.NewPassword); err != nil {
+		if err := h.Service.ChangePassword(ctx, userID, changePass.OldPassword, changePass.NewPassword); err != nil {
 			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
@@ -91,13 +91,13 @@ func (h *Handler) SendChangeConfirmation(u user.Service) http.HandlerFunc {
 			return
 		}
 
-		userID, err := cookie.Get(r, "UID")
+		userID, err := cookie.GetValue(r, "UID")
 		if err != nil {
 			response.Error(w, http.StatusForbidden, err)
 			return
 		}
 
-		user, err := u.GetByID(ctx, userID.Value)
+		user, err := u.GetByID(ctx, userID)
 		if err != nil {
 			response.Error(w, http.StatusNotFound, err)
 			return
