@@ -97,13 +97,8 @@ func (h *Handler) GetByUserID() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
 		ctx := r.Context()
-		userID, err := cookie.Get(r, "UID")
-		if err != nil {
-			response.Error(w, http.StatusForbidden, err)
-			return
-		}
 
-		if err := token.CheckPermits(id, userID.Value); err != nil {
+		if err := token.CheckPermits(r, id); err != nil {
 			response.Error(w, http.StatusForbidden, err)
 			return
 		}
@@ -136,7 +131,7 @@ func (h *Handler) New() http.HandlerFunc {
 			response.Error(w, http.StatusForbidden, err)
 			return
 		}
-		uID, err := cookie.Get(r, "UID")
+		userID, err := cookie.Get(r, "UID")
 		if err != nil {
 			response.Error(w, http.StatusForbidden, err)
 			return
@@ -157,12 +152,6 @@ func (h *Handler) New() http.HandlerFunc {
 			return
 		}
 
-		userID, err := token.GetUserID(uID.Value)
-		if err != nil {
-			response.Error(w, http.StatusForbidden, err)
-			return
-		}
-
 		// Format date
 		deliveryDate := time.Date(oParams.Date.Year, time.Month(oParams.Date.Month), oParams.Date.Day, oParams.Date.Hour, oParams.Date.Minutes, 0, 0, time.Local)
 		if deliveryDate.Sub(time.Now()) < 0 {
@@ -178,7 +167,7 @@ func (h *Handler) New() http.HandlerFunc {
 		}
 
 		// Create order passing userID, order params, delivery date and the user cart
-		order, err := New(ctx, h.DB, userID, oParams, deliveryDate, cart)
+		order, err := New(ctx, h.DB, userID.Value, oParams, deliveryDate, cart)
 		if err != nil {
 			response.Error(w, http.StatusInternalServerError, err)
 			return

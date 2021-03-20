@@ -3,6 +3,9 @@ package token
 import (
 	"crypto/rand"
 	"math/big"
+	"net/http"
+
+	"github.com/GGP1/adak/internal/cookie"
 
 	"github.com/pkg/errors"
 )
@@ -24,13 +27,13 @@ func RandString(length int) string {
 
 // CheckPermits cheks if the user is trying to perform and action on his own
 // account (return nil) or not (return error).
-func CheckPermits(paramID, cookieID string) error {
-	userID, err := GetUserID(cookieID)
+func CheckPermits(r *http.Request, paramID string) error {
+	userID, err := cookie.Get(r, "UID")
 	if err != nil {
 		return err
 	}
 
-	if userID != paramID {
+	if userID.Value != paramID {
 		return errors.New("it is not allowed to perform this action on third party accounts")
 	}
 

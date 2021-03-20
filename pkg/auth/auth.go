@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/GGP1/adak/internal/cookie"
-	"github.com/GGP1/adak/internal/token"
 	"github.com/GGP1/adak/pkg/tracking"
 
 	"github.com/jmoiron/sqlx"
@@ -134,11 +133,7 @@ func (s *session) Login(ctx context.Context, w http.ResponseWriter, r *http.Requ
 	s.Unlock()
 
 	// -UID- used to deny users from making requests to other accounts
-	userID, err := token.GenerateFixedJWT(user.ID)
-	if err != nil {
-		return errors.Wrap(err, "failed generating a jwt token")
-	}
-	cookie.Set(w, "UID", userID, "/", s.length)
+	cookie.Set(w, "UID", user.ID, "/", s.length)
 
 	// -CID- used to identify which cart belongs to each user
 	cookie.Set(w, "CID", user.CartID, "/", s.length)
@@ -170,11 +165,7 @@ func (s *session) LoginOAuth(ctx context.Context, w http.ResponseWriter, r *http
 	s.Unlock()
 
 	// -UID- used to deny users from making requests to other accounts
-	userID, err := token.GenerateFixedJWT(user.ID)
-	if err != nil {
-		return errors.Wrap(err, "failed generating a jwt token")
-	}
-	if err := cookie.Set(w, "UID", userID, "/", s.length); err != nil {
+	if err := cookie.Set(w, "UID", user.ID, "/", s.length); err != nil {
 		return err
 	}
 

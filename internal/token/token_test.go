@@ -1,27 +1,15 @@
 package token_test
 
 import (
+	"encoding/hex"
+	"net/http"
 	"testing"
 
+	"github.com/GGP1/adak/internal/crypt"
 	"github.com/GGP1/adak/internal/token"
-	"github.com/dgrijalva/jwt-go"
+
 	"github.com/stretchr/testify/assert"
 )
-
-func TestGenerateJWT(t *testing.T) {
-	t.Run("None signing method is not allowed", func(t *testing.T) {
-		token := jwt.NewWithClaims(jwt.SigningMethodNone, jwt.MapClaims{
-			"test": "none method",
-			"must": "fail",
-		})
-
-		tokenStr, err := token.SignedString(jwt.UnsafeAllowNoneSignatureType)
-		assert.NoError(t, err, "SignedString()")
-
-		_, err = jwt.DecodeSegment(tokenStr)
-		assert.Error(t, err, "Expected invalid signing method error")
-	})
-}
 
 func TestGenerateString(t *testing.T) {
 	for i := 0; i < 10; i++ {
@@ -34,14 +22,21 @@ func TestGenerateString(t *testing.T) {
 
 func TestCheckPermits(t *testing.T) {
 	id := "checkPermitsTest"
+	r, err := http.NewRequest("GET", "/", nil)
+	assert.NoError(t, err)
 
-	jwt, err := token.GenerateFixedJWT(id)
-	assert.NoError(t, err, "Failed generating fixed JWT")
+	ciphertext, err := crypt.Encrypt([]byte(id))
+	assert.NoError(t, err)
 
-	err = token.CheckPermits(id, jwt)
+	r.AddCookie(&http.Cookie{
+		Name:  "UID",
+		Value: hex.EncodeToString(ciphertext),
+		Path:  "/",
+	})
+
+	err = token.CheckPermits(r, id)
 	assert.NoError(t, err, "Failed checking permits")
 
-	jwt += "fail"
-	err = token.CheckPermits(id, jwt)
-	assert.Error(t, err, "Expected an error and got nil")
+	err = token.CheckPermits(r, id+"fail")
+	assert.Error(t, err)
 }

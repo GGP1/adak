@@ -68,24 +68,18 @@ func (h *Handler) Delete(db *sqlx.DB, s auth.Session) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
 		ctx := r.Context()
-		userID, err := cookie.Get(r, "UID")
+		cartID, err := cookie.Get(r, "CID")
 		if err != nil {
 			response.Error(w, http.StatusForbidden, err)
 			return
 		}
 
-		if err := token.CheckPermits(id, userID.Value); err != nil {
+		if err := token.CheckPermits(r, id); err != nil {
 			response.Error(w, http.StatusForbidden, err)
 			return
 		}
 
-		user, err := h.Service.GetByID(ctx, id)
-		if err != nil {
-			response.Error(w, http.StatusNotFound, err)
-			return
-		}
-
-		if err := cart.Delete(ctx, db, user.CartID); err != nil {
+		if err := cart.Delete(ctx, db, cartID.Value); err != nil {
 			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
@@ -227,13 +221,8 @@ func (h *Handler) Update() http.HandlerFunc {
 		var user UpdateUser
 		id := chi.URLParam(r, "id")
 		ctx := r.Context()
-		userID, err := cookie.Get(r, "UID")
-		if err != nil {
-			response.Error(w, http.StatusForbidden, err)
-			return
-		}
 
-		if err := token.CheckPermits(id, userID.Value); err != nil {
+		if err := token.CheckPermits(r, id); err != nil {
 			response.Error(w, http.StatusForbidden, err)
 			return
 		}
