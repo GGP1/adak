@@ -1,6 +1,7 @@
 package config
 
 import (
+	"embed"
 	"os"
 	"path/filepath"
 	"runtime"
@@ -26,6 +27,7 @@ type Config struct {
 	Server   Server
 	Email    Email
 	Stripe   Stripe
+	Static   Static
 }
 
 // Admin contains the admins emails.
@@ -65,11 +67,10 @@ type Server struct {
 
 // Email holds email attributes.
 type Email struct {
-	Host        string
-	Port        string
-	Sender      string
-	Password    string
-	AdminEmails string
+	Host     string
+	Port     string
+	Sender   string
+	Password string
 }
 
 // Stripe hold stripe attributes
@@ -78,6 +79,11 @@ type Stripe struct {
 	Logger    struct {
 		Level stripe.Level
 	}
+}
+
+// Static contains the static file system.
+type Static struct {
+	FS embed.FS
 }
 
 // New sets up the configuration with the values the user gave.
@@ -208,8 +214,8 @@ var (
 		// Stripe
 		"stripe.secretkey":    "sk_test_default",
 		"stripe.logger.level": "4",
-		// JWT
-		"jwt.secretkey": "secretkey",
+		// Token
+		"token.secretkey": "secretkey",
 	}
 
 	envVars = map[string]string{
@@ -238,12 +244,11 @@ var (
 		"email.port":     "EMAIL_PORT",
 		"email.sender":   "EMAIL_SENDER",
 		"email.password": "EMAIL_PASSWORD",
-		"email.admins":   "EMAIL_ADMINS_PATH",
 		// Stripe
 		"stripe.secretkey":    "STRIPE_SECRET_KEY",
 		"stripe.logger.level": "STRIPE_LOGGER_LEVEL",
-		// JWT
-		"jwt.secretkey": "TOKEN_SECRET_KEY",
+		// Token
+		"token.secretkey": "TOKEN_SECRET_KEY",
 		// Google
 		"google.client.id":     "GOOGLE_CLIENT_ID",
 		"google.client.secret": "GOOGLE_CLIENT_SECRET",

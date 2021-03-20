@@ -6,8 +6,10 @@ package email
 import (
 	"bytes"
 	"context"
+	"embed"
 	"fmt"
 	"html/template"
+	"net"
 	"net/mail"
 	"net/smtp"
 	"os"
@@ -15,14 +17,7 @@ import (
 	"github.com/GGP1/adak/internal/logger"
 
 	"github.com/pkg/errors"
-)
-
-var (
-	// Both os.Getenv and viper.GetString work
-	emailSender   = os.Getenv("EMAIL_SENDER")
-	emailPassword = os.Getenv("EMAIL_PASSWORD")
-	emailHost     = os.Getenv("EMAIL_HOST")
-	emailPort     = os.Getenv("EMAIL_PORT")
+	"github.com/spf13/viper"
 )
 
 // Items is a struct that keeps the values passed to the templates.
@@ -35,8 +30,16 @@ type Items struct {
 }
 
 // SendValidation sends a validation email to the user.
-func SendValidation(ctx context.Context, username, email, token string, errCh chan error) {
-	// 	Email content
+func SendValidation(ctx context.Context, username, email, token string) error {
+	var (
+		// Both os.Getenv and viper.GetString work
+		emailSender   = os.Getenv("EMAIL_SENDER")
+		emailPassword = os.Getenv("EMAIL_PASSWORD")
+		emailHost     = os.Getenv("EMAIL_HOST")
+		emailPort     = os.Getenv("EMAIL_PORT")
+	)
+
+	// Email content
 	from := mail.Address{Name: "Adak", Address: emailSender}
 	to := mail.Address{Name: username, Address: email}
 	subject := "Validation email"
@@ -57,33 +60,42 @@ func SendValidation(ctx context.Context, username, email, token string, errCh ch
 		message += fmt.Sprintf("%s: %s\r\n", k, v)
 	}
 
-	t, err := template.ParseFiles("../internal/email/templates/validation.html")
+	staticFS := viper.Get("static.fs").(embed.FS)
+	t, err := template.ParseFS(staticFS, "static/templates/validation.html")
 	if err != nil {
-		errCh <- err
+		return err
 	}
 
 	buf := new(bytes.Buffer)
 	if err := t.Execute(buf, items); err != nil {
-		errCh <- err
+		return err
 	}
-
 	message += buf.String()
 
 	// Connect to smtp
-	addr := emailHost + ":" + emailPort
+	addr := net.JoinHostPort(emailHost, emailPort)
 	auth := smtp.PlainAuth("", emailSender, emailPassword, emailHost)
 
-	if err = smtp.SendMail(addr, auth, from.Address, []string{to.Address}, []byte(message)); err != nil {
-		logger.Log.Errorf("Couldn't send the validation email.\nAddr: %s\nEmail: %s", addr, to.Address)
-		errCh <- errors.Wrap(err, "couldn't send the email")
+	if err := smtp.SendMail(addr, auth, from.Address, []string{to.Address}, []byte(message)); err != nil {
+		logger.Log.Errorf("Couldn't send the validation email: %v.\nAddr: %s\nEmail: %s", err, addr, to.Address)
+		return errors.Wrap(err, "couldn't send the email")
 	}
 
 	logger.Log.Infof("Successfully sent email to: %s", to.Address)
+	return nil
 }
 
 // SendChangeConfirmation sends a confirmation email to the user.
-func SendChangeConfirmation(id, username, email, newEmail, token string, errCh chan error) {
-	// 	Email content
+func SendChangeConfirmation(id, username, email, newEmail, token string) error {
+	var (
+		// Both os.Getenv and viper.GetString work
+		emailSender   = os.Getenv("EMAIL_SENDER")
+		emailPassword = os.Getenv("EMAIL_PASSWORD")
+		emailHost     = os.Getenv("EMAIL_HOST")
+		emailPort     = os.Getenv("EMAIL_PORT")
+	)
+
+	// Email content
 	from := mail.Address{Name: "Adak", Address: emailSender}
 	to := mail.Address{Name: username, Address: email}
 	subject := "Email change confirmation"
@@ -105,26 +117,27 @@ func SendChangeConfirmation(id, username, email, newEmail, token string, errCh c
 		message += fmt.Sprintf("%s: %s\r\n", k, v)
 	}
 
-	t, err := template.ParseFiles("../internal/email/templates/changeEmail.html")
+	staticFS := viper.Get("static.fs").(embed.FS)
+	t, err := template.ParseFS(staticFS, "static/templates/changeEmail.html")
 	if err != nil {
-		errCh <- err
+		return err
 	}
 
 	buf := new(bytes.Buffer)
 	if err := t.Execute(buf, items); err != nil {
-		errCh <- err
+		return err
 	}
-
 	message += buf.String()
 
 	// Connect to smtp
-	addr := emailHost + ":" + emailPort
+	addr := net.JoinHostPort(emailHost, emailPort)
 	auth := smtp.PlainAuth("", emailSender, emailPassword, emailHost)
 
 	if err := smtp.SendMail(addr, auth, from.Address, []string{to.Address}, []byte(message)); err != nil {
-		logger.Log.Errorf("Couldn't send the change confirmation email.\nAddr: %s\nEmail: %s", addr, to.Address)
-		errCh <- errors.Wrap(err, "couldn't send the email")
+		logger.Log.Errorf("Couldn't send the change confirmation email: %v.\nAddr: %s\nEmail: %s", err, addr, to.Address)
+		return errors.Wrap(err, "couldn't send the email")
 	}
 
 	logger.Log.Infof("Successfully sent email to: %s", to.Address)
+	return nil
 }

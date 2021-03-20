@@ -18,7 +18,6 @@ import (
 	validator "github.com/go-playground/validator/v10"
 	lru "github.com/hashicorp/golang-lru"
 	"github.com/jmoiron/sqlx"
-	"github.com/pkg/errors"
 )
 
 // Handler handles user endpoints.
@@ -50,23 +49,17 @@ func (h *Handler) Create() http.HandlerFunc {
 		}
 
 		confirmationCode := token.RandString(20)
-		errCh := make(chan error, 1)
-
-		go email.SendValidation(ctx, user.Username, user.Email, confirmationCode, errCh)
-
-		select {
-		case <-ctx.Done():
-			response.Error(w, http.StatusInternalServerError, ctx.Err())
-		case err := <-errCh:
-			response.Error(w, http.StatusInternalServerError, errors.Wrap(err, "failed sending validation email"))
-		default:
-			if err := h.Service.Create(ctx, &user); err != nil {
-				response.Error(w, http.StatusBadRequest, err)
-				return
-			}
-
-			response.JSONText(w, http.StatusCreated, "account created, please verify your email")
+		if err := email.SendValidation(ctx, user.Username, user.Email, confirmationCode); err != nil {
+			response.Error(w, http.StatusInternalServerError, err)
+			return
 		}
+
+		if err := h.Service.Create(ctx, &user); err != nil {
+			response.Error(w, http.StatusBadRequest, err)
+			return
+		}
+
+		response.JSONText(w, http.StatusCreated, "account created, please verify your email")
 	}
 }
 
