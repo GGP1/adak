@@ -71,14 +71,8 @@ func Login(s Session) http.HandlerFunc {
 // Logout logs the user out from the session and removes cookies.
 func Logout(s Session) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		c, _ := r.Cookie("SID")
-		if c == nil {
-			response.Error(w, http.StatusBadRequest, errors.New("error: you cannot log out without a session"))
-			return
-		}
-
 		// Logout user from the session and delete cookies
-		s.Logout(w, r, c)
+		s.Logout(w, r)
 
 		response.JSONText(w, http.StatusOK, "logged out")
 	}

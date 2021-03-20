@@ -7,6 +7,7 @@ import (
 	"io"
 
 	"github.com/pkg/errors"
+	"github.com/spf13/viper"
 	"golang.org/x/crypto/chacha20poly1305"
 )
 
@@ -17,8 +18,8 @@ var (
 )
 
 // Encrypt ciphers data with the given key.
-func Encrypt(key, data []byte) ([]byte, error) {
-	hash := createHMAC(key)
+func Encrypt(data []byte) ([]byte, error) {
+	hash := createHMAC()
 
 	AEAD, err := chacha20poly1305.New(hash)
 	if err != nil {
@@ -40,8 +41,8 @@ func Encrypt(key, data []byte) ([]byte, error) {
 }
 
 // Decrypt deciphers data with the given key.
-func Decrypt(key, data []byte) ([]byte, error) {
-	hash := createHMAC(key)
+func Decrypt(data []byte) ([]byte, error) {
+	hash := createHMAC()
 
 	AEAD, err := chacha20poly1305.New(hash)
 	if err != nil {
@@ -60,7 +61,8 @@ func Decrypt(key, data []byte) ([]byte, error) {
 }
 
 // Create an HMAC SHA256 hash (32 bytes) with the key provided.
-func createHMAC(key []byte) []byte {
+func createHMAC() []byte {
+	key := []byte(viper.GetString("token.secretkey"))
 	hash := hmac.New(sha256.New, key)
 
 	return hash.Sum(nil)

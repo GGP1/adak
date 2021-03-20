@@ -28,7 +28,9 @@ func Connect(ctx context.Context, c *config.Database) (*sqlx.DB, error) {
 		return nil, errors.Wrap(err, "database connection died")
 	}
 
-	db.MustExecContext(ctx, tables)
+	if _, err := db.ExecContext(ctx, tables); err != nil {
+		return nil, errors.Wrap(err, "couldn't create the tables")
+	}
 
 	logger.Log.Infof("Postgres listening on %s:%s", c.Host, c.Port)
 
@@ -45,6 +47,7 @@ CREATE TABLE IF NOT EXISTS users
     email text NOT NULL,
     password text NOT NULL,
     verified_email boolean,
+    is_admin boolean,
     confirmation_code text,
     created_at timestamp with time zone DEFAULT NOW(),
     updated_at timestamp DEFAULT NULL,

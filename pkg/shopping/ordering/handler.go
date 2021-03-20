@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/GGP1/adak/internal/cookie"
 	"github.com/GGP1/adak/internal/response"
 	"github.com/GGP1/adak/internal/sanitize"
 	"github.com/GGP1/adak/internal/token"
@@ -95,7 +96,7 @@ func (h *Handler) GetByID() http.HandlerFunc {
 func (h *Handler) GetByUserID() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
-		uID, _ := r.Cookie("UID")
+		uID, _ := cookie.Get(r, "UID")
 		ctx := r.Context()
 
 		if err := token.CheckPermits(id, uID.Value); err != nil {
@@ -125,8 +126,8 @@ func (h *Handler) GetByUserID() http.HandlerFunc {
 func (h *Handler) New() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var oParams OrderParams
-		cID, _ := r.Cookie("CID")
-		uID, _ := r.Cookie("UID")
+		cID, _ := cookie.Get(r, "CID")
+		uID, _ := cookie.Get(r, "UID")
 		ctx := r.Context()
 
 		if err := json.NewDecoder(r.Body).Decode(&oParams); err != nil {
@@ -134,8 +135,7 @@ func (h *Handler) New() http.HandlerFunc {
 		}
 		defer r.Body.Close()
 
-		err := validator.New().StructCtx(ctx, oParams)
-		if err != nil {
+		if err := validator.New().StructCtx(ctx, oParams); err != nil {
 			response.Error(w, http.StatusBadRequest, err.(validator.ValidationErrors))
 			return
 		}

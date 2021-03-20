@@ -34,9 +34,10 @@ func init() {
 func LimitRate(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ip := tracking.GetUserIP(r)
-		limiter := getVisitor(ip, 0.5, 3)
+		limiter := getVisitor(ip, 0.1, 3)
 
 		if limiter.Allow() == false {
+			w.Header().Add("Retry-After", "10 seconds")
 			response.Error(w, http.StatusTooManyRequests, errors.New(http.StatusText(429)))
 			return
 		}
@@ -46,14 +47,14 @@ func LimitRate(next http.Handler) http.Handler {
 }
 
 // Checks if the visitors map exists and creates a new one if not, update last visit and return the visitor limiter.
-func getVisitor(ip string, r rate.Limit, b int) *rate.Limiter {
+func getVisitor(ip string, r rate.Limit, size int) *rate.Limiter {
 	mu.Lock()
 	defer mu.Unlock()
 
 	v, exists := visitors[ip]
 	if !exists {
-		// Implement a "token bucket" of size b, initially full and refilled at a rate of r token per second
-		limiter := rate.NewLimiter(r, b)
+		// Implement a "token bucket" of x size, initially full and refilled at a rate of r token per second
+		limiter := rate.NewLimiter(r, size)
 		// Save visitor
 		visitors[ip] = &visitor{limiter, time.Now()}
 

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/GGP1/adak/internal/cookie"
 	"github.com/GGP1/adak/internal/email"
 	"github.com/GGP1/adak/internal/response"
 	"github.com/GGP1/adak/internal/token"
@@ -51,7 +52,7 @@ type changePassword struct {
 func (h *Handler) ChangePassword() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var changePass changePassword
-		uID, _ := r.Cookie("UID")
+		uID, _ := cookie.Get(r, "UID")
 		ctx := r.Context()
 
 		userID, err := token.GetUserID(uID.Value)
@@ -87,13 +88,12 @@ func (h *Handler) SendChangeConfirmation(u user.Service) http.HandlerFunc {
 		}
 		defer r.Body.Close()
 
-		_, err := u.GetByEmail(ctx, new.Email)
-		if err == nil {
+		if _, err := u.GetByEmail(ctx, new.Email); err == nil {
 			response.Error(w, http.StatusBadRequest, errors.New("email is already taken"))
 			return
 		}
 
-		uID, _ := r.Cookie("UID")
+		uID, _ := cookie.Get(r, "UID")
 		userID, err := token.GetUserID(uID.Value)
 		if err != nil {
 			response.Error(w, http.StatusInternalServerError, err)

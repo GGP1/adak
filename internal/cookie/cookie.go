@@ -7,10 +7,7 @@ import (
 	"github.com/GGP1/adak/internal/crypt"
 
 	"github.com/pkg/errors"
-	"github.com/spf13/viper"
 )
-
-var secretKey = []byte(viper.GetString("token.secretkey"))
 
 // Delete a cookie.
 func Delete(w http.ResponseWriter, name string) {
@@ -26,28 +23,37 @@ func Delete(w http.ResponseWriter, name string) {
 }
 
 // Get deciphers and returns the cookie value.
-func Get(r *http.Request, name string) (string, error) {
+func Get(r *http.Request, name string) (*http.Cookie, error) {
 	cookie, err := r.Cookie(name)
 	if err != nil {
-		return "", errors.Wrapf(err, "failed retrieving %s cookie", name)
+		return nil, err
 	}
 
 	ciphertext, err := hex.DecodeString(cookie.Value)
 	if err != nil {
-		return "", errors.Wrap(err, "decoding cookie value")
+		return nil, errors.Wrap(err, "decoding cookie value")
 	}
 
-	plaintext, err := crypt.Decrypt(secretKey, ciphertext)
+	plaintext, err := crypt.Decrypt(ciphertext)
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 
-	return string(plaintext), nil
+	cookie.Value = string(plaintext)
+
+	return cookie, nil
+}
+
+// IsSet returns whether the cookie is set or not.
+func IsSet(r *http.Request, name string) bool {
+	c, _ := r.Cookie(name)
+
+	return c != nil
 }
 
 // Set a cookie.
 func Set(w http.ResponseWriter, name, value, path string, age int) error {
-	ciphertext, err := crypt.Encrypt(secretKey, []byte(value))
+	ciphertext, err := crypt.Encrypt([]byte(value))
 	if err != nil {
 		return err
 	}
@@ -58,7 +64,7 @@ func Set(w http.ResponseWriter, name, value, path string, age int) error {
 		Path:     path,
 		Domain:   "localhost",
 		Secure:   false,
-		HttpOnly: true,
+		HttpOnly: true, // True means no scripts, http requests only. It does not refer to http(s)
 		SameSite: http.SameSiteStrictMode,
 		MaxAge:   age,
 	})
