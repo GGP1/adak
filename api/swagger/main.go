@@ -10,7 +10,7 @@ import (
 
 var (
 	//go:embed index.html
-	indexHTML string
+	indexHTML []byte
 	port      = flag.Int64("port", 8080, "server port")
 )
 
@@ -22,7 +22,7 @@ func main() {
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		w.Header().Set("Content-Type", "text/html; charset=UTF-8")
-		w.Write([]byte(indexHTML))
+		w.Write(indexHTML)
 	})
 
 	if err := http.ListenAndServe(addr, nil); err != nil {

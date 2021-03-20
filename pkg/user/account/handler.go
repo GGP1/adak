@@ -112,16 +112,12 @@ func (h *Handler) SendChangeConfirmation(u user.Service) http.HandlerFunc {
 			return
 		}
 
-		errCh := make(chan error, 1)
-
-		go email.SendChangeConfirmation(user.ID, user.Username, user.Email, token, new.Email, errCh)
-
-		select {
-		case err := <-errCh:
-			response.Error(w, http.StatusInternalServerError, errors.Wrap(err, "failed sending confirmation email"))
-		default:
-			response.JSONText(w, http.StatusOK, "verification email sent")
+		if err := email.SendChangeConfirmation(user.ID, user.Username, user.Email, token, new.Email); err != nil {
+			response.Error(w, http.StatusInternalServerError, err)
+			return
 		}
+
+		response.JSONText(w, http.StatusOK, "verification email sent")
 	}
 }
 

@@ -2,18 +2,24 @@ package main
 
 import (
 	"context"
+	"embed"
 
 	"github.com/GGP1/adak/cmd/server"
 	"github.com/GGP1/adak/internal/config"
 	"github.com/GGP1/adak/internal/logger"
 	"github.com/GGP1/adak/pkg/http/rest"
 	"github.com/GGP1/adak/pkg/postgres"
+	"github.com/spf13/viper"
 
 	lru "github.com/hashicorp/golang-lru"
 	_ "github.com/lib/pq"
 )
 
+//go:embed static
+var staticFS embed.FS
+
 func main() {
+	viper.Set("static.fs", staticFS)
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
@@ -21,6 +27,7 @@ func main() {
 	if err != nil {
 		logger.Log.Fatal(err)
 	}
+	conf.Static.FS = staticFS
 
 	db, err := postgres.Connect(ctx, &conf.Database)
 	if err != nil {
