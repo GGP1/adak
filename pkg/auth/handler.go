@@ -60,7 +60,7 @@ func Login(s Session) http.HandlerFunc {
 		}
 
 		if err := s.Login(ctx, w, r, auth.Email, auth.Password); err != nil {
-			response.Error(w, http.StatusUnauthorized, err)
+			response.Error(w, http.StatusForbidden, err)
 			return
 		}
 
@@ -113,7 +113,7 @@ func OAuth2Google(s Session) http.HandlerFunc {
 		}
 
 		if err := s.LoginOAuth(ctx, w, r, oauth.Email); err != nil {
-			response.Error(w, http.StatusUnauthorized, err)
+			response.Error(w, http.StatusForbidden, err)
 			return
 		}
 

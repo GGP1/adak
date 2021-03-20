@@ -100,7 +100,7 @@ func (h *Handler) GetByUserID() http.HandlerFunc {
 		ctx := r.Context()
 
 		if err := token.CheckPermits(id, uID.Value); err != nil {
-			response.Error(w, http.StatusUnauthorized, err)
+			response.Error(w, http.StatusForbidden, err)
 			return
 		}
 
@@ -145,10 +145,9 @@ func (h *Handler) New() http.HandlerFunc {
 			return
 		}
 
-		// Parse jwt to take the user id
 		userID, err := token.GetUserID(uID.Value)
 		if err != nil {
-			response.Error(w, http.StatusInternalServerError, err)
+			response.Error(w, http.StatusForbidden, err)
 			return
 		}
 
@@ -162,7 +161,7 @@ func (h *Handler) New() http.HandlerFunc {
 		// Fetch the user cart
 		cart, err := cart.Get(ctx, h.DB, cID.Value)
 		if err != nil {
-			response.Error(w, http.StatusInternalServerError, err)
+			response.Error(w, http.StatusNotFound, err)
 			return
 		}
 

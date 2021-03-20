@@ -71,7 +71,7 @@ func (h *Handler) Delete(db *sqlx.DB, s auth.Session) http.HandlerFunc {
 		ctx := r.Context()
 
 		if err := token.CheckPermits(id, uID.Value); err != nil {
-			response.Error(w, http.StatusUnauthorized, err)
+			response.Error(w, http.StatusForbidden, err)
 			return
 		}
 
@@ -124,7 +124,7 @@ func (h *Handler) GetByID() http.HandlerFunc {
 
 		user, err := h.Service.GetByID(ctx, id)
 		if err != nil {
-			response.Error(w, http.StatusInternalServerError, err)
+			response.Error(w, http.StatusNotFound, err)
 			return
 		}
 
@@ -141,7 +141,7 @@ func (h *Handler) GetByEmail() http.HandlerFunc {
 
 		user, err := h.Service.GetByEmail(ctx, email)
 		if err != nil {
-			response.Error(w, http.StatusInternalServerError, err)
+			response.Error(w, http.StatusNotFound, err)
 			return
 		}
 
@@ -157,7 +157,7 @@ func (h *Handler) GetByUsername() http.HandlerFunc {
 
 		user, err := h.Service.GetByUsername(ctx, username)
 		if err != nil {
-			response.Error(w, http.StatusInternalServerError, err)
+			response.Error(w, http.StatusNotFound, err)
 			return
 		}
 
@@ -181,7 +181,7 @@ func (h *Handler) QRCode() http.HandlerFunc {
 
 		user, err := h.Service.GetByID(ctx, id)
 		if err != nil {
-			response.Error(w, http.StatusInternalServerError, err)
+			response.Error(w, http.StatusNotFound, err)
 			return
 		}
 
@@ -226,7 +226,7 @@ func (h *Handler) Update() http.HandlerFunc {
 		ctx := r.Context()
 
 		if err := token.CheckPermits(id, uID.Value); err != nil {
-			response.Error(w, http.StatusUnauthorized, err)
+			response.Error(w, http.StatusForbidden, err)
 			return
 		}
 
