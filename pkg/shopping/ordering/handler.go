@@ -126,12 +126,12 @@ func (h *Handler) New() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var oParams OrderParams
 		ctx := r.Context()
-		cartID, err := cookie.Get(r, "CID")
+		cartID, err := cookie.GetValue(r, "CID")
 		if err != nil {
 			response.Error(w, http.StatusForbidden, err)
 			return
 		}
-		userID, err := cookie.Get(r, "UID")
+		userID, err := cookie.GetValue(r, "UID")
 		if err != nil {
 			response.Error(w, http.StatusForbidden, err)
 			return
@@ -160,14 +160,14 @@ func (h *Handler) New() http.HandlerFunc {
 		}
 
 		// Fetch the user cart
-		cart, err := cart.Get(ctx, h.DB, cartID.Value)
+		cart, err := cart.Get(ctx, h.DB, cartID)
 		if err != nil {
 			response.Error(w, http.StatusNotFound, err)
 			return
 		}
 
 		// Create order passing userID, order params, delivery date and the user cart
-		order, err := New(ctx, h.DB, userID.Value, oParams, deliveryDate, cart)
+		order, err := New(ctx, h.DB, userID, oParams, deliveryDate, cart)
 		if err != nil {
 			response.Error(w, http.StatusInternalServerError, err)
 			return

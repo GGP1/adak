@@ -25,13 +25,13 @@ func (a *Auth) AdminsOnly(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
-		sessionID, err := cookie.Get(r, "SID")
+		sessionID, err := cookie.GetValue(r, "SID")
 		if err != nil {
 			response.Error(w, http.StatusForbidden, errors.New("Unauthorized"))
 			return
 		}
 
-		id := strings.Split(sessionID.Value, ":")[0]
+		id := strings.Split(sessionID, ":")[0]
 		us, err := a.Service.GetByID(ctx, id)
 		if err != nil {
 			response.Error(w, http.StatusNotFound, err)
@@ -52,14 +52,14 @@ func (a *Auth) RequireLogin(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
-		sessionID, err := cookie.Get(r, "SID")
+		sessionID, err := cookie.GetValue(r, "SID")
 		if err != nil {
 			response.Error(w, http.StatusForbidden, errors.New("please log in to access"))
 			return
 		}
 
 		// sID = id:username:salt
-		sID := strings.Split(sessionID.Value, ":")
+		sID := strings.Split(sessionID, ":")
 
 		us, err := a.Service.GetByID(ctx, sID[0])
 		if err != nil {

@@ -22,7 +22,7 @@ func Delete(w http.ResponseWriter, name string) {
 	})
 }
 
-// Get deciphers and returns the cookie value.
+// Get deciphers and returns the cookie.
 func Get(r *http.Request, name string) (*http.Cookie, error) {
 	cookie, err := r.Cookie(name)
 	if err != nil {
@@ -42,6 +42,16 @@ func Get(r *http.Request, name string) (*http.Cookie, error) {
 	cookie.Value = string(plaintext)
 
 	return cookie, nil
+}
+
+// Like Get but returns only the cookie value.
+func GetValue(r *http.Request, name string) (string, error) {
+	cookie, err := Get(r, name)
+	if err != nil {
+		return "", nil
+	}
+
+	return cookie.Value, nil
 }
 
 // IsSet returns whether the cookie is set or not.

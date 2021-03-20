@@ -68,7 +68,7 @@ func (h *Handler) Delete(db *sqlx.DB, s auth.Session) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
 		ctx := r.Context()
-		cartID, err := cookie.Get(r, "CID")
+		cartID, err := cookie.GetValue(r, "CID")
 		if err != nil {
 			response.Error(w, http.StatusForbidden, err)
 			return
@@ -79,7 +79,7 @@ func (h *Handler) Delete(db *sqlx.DB, s auth.Session) http.HandlerFunc {
 			return
 		}
 
-		if err := cart.Delete(ctx, db, cartID.Value); err != nil {
+		if err := cart.Delete(ctx, db, cartID); err != nil {
 			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}

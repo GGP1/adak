@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/GGP1/adak/internal/crypt"
+
 	"github.com/stretchr/testify/assert"
 )
 
@@ -44,6 +45,26 @@ func TestGet(t *testing.T) {
 	assert.NoError(t, err)
 
 	assert.Equal(t, expected, got.Value)
+}
+
+func TestGetValue(t *testing.T) {
+	r := httptest.NewRequest("GET", "/", nil)
+
+	expected := "adak"
+	ciphertext, err := crypt.Encrypt([]byte(expected))
+	assert.NoError(t, err)
+
+	name := "test-get"
+	r.AddCookie(&http.Cookie{
+		Name:  name,
+		Value: hex.EncodeToString(ciphertext),
+		Path:  "/",
+	})
+
+	got, err := GetValue(r, name)
+	assert.NoError(t, err)
+
+	assert.Equal(t, expected, got)
 }
 
 func TestGetErrors(t *testing.T) {

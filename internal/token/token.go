@@ -28,12 +28,12 @@ func RandString(length int) string {
 // CheckPermits cheks if the user is trying to perform and action on his own
 // account (return nil) or not (return error).
 func CheckPermits(r *http.Request, paramID string) error {
-	userID, err := cookie.Get(r, "UID")
+	userID, err := cookie.GetValue(r, "UID")
 	if err != nil {
 		return err
 	}
 
-	if userID.Value != paramID {
+	if userID != paramID {
 		return errors.New("it is not allowed to perform this action on third party accounts")
 	}
 
