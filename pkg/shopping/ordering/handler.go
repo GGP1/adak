@@ -96,10 +96,14 @@ func (h *Handler) GetByID() http.HandlerFunc {
 func (h *Handler) GetByUserID() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
-		uID, _ := cookie.Get(r, "UID")
 		ctx := r.Context()
+		userID, err := cookie.Get(r, "UID")
+		if err != nil {
+			response.Error(w, http.StatusForbidden, err)
+			return
+		}
 
-		if err := token.CheckPermits(id, uID.Value); err != nil {
+		if err := token.CheckPermits(id, userID.Value); err != nil {
 			response.Error(w, http.StatusForbidden, err)
 			return
 		}
@@ -126,9 +130,17 @@ func (h *Handler) GetByUserID() http.HandlerFunc {
 func (h *Handler) New() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var oParams OrderParams
-		cID, _ := cookie.Get(r, "CID")
-		uID, _ := cookie.Get(r, "UID")
 		ctx := r.Context()
+		cartID, err := cookie.Get(r, "CID")
+		if err != nil {
+			response.Error(w, http.StatusForbidden, err)
+			return
+		}
+		uID, err := cookie.Get(r, "UID")
+		if err != nil {
+			response.Error(w, http.StatusForbidden, err)
+			return
+		}
 
 		if err := json.NewDecoder(r.Body).Decode(&oParams); err != nil {
 			response.Error(w, http.StatusBadRequest, err)
@@ -159,7 +171,7 @@ func (h *Handler) New() http.HandlerFunc {
 		}
 
 		// Fetch the user cart
-		cart, err := cart.Get(ctx, h.DB, cID.Value)
+		cart, err := cart.Get(ctx, h.DB, cartID.Value)
 		if err != nil {
 			response.Error(w, http.StatusNotFound, err)
 			return
