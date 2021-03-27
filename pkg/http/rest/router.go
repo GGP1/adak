@@ -52,7 +52,8 @@ func NewRouter(db *sqlx.DB, cache *lru.Cache) http.Handler {
 	requireLogin := mAuth.RequireLogin
 
 	// Middlewares
-	r.Use(middleware.Cors, middleware.Secure, middleware.LimitRate, middleware.LogFormatter, middleware.GZIPCompress)
+	r.Use(middleware.Cors, middleware.Secure, middleware.LimitRate, middleware.Recover,
+		middleware.LogFormatter, middleware.GZIPCompress)
 
 	// Auth
 	r.Post("/login", auth.Login(session))
