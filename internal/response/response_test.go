@@ -83,6 +83,28 @@ func TestJSON(t *testing.T) {
 	assert.Equal(t, expectedText, buf.String())
 }
 
+func TestJSONText(t *testing.T) {
+	expectedHeader := "application/json; charset=UTF-8"
+	expectedStatus := 200
+	expectedText := "{\"message\":\"test\",\"code\":200}\n"
+
+	rec := httptest.NewRecorder()
+	JSONText(rec, http.StatusOK, "test")
+	res := rec.Result()
+
+	gotHeader := res.Header.Get("Content-Type")
+	assert.Equal(t, expectedHeader, gotHeader)
+
+	gotStatus := res.StatusCode
+	assert.Equal(t, expectedStatus, gotStatus)
+
+	var buf bytes.Buffer
+	_, err := buf.ReadFrom(res.Body)
+	assert.NoError(t, err, "Failed reading response body")
+
+	assert.Equal(t, expectedText, buf.String())
+}
+
 func TestPNG(t *testing.T) {
 	var imageBuf bytes.Buffer
 	testImage := image.NewRGBA(image.Rect(15, 15, 30, 30))
