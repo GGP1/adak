@@ -27,27 +27,12 @@ type errResponse struct {
 
 // Error is the function used to send error resposes.
 func Error(w http.ResponseWriter, status int, err error) {
-	var buf bytes.Buffer
-	e := &errResponse{
+	res := errResponse{
 		Status: status,
 		Err:    err.Error(),
 	}
 
-	if err := json.NewEncoder(&buf).Encode(e); err != nil {
-		logger.Log.Fatalf("Failed encoding error json: %v", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	// Set content type, status code and instructs browsers to disable content or MIME sniffing
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	w.Header().Set("X-Content-Type-Options", "nosniff")
-	w.WriteHeader(status)
-
-	if _, err := io.Copy(w, &buf); err != nil {
-		logger.Log.Fatalf("Failed copying to response writer: %v", err)
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
+	JSON(w, status, res)
 }
 
 // HTMLText is the function used to send html text resposes.
@@ -65,38 +50,29 @@ func JSON(w http.ResponseWriter, status int, v interface{}) {
 	var buf bytes.Buffer
 
 	if err := json.NewEncoder(&buf).Encode(v); err != nil {
-		Error(w, http.StatusInternalServerError, err)
+		logger.Log.Fatalf("failed writing json: %v", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.WriteHeader(status)
 
 	if _, err := io.Copy(w, &buf); err != nil {
-		Error(w, http.StatusInternalServerError, errors.Wrap(err, "couldn't write to response writer"))
+		logger.Log.Fatalf("failed writing to response writer: %v", err)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 }
 
 // JSONText is the function used to send JSON formatted text responses.
 func JSONText(w http.ResponseWriter, status int, message string) {
-	var buf bytes.Buffer
-
-	v := msgResponse{
+	res := msgResponse{
 		Message: message,
 		Code:    status,
 	}
 
-	if err := json.NewEncoder(&buf).Encode(v); err != nil {
-		Error(w, http.StatusInternalServerError, err)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	w.WriteHeader(status)
-
-	if _, err := io.Copy(w, &buf); err != nil {
-		Error(w, http.StatusInternalServerError, errors.Wrap(err, "couldn't write to response writer"))
-	}
+	JSON(w, status, res)
 }
 
 // PNG is used to respond with a png image.
