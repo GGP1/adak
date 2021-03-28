@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"os/user"
 	"time"
 
 	"github.com/GGP1/adak/internal/cookie"
@@ -103,10 +104,11 @@ func (h *Handler) GetByUserID() http.HandlerFunc {
 			return
 		}
 
-		// Distinguish from the other ids from the same user
-		cacheKey := fmt.Sprintf("%s orders", id)
-		if cOrders, ok := h.Cache.Get(cacheKey); ok {
-			response.JSON(w, http.StatusOK, cOrders)
+		// Distinguish from the other ids of the same user
+		cacheKey := fmt.Sprintf("%s-ods", id)
+		item, _ := h.Cache.Get(cacheKey)
+		if us, ok := item.(user.User); ok {
+			response.JSON(w, http.StatusOK, us)
 			return
 		}
 

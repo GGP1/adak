@@ -115,8 +115,9 @@ func (h *Handler) GetByID() http.HandlerFunc {
 		id := chi.URLParam(r, "id")
 		ctx := r.Context()
 
-		if cUser, ok := h.Cache.Get(id); ok {
-			response.JSON(w, http.StatusOK, cUser)
+		item, _ := h.Cache.Get(id)
+		if us, ok := item.(User); ok {
+			response.JSON(w, http.StatusOK, us)
 			return
 		}
 
@@ -170,10 +171,11 @@ func (h *Handler) QRCode() http.HandlerFunc {
 		id := chi.URLParam(r, "id")
 		ctx := r.Context()
 
-		// Distinguish from the other ids from the same user
-		cacheKey := fmt.Sprintf("%s qrcode", id)
-		if cImage, ok := h.Cache.Get(cacheKey); ok {
-			response.PNG(w, http.StatusOK, cImage.(image.Image))
+		// Distinguish from the other ids of the same user
+		cacheKey := fmt.Sprintf("%s-qr", id)
+		item, _ := h.Cache.Get(cacheKey)
+		if img, ok := item.(image.Image); ok {
+			response.PNG(w, http.StatusOK, img)
 			return
 		}
 

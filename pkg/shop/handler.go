@@ -81,8 +81,9 @@ func (h *Handler) GetByID() http.HandlerFunc {
 		id := chi.URLParam(r, "id")
 		ctx := r.Context()
 
-		if cShop, ok := h.Cache.Get(id); ok {
-			response.JSON(w, http.StatusOK, cShop)
+		item, _ := h.Cache.Get(id)
+		if sh, ok := item.(Shop); ok {
+			response.JSON(w, http.StatusOK, sh)
 			return
 		}
 

@@ -343,8 +343,9 @@ func (h *Handler) Get() http.HandlerFunc {
 			return
 		}
 
-		if cCart, ok := h.Cache.Get(cartID); ok {
-			response.JSON(w, http.StatusOK, cCart)
+		item, _ := h.Cache.Get(cartID)
+		if ct, ok := item.(Cart); ok {
+			response.JSON(w, http.StatusOK, &ct)
 			return
 		}
 

@@ -7,10 +7,10 @@ import (
 
 	"github.com/GGP1/adak/internal/response"
 	"github.com/GGP1/adak/internal/sanitize"
-	lru "github.com/hashicorp/golang-lru"
 
 	"github.com/go-chi/chi"
 	validator "github.com/go-playground/validator/v10"
+	lru "github.com/hashicorp/golang-lru"
 )
 
 // Handler handles product endpoints.
@@ -81,8 +81,9 @@ func (h *Handler) GetByID() http.HandlerFunc {
 		id := chi.URLParam(r, "id")
 		ctx := r.Context()
 
-		if cProduct, ok := h.Cache.Get(id); ok {
-			response.JSON(w, http.StatusOK, cProduct)
+		item, _ := h.Cache.Get(id)
+		if pr, ok := item.(Product); ok {
+			response.JSON(w, http.StatusOK, pr)
 			return
 		}
 
