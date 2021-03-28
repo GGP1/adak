@@ -14,12 +14,12 @@ import (
 )
 
 var (
-	mu       sync.Mutex
-	visitors = make(map[string]*visitor)
+	mu      sync.Mutex
+	clients = make(map[string]*client)
 )
 
-// visitor holds the rate limiter for each visitor and the last time the visitor was seen.
-type visitor struct {
+// client holds the rate limiter for each client and the last time the client was seen.
+type client struct {
 	// Control how frequent the events are allowed to happen
 	limiter *rate.Limiter
 	// The latest time a visitor have been seen
@@ -27,17 +27,17 @@ type visitor struct {
 }
 
 func init() {
-	go cleanupVisitors()
+	go cleanupClients()
 }
 
 // LimitRate limits the number of requests allowed per user per second.
 func LimitRate(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		ip := tracking.GetUserIP(r)
-		limiter := getVisitor(ip, 0.1, 3)
+		limiter := getClient(ip, 0.2, 10)
 
 		if limiter.Allow() == false {
-			w.Header().Add("Retry-After", "10 seconds")
+			w.Header().Add("Retry-After", "5 seconds")
 			response.Error(w, http.StatusTooManyRequests, errors.New(http.StatusText(429)))
 			return
 		}
@@ -46,17 +46,17 @@ func LimitRate(next http.Handler) http.Handler {
 	})
 }
 
-// Checks if the visitors map exists and creates a new one if not, update last visit and return the visitor limiter.
-func getVisitor(ip string, r rate.Limit, size int) *rate.Limiter {
+// Checks if the clients map exists and creates a new one if not, update last visit and return the visitor limiter.
+func getClient(ip string, r rate.Limit, size int) *rate.Limiter {
 	mu.Lock()
 	defer mu.Unlock()
 
-	v, exists := visitors[ip]
+	v, exists := clients[ip]
 	if !exists {
 		// Implement a "token bucket" of x size, initially full and refilled at a rate of r token per second
 		limiter := rate.NewLimiter(r, size)
 		// Save visitor
-		visitors[ip] = &visitor{limiter, time.Now()}
+		clients[ip] = &client{limiter, time.Now()}
 
 		return limiter
 	}
@@ -67,16 +67,16 @@ func getVisitor(ip string, r rate.Limit, size int) *rate.Limiter {
 	return v.limiter
 }
 
-// Every 30 minutes look for the visitors in the map that haven't been seen for 24 hours.
-func cleanupVisitors() {
+// Every 30 minutes look for the clients in the map that haven't been seen for 24 hours.
+func cleanupClients() {
 	for {
 		time.Sleep(time.Minute * 30)
 
 		mu.Lock()
-		for ip, v := range visitors {
-			go func(v *visitor, ip string) {
+		for ip, v := range clients {
+			go func(v *client, ip string) {
 				if time.Since(v.lastSeen) > 24*time.Hour {
-					delete(visitors, ip)
+					delete(clients, ip)
 				}
 			}(v, ip)
 		}

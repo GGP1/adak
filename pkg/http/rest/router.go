@@ -46,6 +46,7 @@ func NewRouter(db *sqlx.DB, cache *lru.Cache) http.Handler {
 	// Middleware authentication
 	mAuth := middleware.Auth{
 		DB:      db,
+		Cache:   cache,
 		Service: userService,
 	}
 	adminsOnly := mAuth.AdminsOnly
