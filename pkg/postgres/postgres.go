@@ -160,7 +160,7 @@ CREATE TABLE IF NOT EXISTS orders
     currency text,
     address text,
     city text,
-    state text,
+    state integer,
     zip_code text,
     country text,
     status text,

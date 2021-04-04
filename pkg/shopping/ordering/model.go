@@ -2,6 +2,17 @@ package ordering
 
 import "time"
 
+type status int
+
+// Order statuses
+const (
+	pending status = iota
+	paid
+	shipping
+	shipped
+	failed
+)
+
 // Order represents a user purchase request.
 type Order struct {
 	ID           string         `json:"id"`
@@ -12,7 +23,7 @@ type Order struct {
 	State        string         `json:"state"`
 	ZipCode      string         `json:"zip_code" db:"zip_code"`
 	Country      string         `json:"country"`
-	Status       string         `json:"status"`
+	Status       status         `json:"status"`
 	OrderedAt    time.Time      `json:"ordered_at" db:"ordered_at"`
 	DeliveryDate time.Time      `json:"delivery_date" db:"delivery_date"`
 	CartID       string         `json:"cart_id" db:"cart_id"`
