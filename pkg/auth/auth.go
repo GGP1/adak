@@ -26,9 +26,11 @@ type Session interface {
 	Logout(w http.ResponseWriter, r *http.Request)
 }
 
-type userData struct {
-	email    string
-	lastSeen time.Time
+type login struct {
+	// time to wait until next attempt
+	delay time.Time
+	// cumulative number of attempts
+	attempts int64
 }
 
 type session struct {
@@ -36,27 +38,24 @@ type session struct {
 
 	DB *sqlx.DB
 
-	// user session
-	store map[string]userData
-	// time to wait after failing x times (increments every fail)
-	delay map[string]time.Time
-	// number of tries to log in
-	tries map[string]int64
+	// user sessions store consisting of map[sessionID]lastSeen
+	store map[string]time.Time
+	// frustrated login attempts
+	loginFails map[string]login
 	// last time the session was cleaned
 	cleaned time.Time
-	// session length
+	// session length in seconds
 	length int
 }
 
 // NewSession creates a new session with the necessary dependencies.
 func NewSession(db *sqlx.DB) Session {
 	return &session{
-		DB:      db,
-		store:   make(map[string]userData),
-		cleaned: time.Now(),
-		length:  0,
-		tries:   make(map[string]int64),
-		delay:   make(map[string]time.Time),
+		DB:         db,
+		store:      make(map[string]time.Time),
+		cleaned:    time.Now(),
+		length:     0,
+		loginFails: make(map[string]login),
 	}
 }
 
@@ -68,22 +67,24 @@ func (s *session) AlreadyLoggedIn(w http.ResponseWriter, r *http.Request) bool {
 	}
 
 	s.Lock()
-	user, ok := s.store[cookie.Value]
+	_, ok := s.store[cookie.Value]
 	if ok {
-		user.lastSeen = time.Now()
+		s.store[cookie.Value] = time.Now()
 	}
 	s.Unlock()
 
+	// Refresh cookie max age
 	cookie.MaxAge = s.length
 
 	return ok
 }
 
 // Clean deletes all the sessions that have expired.
+// TODO: Use a cron to run it.
 func (s *session) Clean() {
 	s.Lock()
 	for key, value := range s.store {
-		if time.Now().Sub(value.lastSeen) > (time.Hour * 120) {
+		if time.Now().Sub(value) > (time.Hour * 168) {
 			delete(s.store, key)
 		}
 	}
@@ -96,8 +97,9 @@ func (s *session) Login(ctx context.Context, w http.ResponseWriter, r *http.Requ
 	ip := tracking.GetUserIP(r)
 
 	s.RLock()
-	if !s.delay[ip].IsZero() && s.delay[ip].Sub(time.Now()) > 0 {
-		return errors.Errorf("please wait %v before trying again", s.delay[ip].Sub(time.Now()))
+	delayTime := s.loginFails[ip].delay
+	if !delayTime.IsZero() && delayTime.Sub(time.Now()) > 0 {
+		return errors.Errorf("please wait %v before trying again", delayTime.Sub(time.Now()))
 	}
 	s.RUnlock()
 
@@ -106,7 +108,7 @@ func (s *session) Login(ctx context.Context, w http.ResponseWriter, r *http.Requ
 
 	// Check if the email exists and if it is verified
 	if err := s.DB.GetContext(ctx, &user, query, email); err != nil {
-		s.loginDelay(ip)
+		s.addDelay(ip)
 		return errors.New("invalid email or password")
 	}
 
@@ -115,28 +117,32 @@ func (s *session) Login(ctx context.Context, w http.ResponseWriter, r *http.Requ
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
-		s.loginDelay(ip)
+		s.addDelay(ip)
 		return errors.New("invalid email or password")
 	}
 
-	// -SID- used to add the user to the session map
 	sID, err := sessionID(user.ID, user.Username)
 	if err != nil {
 		return err
 	}
-	cookie.Set(w, "SID", sID, "/", s.length)
 
 	s.Lock()
-	s.store[sID] = userData{user.Email, time.Now()}
-	delete(s.tries, ip)
-	delete(s.delay, ip)
+	s.store[sID] = time.Now()
+	delete(s.loginFails, ip)
 	s.Unlock()
 
-	// -UID- used to deny users from making requests to other accounts
-	cookie.Set(w, "UID", user.ID, "/", s.length)
-
-	// -CID- used to identify which cart belongs to each user
-	cookie.Set(w, "CID", user.CartID, "/", s.length)
+	// -SID- session id
+	if err := cookie.Set(w, "SID", sID, "/", s.length); err != nil {
+		return err
+	}
+	// -UID- user id, used to deny users from making requests to other accounts
+	if err := cookie.Set(w, "UID", user.ID, "/", s.length); err != nil {
+		return err
+	}
+	// -CID- cart id, used to identify which cart belongs to each user
+	if err := cookie.Set(w, "CID", user.CartID, "/", s.length); err != nil {
+		return err
+	}
 
 	return nil
 }
@@ -151,25 +157,24 @@ func (s *session) LoginOAuth(ctx context.Context, w http.ResponseWriter, r *http
 		return errors.New("please register before logging in")
 	}
 
-	// -SID- used to add the user to the session map
 	sID, err := sessionID(user.ID, user.Username)
 	if err != nil {
 		return err
 	}
+
+	s.Lock()
+	s.store[sID] = time.Now()
+	s.Unlock()
+
+	// -SID- session id
 	if err := cookie.Set(w, "SID", sID, "/", s.length); err != nil {
 		return err
 	}
-
-	s.Lock()
-	s.store[sID] = userData{user.Email, time.Now()}
-	s.Unlock()
-
-	// -UID- used to deny users from making requests to other accounts
+	// -UID- user id, used to deny users from making requests to other accounts
 	if err := cookie.Set(w, "UID", user.ID, "/", s.length); err != nil {
 		return err
 	}
-
-	// -CID- used to identify which cart belongs to each user
+	// -CID- cart id, used to identify which cart belongs to each user
 	if err := cookie.Set(w, "CID", user.CartID, "/", s.length); err != nil {
 		return err
 	}
@@ -179,10 +184,7 @@ func (s *session) LoginOAuth(ctx context.Context, w http.ResponseWriter, r *http
 
 // Logout removes the user session and its cookies.
 func (s *session) Logout(w http.ResponseWriter, r *http.Request) {
-	if cookie.IsSet(r, "AID") {
-		cookie.Delete(w, "AID")
-	}
-
+	// The cookie is already validated
 	sessionID, _ := cookie.GetValue(r, "SID")
 
 	cookie.Delete(w, "SID")
@@ -198,13 +200,12 @@ func (s *session) Logout(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// loginDelay increments the time that the user will have to wait after failing.
-func (s *session) loginDelay(ip string) {
+// addDelay increments the time that the user will have to wait after failing.
+func (s *session) addDelay(ip string) {
 	s.Lock()
-	s.tries[ip]++
-	delay := s.tries[ip] * 2
-
-	s.delay[ip] = time.Now().Add(time.Second * time.Duration(delay))
+	login := s.loginFails[ip]
+	login.attempts++
+	login.delay = time.Now().Add(time.Second * time.Duration(login.attempts*2))
 	s.Unlock()
 }
 
