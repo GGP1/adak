@@ -18,8 +18,9 @@ import (
 
 // Handler manages cart endpoints.
 type Handler struct {
-	DB    *sqlx.DB
-	Cache *lru.Cache
+	Service Service
+	DB      *sqlx.DB
+	Cache   *lru.Cache
 }
 
 // Add appends a product to the cart.
@@ -52,7 +53,7 @@ func (h *Handler) Add() http.HandlerFunc {
 		}
 		defer r.Body.Close()
 
-		cart, err := Add(ctx, h.DB, cartID, &product, quantity)
+		cart, err := h.Service.Add(ctx, cartID, &product, quantity)
 		if err != nil {
 			response.Error(w, http.StatusInternalServerError, err)
 			return
@@ -72,7 +73,7 @@ func (h *Handler) Checkout() http.HandlerFunc {
 			return
 		}
 
-		checkout, err := Checkout(ctx, h.DB, cartID)
+		checkout, err := h.Service.Checkout(ctx, cartID)
 		if err != nil {
 			response.Error(w, http.StatusNotFound, err)
 			return
@@ -99,7 +100,7 @@ func (h *Handler) FilterByBrand() http.HandlerFunc {
 			return
 		}
 
-		products, err := FilterByBrand(ctx, h.DB, cartID, brand)
+		products, err := h.Service.FilterByBrand(ctx, cartID, brand)
 		if err != nil {
 			response.Error(w, http.StatusNotFound, err)
 			return
@@ -126,7 +127,7 @@ func (h *Handler) FilterByCategory() http.HandlerFunc {
 			return
 		}
 
-		products, err := FilterByCategory(ctx, h.DB, cartID, category)
+		products, err := h.Service.FilterByCategory(ctx, cartID, category)
 		if err != nil {
 			response.Error(w, http.StatusNotFound, err)
 			return
@@ -160,7 +161,7 @@ func (h *Handler) FilterByDiscount() http.HandlerFunc {
 			return
 		}
 
-		products, err := FilterByDiscount(ctx, h.DB, cartID, minDiscount, maxDiscount)
+		products, err := h.Service.FilterByDiscount(ctx, cartID, minDiscount, maxDiscount)
 		if err != nil {
 			response.Error(w, http.StatusNotFound, err)
 			return
@@ -194,7 +195,7 @@ func (h *Handler) FilterBySubtotal() http.HandlerFunc {
 			return
 		}
 
-		products, err := FilterBySubtotal(ctx, h.DB, cartID, minSubtotal, maxSubtotal)
+		products, err := h.Service.FilterBySubtotal(ctx, cartID, minSubtotal, maxSubtotal)
 		if err != nil {
 			response.Error(w, http.StatusNotFound, err)
 			return
@@ -228,7 +229,7 @@ func (h *Handler) FilterByTaxes() http.HandlerFunc {
 			return
 		}
 
-		products, err := FilterByTaxes(ctx, h.DB, cartID, minTaxes, maxTaxes)
+		products, err := h.Service.FilterByTaxes(ctx, cartID, minTaxes, maxTaxes)
 		if err != nil {
 			response.Error(w, http.StatusNotFound, err)
 			return
@@ -262,7 +263,7 @@ func (h *Handler) FilterByTotal() http.HandlerFunc {
 			return
 		}
 
-		products, err := FilterByTotal(ctx, h.DB, cartID, minTotal, maxTotal)
+		products, err := h.Service.FilterByTotal(ctx, cartID, minTotal, maxTotal)
 		if err != nil {
 			response.Error(w, http.StatusNotFound, err)
 			return
@@ -289,7 +290,7 @@ func (h *Handler) FilterByType() http.HandlerFunc {
 			return
 		}
 
-		products, err := FilterByType(ctx, h.DB, cartID, pType)
+		products, err := h.Service.FilterByType(ctx, cartID, pType)
 		if err != nil {
 			response.Error(w, http.StatusNotFound, err)
 			return
@@ -323,7 +324,7 @@ func (h *Handler) FilterByWeight() http.HandlerFunc {
 			return
 		}
 
-		products, err := FilterByWeight(ctx, h.DB, cartID, minWeight, maxWeight)
+		products, err := h.Service.FilterByWeight(ctx, cartID, minWeight, maxWeight)
 		if err != nil {
 			response.Error(w, http.StatusNotFound, err)
 			return
@@ -349,7 +350,7 @@ func (h *Handler) Get() http.HandlerFunc {
 			return
 		}
 
-		cart, err := Get(ctx, h.DB, cartID)
+		cart, err := h.Service.Get(ctx, cartID)
 		if err != nil {
 			response.Error(w, http.StatusNotFound, err)
 			return
@@ -370,7 +371,7 @@ func (h *Handler) Products() http.HandlerFunc {
 			return
 		}
 
-		items, err := Products(ctx, h.DB, cartID)
+		items, err := h.Service.Products(ctx, cartID)
 		if err != nil {
 			response.Error(w, http.StatusNotFound, err)
 			return
@@ -399,7 +400,7 @@ func (h *Handler) Remove() http.HandlerFunc {
 			return
 		}
 
-		if err := Remove(ctx, h.DB, cartID, id, quantity); err != nil {
+		if err := h.Service.Remove(ctx, cartID, id, quantity); err != nil {
 			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
@@ -418,7 +419,7 @@ func (h *Handler) Reset() http.HandlerFunc {
 			return
 		}
 
-		if err := Reset(ctx, h.DB, cartID); err != nil {
+		if err := h.Service.Reset(ctx, cartID); err != nil {
 			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
@@ -437,7 +438,7 @@ func (h *Handler) Size() http.HandlerFunc {
 			return
 		}
 
-		size, err := Size(ctx, h.DB, cartID)
+		size, err := h.Service.Size(ctx, cartID)
 		if err != nil {
 			response.Error(w, http.StatusNotFound, err)
 			return

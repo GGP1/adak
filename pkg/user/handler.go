@@ -22,8 +22,9 @@ import (
 
 // Handler handles user endpoints.
 type Handler struct {
-	Service Service
-	Cache   *lru.Cache
+	Service     Service
+	CartService cart.Service
+	Cache       *lru.Cache
 }
 
 // Create creates a new user and saves it.
@@ -79,7 +80,7 @@ func (h *Handler) Delete(db *sqlx.DB, s auth.Session) http.HandlerFunc {
 			return
 		}
 
-		if err := cart.Delete(ctx, db, cartID); err != nil {
+		if err := h.CartService.Delete(ctx, cartID); err != nil {
 			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}

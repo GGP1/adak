@@ -3,19 +3,18 @@ package cart
 import (
 	"context"
 
-	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 )
 
 var errNotFound = errors.New("no products found")
 
 // FilterByBrand looks for products with the specified brand.
-func FilterByBrand(ctx context.Context, db *sqlx.DB, cartID, brand string) ([]Product, error) {
+func (s *service) FilterByBrand(ctx context.Context, cartID, brand string) ([]Product, error) {
 	var products []Product
 
 	query := `SELECT * FROM cart_products WHERE cart_id=$1 AND brand=$2`
 
-	if err := db.SelectContext(ctx, &products, query, cartID, brand); err != nil {
+	if err := s.DB.SelectContext(ctx, &products, query, cartID, brand); err != nil {
 		return nil, errors.Wrap(err, errNotFound.Error())
 	}
 
@@ -27,12 +26,12 @@ func FilterByBrand(ctx context.Context, db *sqlx.DB, cartID, brand string) ([]Pr
 }
 
 // FilterByCategory looks for products with the specified category.
-func FilterByCategory(ctx context.Context, db *sqlx.DB, cartID, category string) ([]Product, error) {
+func (s *service) FilterByCategory(ctx context.Context, cartID, category string) ([]Product, error) {
 	var products []Product
 
 	query := `SELECT * FROM cart_products WHERE cart_id=$1 AND category=$2`
 
-	if err := db.SelectContext(ctx, &products, query, cartID, category); err != nil {
+	if err := s.DB.SelectContext(ctx, &products, query, cartID, category); err != nil {
 		return nil, errors.Wrap(err, errNotFound.Error())
 	}
 
@@ -44,12 +43,12 @@ func FilterByCategory(ctx context.Context, db *sqlx.DB, cartID, category string)
 }
 
 // FilterByDiscount looks for products within the percentage of discount range specified.
-func FilterByDiscount(ctx context.Context, db *sqlx.DB, cartID string, min, max float64) ([]Product, error) {
+func (s *service) FilterByDiscount(ctx context.Context, cartID string, min, max float64) ([]Product, error) {
 	var products []Product
 
 	query := `SELECT * FROM cart_products WHERE cart_id=$1 AND AND discount >= $2 AND discount <= $3`
 
-	if err := db.SelectContext(ctx, &products, query, cartID, min, max); err != nil {
+	if err := s.DB.SelectContext(ctx, &products, query, cartID, min, max); err != nil {
 		return nil, errors.Wrap(err, errNotFound.Error())
 	}
 
@@ -61,12 +60,12 @@ func FilterByDiscount(ctx context.Context, db *sqlx.DB, cartID string, min, max 
 }
 
 // FilterBySubtotal looks for products within the subtotal price range specified.
-func FilterBySubtotal(ctx context.Context, db *sqlx.DB, cartID string, min, max float64) ([]Product, error) {
+func (s *service) FilterBySubtotal(ctx context.Context, cartID string, min, max float64) ([]Product, error) {
 	var products []Product
 
 	query := `SELECT * FROM cart_products WHERE cart_id=$1 AND AND subtotal >= $2 AND subtotal <= $3`
 
-	if err := db.SelectContext(ctx, &products, query, cartID, min, max); err != nil {
+	if err := s.DB.SelectContext(ctx, &products, query, cartID, min, max); err != nil {
 		return nil, errors.Wrap(err, errNotFound.Error())
 	}
 
@@ -78,12 +77,12 @@ func FilterBySubtotal(ctx context.Context, db *sqlx.DB, cartID string, min, max 
 }
 
 // FilterByTaxes looks for products within the percentage of taxes range specified.
-func FilterByTaxes(ctx context.Context, db *sqlx.DB, cartID string, min, max float64) ([]Product, error) {
+func (s *service) FilterByTaxes(ctx context.Context, cartID string, min, max float64) ([]Product, error) {
 	var products []Product
 
 	query := `SELECT * FROM cart_products WHERE cart_id=$1 AND AND taxes >= $2 AND taxes <= $3`
 
-	if err := db.SelectContext(ctx, &products, query, cartID, min, max); err != nil {
+	if err := s.DB.SelectContext(ctx, &products, query, cartID, min, max); err != nil {
 		return nil, errors.Wrap(err, errNotFound.Error())
 	}
 
@@ -95,12 +94,12 @@ func FilterByTaxes(ctx context.Context, db *sqlx.DB, cartID string, min, max flo
 }
 
 // FilterByTotal looks for products within the total price range specified.
-func FilterByTotal(ctx context.Context, db *sqlx.DB, cartID string, min, max float64) ([]Product, error) {
+func (s *service) FilterByTotal(ctx context.Context, cartID string, min, max float64) ([]Product, error) {
 	var products []Product
 
 	query := `SELECT * FROM cart_products WHERE cart_id=$1 AND AND total >= $2 AND total <= $3`
 
-	if err := db.SelectContext(ctx, &products, query, cartID, min, max); err != nil {
+	if err := s.DB.SelectContext(ctx, &products, query, cartID, min, max); err != nil {
 		return nil, errors.Wrap(err, errNotFound.Error())
 	}
 
@@ -112,12 +111,12 @@ func FilterByTotal(ctx context.Context, db *sqlx.DB, cartID string, min, max flo
 }
 
 // FilterByType looks for products with the specified type.
-func FilterByType(ctx context.Context, db *sqlx.DB, cartID, pType string) ([]Product, error) {
+func (s *service) FilterByType(ctx context.Context, cartID, pType string) ([]Product, error) {
 	var products []Product
 
 	query := `SELECT * FROM cart_products WHERE cart_id=$1 AND type=$2`
 
-	if err := db.SelectContext(ctx, &products, query, cartID, pType); err != nil {
+	if err := s.DB.SelectContext(ctx, &products, query, cartID, pType); err != nil {
 		return nil, errors.Wrap(err, errNotFound.Error())
 	}
 
@@ -129,12 +128,12 @@ func FilterByType(ctx context.Context, db *sqlx.DB, cartID, pType string) ([]Pro
 }
 
 // FilterByWeight looks for products within the weight range specified.
-func FilterByWeight(ctx context.Context, db *sqlx.DB, cartID string, min, max float64) ([]Product, error) {
+func (s *service) FilterByWeight(ctx context.Context, cartID string, min, max float64) ([]Product, error) {
 	var products []Product
 
 	query := `SELECT * FROM cart_products WHERE cart_id=$1 AND AND weight >= $2 AND weight <= $3`
 
-	if err := db.SelectContext(ctx, &products, query, cartID, min, max); err != nil {
+	if err := s.DB.SelectContext(ctx, &products, query, cartID, min, max); err != nil {
 		return nil, errors.Wrap(err, errNotFound.Error())
 	}
 

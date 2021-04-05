@@ -14,16 +14,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-// Repository provides access to the storage.
-type Repository interface {
-	Create(ctx context.Context, shop *Shop) error
-	Delete(ctx context.Context, id string) error
-	Get(ctx context.Context) ([]Shop, error)
-	GetByID(ctx context.Context, id string) (Shop, error)
-	Search(ctx context.Context, search string) ([]Shop, error)
-	Update(ctx context.Context, shop *Shop, id string) error
-}
-
 // Service provides shop operations.
 type Service interface {
 	Create(ctx context.Context, shop *Shop) error
@@ -35,16 +25,15 @@ type Service interface {
 }
 
 type service struct {
-	r  Repository
 	DB *sqlx.DB
 }
 
-// NewService creates a deleting service with the necessary dependencies.
-func NewService(r Repository, db *sqlx.DB) Service {
-	return &service{r, db}
+// NewService returns a new shop service.
+func NewService(db *sqlx.DB) Service {
+	return &service{db}
 }
 
-// Create creates a shop.
+// Create a shop.
 func (s *service) Create(ctx context.Context, shop *Shop) error {
 	sQuery := `INSERT INTO shops
 	(id, name, created_at, updated_at)
@@ -93,7 +82,7 @@ func (s *service) Get(ctx context.Context) ([]Shop, error) {
 		return nil, errors.Wrap(err, "couldn't find the shops")
 	}
 
-	list, err := getRelationships(ctx, s.DB, shops)
+	list, err := s.getRelationships(ctx, shops)
 	if err != nil {
 		return nil, err
 	}
@@ -152,7 +141,7 @@ func (s *service) Search(ctx context.Context, search string) ([]Shop, error) {
 		return nil, errors.Wrap(err, "couldn't find shops")
 	}
 
-	list, err := getRelationships(ctx, s.DB, shops)
+	list, err := s.getRelationships(ctx, shops)
 	if err != nil {
 		return nil, err
 	}
@@ -175,9 +164,7 @@ func (s *service) Update(ctx context.Context, shop *Shop, id string) error {
 	return nil
 }
 
-func getRelationships(ctx context.Context, db *sqlx.DB, shops []Shop) ([]Shop, error) {
-	var list []Shop
-
+func (s *service) getRelationships(ctx context.Context, shops []Shop) ([]Shop, error) {
 	ch, errCh := make(chan Shop), make(chan error, 1)
 
 	for _, shop := range shops {
@@ -188,17 +175,17 @@ func getRelationships(ctx context.Context, db *sqlx.DB, shops []Shop) ([]Shop, e
 				products []product.Product
 			)
 
-			if err := db.GetContext(ctx, &location, "SELECT * FROM locations WHERE shop_id=$1", shop.ID); err != nil {
+			if err := s.DB.GetContext(ctx, &location, "SELECT * FROM locations WHERE shop_id=$1", shop.ID); err != nil {
 				logger.Log.Errorf("failed listing shop's locations: %v", err)
 				errCh <- errors.Wrap(err, "couldn't find the location")
 			}
 
-			if err := db.Select(&reviews, "SELECT * FROM reviews WHERE shop_id=$1", shop.ID); err != nil {
+			if err := s.DB.Select(&reviews, "SELECT * FROM reviews WHERE shop_id=$1", shop.ID); err != nil {
 				logger.Log.Errorf("failed listing shop's reviews: %v", err)
 				errCh <- errors.Wrap(err, "couldn't find the reviews")
 			}
 
-			if err := db.Select(&products, "SELECT * FROM products WHERE shop_id=$1", shop.ID); err != nil {
+			if err := s.DB.Select(&products, "SELECT * FROM products WHERE shop_id=$1", shop.ID); err != nil {
 				logger.Log.Errorf("failed listing shop's products: %v", err)
 				errCh <- errors.Wrap(err, "couldn't find the products")
 			}
@@ -211,10 +198,11 @@ func getRelationships(ctx context.Context, db *sqlx.DB, shops []Shop) ([]Shop, e
 		}(shop)
 	}
 
-	for range shops {
+	list := make([]Shop, len(shops))
+	for i := range shops {
 		select {
 		case shop := <-ch:
-			list = append(list, shop)
+			list[i] = shop
 		case err := <-errCh:
 			return nil, err
 		}

@@ -68,8 +68,7 @@ func list(t *testing.T) {
 		t.Errorf("couldn't open the database: %v", err)
 	}
 
-	repo := *new(user.Repository)
-	service := user.NewService(repo, db)
+	service := user.NewService(db)
 
 	req := httptest.NewRequest("GET", "localhost:4000/users", nil)
 	rec := httptest.NewRecorder()

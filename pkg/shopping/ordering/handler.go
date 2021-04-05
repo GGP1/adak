@@ -43,8 +43,10 @@ type date struct {
 
 // Handler handles ordering endpoints.
 type Handler struct {
-	DB    *sqlx.DB
-	Cache *lru.Cache
+	Service     Service
+	CartService cart.Service
+	DB          *sqlx.DB
+	Cache       *lru.Cache
 }
 
 // Delete deletes an order.
@@ -53,7 +55,7 @@ func (h *Handler) Delete() http.HandlerFunc {
 		id := chi.URLParam(r, "id")
 		ctx := r.Context()
 
-		if err := Delete(ctx, h.DB, id); err != nil {
+		if err := h.Service.Delete(ctx, id); err != nil {
 			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
@@ -67,7 +69,7 @@ func (h *Handler) Get() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
-		orders, err := Get(ctx, h.DB)
+		orders, err := h.Service.Get(ctx)
 		if err != nil {
 			response.Error(w, http.StatusNotFound, err)
 			return
@@ -83,7 +85,7 @@ func (h *Handler) GetByID() http.HandlerFunc {
 		id := chi.URLParam(r, "id")
 		ctx := r.Context()
 
-		order, err := GetByID(ctx, h.DB, id)
+		order, err := h.Service.GetByID(ctx, id)
 		if err != nil {
 			response.Error(w, http.StatusNotFound, err)
 			return
@@ -112,7 +114,7 @@ func (h *Handler) GetByUserID() http.HandlerFunc {
 			return
 		}
 
-		orders, err := GetByUserID(ctx, h.DB, id)
+		orders, err := h.Service.GetByUserID(ctx, id)
 		if err != nil {
 			response.Error(w, http.StatusNotFound, err)
 			return
@@ -161,15 +163,8 @@ func (h *Handler) New() http.HandlerFunc {
 			return
 		}
 
-		// Fetch the user cart
-		cart, err := cart.Get(ctx, h.DB, cartID)
-		if err != nil {
-			response.Error(w, http.StatusNotFound, err)
-			return
-		}
-
 		// Create order passing userID, order params, delivery date and the user cart
-		order, err := New(ctx, h.DB, userID, oParams, deliveryDate, cart)
+		order, err := h.Service.New(ctx, userID, cartID, oParams, deliveryDate, h.CartService)
 		if err != nil {
 			response.Error(w, http.StatusInternalServerError, err)
 			return
@@ -182,7 +177,7 @@ func (h *Handler) New() http.HandlerFunc {
 			return
 		}
 
-		if err := UpdateStatus(ctx, h.DB, order.ID, PaidState); err != nil {
+		if err := h.Service.UpdateStatus(ctx, order.ID, paid); err != nil {
 			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}

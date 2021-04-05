@@ -29,7 +29,7 @@ var invalidU = &AddUser{
 	Password: "inv",
 }
 
-func NewUserService(t *testing.T) (context.Context, func() error, Service) {
+func NewUserService(t *testing.T) (context.Context, Service) {
 	t.Helper()
 	logger.Log.Disable()
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*1)
@@ -49,42 +49,37 @@ func NewUserService(t *testing.T) (context.Context, func() error, Service) {
 	db, err := postgres.Connect(ctx, &conf.Database)
 	assert.NoError(t, err)
 
-	repo := *new(Repository)
-	service := NewService(repo, db)
+	service := NewService(db)
 
-	closure := func() error {
+	t.Cleanup(func() {
 		cancel()
-		return db.Close()
-	}
+		db.Close()
+	})
 
-	return ctx, closure, service
+	return ctx, service
 }
 
 func TestCreate(t *testing.T) {
-	ctx, close, s := NewUserService(t)
-	defer close()
+	ctx, s := NewUserService(t)
 
 	assert.NoError(t, s.Create(ctx, u))
 }
 
 func TestDelete(t *testing.T) {
-	ctx, close, s := NewUserService(t)
-	defer close()
+	ctx, s := NewUserService(t)
 
 	assert.NoError(t, s.Delete(ctx, u.ID))
 }
 
 func TestGet(t *testing.T) {
-	ctx, close, s := NewUserService(t)
-	defer close()
+	ctx, s := NewUserService(t)
 
 	_, err := s.Get(ctx)
 	assert.NoError(t, err)
 }
 
 func TestGetByID(t *testing.T) {
-	ctx, close, s := NewUserService(t)
-	defer close()
+	ctx, s := NewUserService(t)
 
 	user, err := s.GetByID(ctx, u.ID)
 	assert.NoError(t, err)
@@ -93,8 +88,7 @@ func TestGetByID(t *testing.T) {
 }
 
 func TestGetByEmail(t *testing.T) {
-	ctx, close, s := NewUserService(t)
-	defer close()
+	ctx, s := NewUserService(t)
 
 	user, err := s.GetByEmail(ctx, u.Email)
 	if err != nil {
@@ -105,8 +99,7 @@ func TestGetByEmail(t *testing.T) {
 }
 
 func TestGetByUsername(t *testing.T) {
-	ctx, close, s := NewUserService(t)
-	defer close()
+	ctx, s := NewUserService(t)
 
 	user, err := s.GetByUsername(ctx, u.Email)
 	assert.NoError(t, err)
@@ -115,8 +108,7 @@ func TestGetByUsername(t *testing.T) {
 }
 
 func TestUpdate(t *testing.T) {
-	ctx, close, s := NewUserService(t)
-	defer close()
+	ctx, s := NewUserService(t)
 
 	username := "newUsername"
 	assert.NoError(t, s.Update(ctx, &UpdateUser{Username: username}, u.ID))
@@ -128,8 +120,7 @@ func TestUpdate(t *testing.T) {
 }
 
 func TestSearch(t *testing.T) {
-	ctx, close, s := NewUserService(t)
-	defer close()
+	ctx, s := NewUserService(t)
 
 	users, err := s.Search(ctx, u.ID)
 	assert.NoError(t, err)
@@ -146,8 +137,7 @@ func TestSearch(t *testing.T) {
 }
 
 func TestInvalidService(t *testing.T) {
-	ctx, close, s := NewUserService(t)
-	defer close()
+	ctx, s := NewUserService(t)
 
 	assert.Error(t, s.Create(ctx, invalidU))
 	assert.Error(t, s.Delete(ctx, invalidU.ID))

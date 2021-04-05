@@ -13,16 +13,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-// Repository provides access to the storage.
-type Repository interface {
-	Create(ctx context.Context, p *Product) error
-	Delete(ctx context.Context, id string) error
-	Get(ctx context.Context) ([]Product, error)
-	GetByID(ctx context.Context, id string) (Product, error)
-	Search(ctx context.Context, search string) ([]Product, error)
-	Update(ctx context.Context, p *Product, id string) error
-}
-
 // Service provides product operations.
 type Service interface {
 	Create(ctx context.Context, p *Product) error
@@ -34,16 +24,15 @@ type Service interface {
 }
 
 type service struct {
-	r  Repository
 	DB *sqlx.DB
 }
 
-// NewService creates a deleting service with the necessary dependencies.
-func NewService(r Repository, db *sqlx.DB) Service {
-	return &service{r, db}
+// NewService returns a new product service.
+func NewService(db *sqlx.DB) Service {
+	return &service{db}
 }
 
-// CreateProduct creates a product.
+// Create a product.
 func (s *service) Create(ctx context.Context, p *Product) error {
 	q := `INSERT INTO products 
 	(id, shop_id, stock, brand, category, type, description, weight, discount, taxes, subtotal, total, created_at, updated_at)
@@ -90,7 +79,7 @@ func (s *service) Get(ctx context.Context) ([]Product, error) {
 		return nil, errors.Wrap(err, "couldn't find the products")
 	}
 
-	list, err := getRelationships(ctx, s.DB, products)
+	list, err := s.getRelationships(ctx, products)
 	if err != nil {
 		return nil, err
 	}
@@ -135,7 +124,7 @@ func (s *service) Search(ctx context.Context, search string) ([]Product, error) 
 		return nil, errors.Wrap(err, "couldn't find the products")
 	}
 
-	list, err := getRelationships(ctx, s.DB, products)
+	list, err := s.getRelationships(ctx, products)
 	if err != nil {
 		return nil, err
 	}
@@ -158,16 +147,14 @@ func (s *service) Update(ctx context.Context, p *Product, id string) error {
 	return nil
 }
 
-func getRelationships(ctx context.Context, db *sqlx.DB, products []Product) ([]Product, error) {
-	var list []Product
-
+func (s *service) getRelationships(ctx context.Context, products []Product) ([]Product, error) {
 	ch, errCh := make(chan Product), make(chan error, 1)
 
 	for _, product := range products {
 		go func(product Product) {
 			var reviews []review.Review
 
-			if err := db.SelectContext(ctx, &reviews, "SELECT * FROM reviews WHERE product_id=$1", product.ID); err != nil {
+			if err := s.DB.SelectContext(ctx, &reviews, "SELECT * FROM reviews WHERE product_id=$1", product.ID); err != nil {
 				logger.Log.Errorf("failed listing product's reviews: %v", err)
 				errCh <- errors.Wrap(err, "couldn't find the reviews")
 			}
@@ -178,10 +165,11 @@ func getRelationships(ctx context.Context, db *sqlx.DB, products []Product) ([]P
 		}(product)
 	}
 
-	for range products {
+	list := make([]Product, len(products))
+	for i := range products {
 		select {
-		case p := <-ch:
-			list = append(list, p)
+		case product := <-ch:
+			list[i] = product
 		case err := <-errCh:
 			return nil, err
 		}

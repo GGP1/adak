@@ -11,14 +11,6 @@ import (
 	"github.com/pkg/errors"
 )
 
-// Repository provides access to the storage.
-type Repository interface {
-	Create(ctx context.Context, r *Review, userID string) error
-	Delete(ctx context.Context, id string) error
-	Get(ctx context.Context) ([]*Review, error)
-	GetByID(ctx context.Context, id string) (Review, error)
-}
-
 // Service provides review operations.
 type Service interface {
 	Create(ctx context.Context, r *Review, userID string) error
@@ -28,16 +20,15 @@ type Service interface {
 }
 
 type service struct {
-	r  Repository
 	DB *sqlx.DB
 }
 
-// NewService creates a deleting service with the necessary dependencies.
-func NewService(r Repository, db *sqlx.DB) Service {
-	return &service{r, db}
+// NewService returns a new review service.
+func NewService(db *sqlx.DB) Service {
+	return &service{db}
 }
 
-// Create creates a review.
+// Create a review.
 func (s *service) Create(ctx context.Context, r *Review, userID string) error {
 	q := `INSERT INTO reviews
 	(id, stars, comment, user_id, product_id, shop_id, created_at, updated_at)

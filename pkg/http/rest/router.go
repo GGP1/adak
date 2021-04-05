@@ -24,30 +24,24 @@ import (
 func NewRouter(db *sqlx.DB, cache *lru.Cache) http.Handler {
 	r := chi.NewRouter()
 
-	// Service repositories
-	aRepo := *new(account.Repository)
-	pRepo := *new(product.Repository)
-	rRepo := *new(review.Repository)
-	sRepo := *new(shop.Repository)
-	uRepo := *new(user.Repository)
-
 	// Services
-	accountService := account.NewService(aRepo, db)
-	productService := product.NewService(pRepo, db)
-	reviewService := review.NewService(rRepo, db)
-	shopService := shop.NewService(sRepo, db)
-	userService := user.NewService(uRepo, db)
-
+	accountService := account.NewService(db)
+	cartService := cart.NewService(db)
+	orderingService := ordering.NewService(db)
+	productService := product.NewService(db)
+	reviewService := review.NewService(db)
+	shopService := shop.NewService(db)
+	userService := user.NewService(db)
 	// -- Auth session --
 	session := auth.NewSession(db)
 	// -- Tracking --
 	trackingService := tracking.NewService(db)
 
-	// Middleware authentication
+	// Authentication middleware
 	mAuth := middleware.Auth{
-		DB:      db,
-		Cache:   cache,
-		Service: userService,
+		DB:          db,
+		Cache:       cache,
+		UserService: userService,
 	}
 	adminsOnly := mAuth.AdminsOnly
 	requireLogin := mAuth.RequireLogin
@@ -64,8 +58,9 @@ func NewRouter(db *sqlx.DB, cache *lru.Cache) http.Handler {
 
 	// Cart
 	cart := cart.Handler{
-		DB:    db,
-		Cache: cache,
+		Service: cartService,
+		DB:      db,
+		Cache:   cache,
 	}
 	r.Route("/cart", func(r chi.Router) {
 		r.Use(requireLogin)
@@ -91,8 +86,10 @@ func NewRouter(db *sqlx.DB, cache *lru.Cache) http.Handler {
 
 	// Ordering
 	order := ordering.Handler{
-		DB:    db,
-		Cache: cache,
+		Service:     orderingService,
+		CartService: cartService,
+		DB:          db,
+		Cache:       cache,
 	}
 	r.With(adminsOnly).Get("/orders", order.Get())
 	r.With(adminsOnly).Delete("/order/{id}", order.Delete())
@@ -165,8 +162,9 @@ func NewRouter(db *sqlx.DB, cache *lru.Cache) http.Handler {
 
 	// User
 	user := user.Handler{
-		Service: userService,
-		Cache:   cache,
+		Service:     userService,
+		CartService: cartService,
+		Cache:       cache,
 	}
 	r.Route("/users", func(r chi.Router) {
 		r.Get("/", user.Get())
@@ -181,8 +179,11 @@ func NewRouter(db *sqlx.DB, cache *lru.Cache) http.Handler {
 	})
 
 	// Account
-	account := account.Handler{Service: accountService}
-	r.With(requireLogin).Post("/settings/email", account.SendChangeConfirmation(userService))
+	account := account.Handler{
+		Service:     accountService,
+		UserService: userService,
+	}
+	r.With(requireLogin).Post("/settings/email", account.SendChangeConfirmation())
 	r.With(requireLogin).Post("/settings/password", account.ChangePassword())
 	r.Get("/verification/{email}/{token}", account.SendEmailValidation(userService))
 	r.Get("/verification/{token}/{email}/{id}", account.ChangeEmail())

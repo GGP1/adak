@@ -17,7 +17,8 @@ import (
 
 // Handler handles account endpoints.
 type Handler struct {
-	Service Service
+	Service     Service
+	UserService user.Service
 }
 
 type changeEmail struct {
@@ -75,7 +76,7 @@ func (h *Handler) ChangePassword() http.HandlerFunc {
 }
 
 // SendChangeConfirmation takes the new email and sends an email confirmation.
-func (h *Handler) SendChangeConfirmation(u user.Service) http.HandlerFunc {
+func (h *Handler) SendChangeConfirmation() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var new changeEmail
 		ctx := r.Context()
@@ -86,7 +87,7 @@ func (h *Handler) SendChangeConfirmation(u user.Service) http.HandlerFunc {
 		}
 		defer r.Body.Close()
 
-		if _, err := u.GetByEmail(ctx, new.Email); err == nil {
+		if _, err := h.UserService.GetByEmail(ctx, new.Email); err == nil {
 			response.Error(w, http.StatusBadRequest, errors.New("email is already taken"))
 			return
 		}
@@ -97,7 +98,7 @@ func (h *Handler) SendChangeConfirmation(u user.Service) http.HandlerFunc {
 			return
 		}
 
-		user, err := u.GetByID(ctx, userID)
+		user, err := h.UserService.GetByID(ctx, userID)
 		if err != nil {
 			response.Error(w, http.StatusNotFound, err)
 			return

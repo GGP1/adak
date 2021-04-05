@@ -15,9 +15,9 @@ import (
 
 // Auth contains the elements needed to authorize users.
 type Auth struct {
-	*sqlx.DB
-	*lru.Cache
-	user.Service
+	DB          *sqlx.DB
+	Cache       *lru.Cache
+	UserService user.Service
 }
 
 // AdminsOnly requires the user to be an administrator to proceed.
@@ -44,7 +44,7 @@ func (a *Auth) AdminsOnly(next http.Handler) http.Handler {
 			return
 		}
 
-		us, err := a.Service.GetByID(ctx, id)
+		us, err := a.UserService.GetByID(ctx, id)
 		if err != nil {
 			response.Error(w, http.StatusNotFound, err)
 			return
@@ -89,7 +89,7 @@ func (a *Auth) RequireLogin(next http.Handler) http.Handler {
 			return
 		}
 
-		us, err := a.Service.GetByID(ctx, id)
+		us, err := a.UserService.GetByID(ctx, id)
 		if err != nil {
 			response.Error(w, http.StatusNotFound, err)
 			return

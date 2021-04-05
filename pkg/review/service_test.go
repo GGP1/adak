@@ -7,9 +7,9 @@ import (
 
 	"github.com/GGP1/adak/internal/config"
 	"github.com/GGP1/adak/pkg/postgres"
-	"github.com/pkg/errors"
 
 	_ "github.com/lib/pq"
+	"github.com/pkg/errors"
 )
 
 var r = Review{
@@ -30,7 +30,7 @@ var invalidR = Review{
 	ShopID:    "non-existent",
 }
 
-func NewReviewService() (Service, func() error, error) {
+func NewTestService() (Service, func() error, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
 	defer cancel()
 
@@ -44,9 +44,7 @@ func NewReviewService() (Service, func() error, error) {
 		return nil, nil, err
 	}
 
-	repo := *new(Repository)
-	service := NewService(repo, db)
-
+	service := NewService(db)
 	return service, db.Close, nil
 }
 
@@ -54,7 +52,7 @@ func TestService(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.TODO(), time.Second*3)
 	defer cancel()
 
-	s, close, err := NewReviewService()
+	s, close, err := NewTestService()
 	if err != nil {
 		t.Error(err)
 	}
@@ -95,7 +93,7 @@ func TestInvalidService(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.TODO(), time.Second*3)
 	defer cancel()
 
-	s, close, err := NewReviewService()
+	s, close, err := NewTestService()
 	if err != nil {
 		t.Error(err)
 	}
@@ -109,8 +107,7 @@ func TestInvalidService(t *testing.T) {
 		t.Errorf("Expected Delete() to fail but it didn't: %v", err)
 	}
 
-	_, err = s.GetByID(ctx, invalidR.ID)
-	if err == nil {
+	if _, err := s.GetByID(ctx, invalidR.ID); err == nil {
 		t.Errorf("Expected GetByID() to fail but it didn't: %v", err)
 	}
 }

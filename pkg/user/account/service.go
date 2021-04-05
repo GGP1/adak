@@ -12,13 +12,6 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-// Repository provides access to the storage.
-type Repository interface {
-	ChangeEmail(ctx context.Context, id, newEmail, token string) error
-	ChangePassword(ctx context.Context, id, oldPass, newPass string) error
-	ValidateUserEmail(ctx context.Context, id, confirmationCode string, verified bool) error
-}
-
 // Service provides user account operations.
 type Service interface {
 	ChangeEmail(ctx context.Context, id, newEmail, token string) error
@@ -27,13 +20,12 @@ type Service interface {
 }
 
 type service struct {
-	r  Repository
 	DB *sqlx.DB
 }
 
-// NewService creates a searching service with the necessary dependencies.
-func NewService(r Repository, db *sqlx.DB) Service {
-	return &service{r, db}
+// NewService creates an account service.
+func NewService(db *sqlx.DB) Service {
+	return &service{db}
 }
 
 // Change changes the user email.
