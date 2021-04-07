@@ -27,13 +27,13 @@ func NewService(db *sqlx.DB) *Reviews {
 
 // Run starts the server.
 func (r *Reviews) Run(port int) error {
-	lis, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", port))
+	srv := grpc.NewServer()
+	RegisterReviewsServer(srv, r)
+
+	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 	if err != nil {
 		return errors.Wrapf(err, "reviews: failed listening on port %d", port)
 	}
-
-	srv := grpc.NewServer()
-	RegisterReviewsServer(srv, r)
 
 	return srv.Serve(lis)
 }

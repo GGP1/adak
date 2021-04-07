@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/GGP1/adak/internal/config"
+
 	"github.com/stripe/stripe-go"
 )
 
@@ -19,7 +20,7 @@ type Server struct {
 	*http.Server
 	Stripe
 
-	TimeoutShutdown time.Duration
+	ShutdownTimeout time.Duration
 }
 
 // Stripe holds stripe configurations.
@@ -49,36 +50,34 @@ func New(c *config.Config, router http.Handler) *Server {
 // Start runs the server listening for errors.
 func (srv *Server) Start() error {
 	stripe.Key = srv.Stripe.SecretKey
-
 	stripe.DefaultLeveledLogger = &stripe.LeveledLogger{
 		Level: srv.Stripe.Level,
 	}
 
 	serverErr := make(chan error, 1)
-
 	go func() {
 		fmt.Println("Listening on", srv.Addr)
 		serverErr <- srv.ListenAndServe()
 	}()
 
-	shutdown := make(chan os.Signal, 1)
-	signal.Notify(shutdown, os.Interrupt, syscall.SIGTERM)
+	interrupt := make(chan os.Signal, 1)
+	signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
 
 	// Shutdown
 	select {
 	case err := <-serverErr:
 		return fmt.Errorf("error: Listening and serving failed %s", err)
 
-	case <-shutdown:
+	case <-interrupt:
 		log.Println("main: Start shutdown")
 
 		// Give outstanding requests a deadline for completion
-		ctx, cancel := context.WithTimeout(context.Background(), srv.TimeoutShutdown)
+		ctx, cancel := context.WithTimeout(context.Background(), srv.ShutdownTimeout)
 		defer cancel()
 
 		// Asking listener to shutdown and load shed
 		if err := srv.Shutdown(ctx); err != nil {
-			return fmt.Errorf("main: Graceful shutdown did not complete in %v : %v", srv.TimeoutShutdown, err)
+			return fmt.Errorf("main: Graceful shutdown did not complete in %v : %v", srv.ShutdownTimeout, err)
 		}
 
 		if err := srv.Close(); err != nil {

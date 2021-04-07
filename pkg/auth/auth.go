@@ -40,7 +40,6 @@ type Session struct {
 }
 
 type userData struct {
-	email    string
 	lastSeen time.Time
 }
 
@@ -59,13 +58,13 @@ func NewSession(db *sqlx.DB, userConn *grpc.ClientConn) *Session {
 
 // Run starts the server.
 func (s *Session) Run(port int) error {
-	lis, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", port))
+	srv := grpc.NewServer()
+	RegisterSessionServer(srv, s)
+
+	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 	if err != nil {
 		return errors.Wrapf(err, "session: failed listening on port %d", port)
 	}
-
-	srv := grpc.NewServer()
-	RegisterSessionServer(srv, s)
 
 	return srv.Serve(lis)
 }
@@ -73,22 +72,23 @@ func (s *Session) Run(port int) error {
 // AlreadyLoggedIn checks if the user has an active session or not.
 func (s *Session) AlreadyLoggedIn(ctx context.Context, req *AlreadyLoggedInRequest) (*AlreadyLoggedInResponse, error) {
 	s.Lock()
-	defer s.Unlock()
-
 	user, ok := s.store[req.SessionID]
 	if ok {
 		user.lastSeen = time.Now()
 		s.store[req.SessionID] = user
 	}
+	s.Unlock()
 
 	return &AlreadyLoggedInResponse{SessionLength: int64(s.length), LoggedIn: ok}, nil
 }
 
 // Login authenticates users.
 func (s *Session) Login(ctx context.Context, req *LoginRequest) (*LoginResponse, error) {
+	s.RLock()
 	if !s.delay[req.Email].IsZero() && s.delay[req.Email].Sub(time.Now()) > 0 {
 		return nil, fmt.Errorf("please wait %v before trying again", s.delay[req.Email].Sub(time.Now()))
 	}
+	s.RUnlock()
 
 	// Check if the email exists and if it is verified
 	u, err := s.userClient.GetByEmail(ctx, &user.GetByEmailRequest{Email: req.Email})
@@ -111,7 +111,7 @@ func (s *Session) Login(ctx context.Context, req *LoginRequest) (*LoginResponse,
 
 	// Set session data and delete tries and delay
 	s.Lock()
-	s.store[sID] = userData{u.User.Email, time.Now()}
+	s.store[sID] = userData{time.Now()}
 	delete(s.tries, req.Email)
 	delete(s.delay, req.Email)
 	s.Unlock()
@@ -134,8 +134,11 @@ func (s *Session) Logout(ctx context.Context, req *LogoutRequest) (*LogoutRespon
 
 // clean deletes all the sessions that have expired.
 func (s *Session) clean() {
+	s.Lock()
+	defer s.Unlock()
+
 	for key, value := range s.store {
-		if time.Now().Sub(value.lastSeen) > (time.Hour * 24) {
+		if time.Now().Sub(value.lastSeen) > (time.Hour * 168) {
 			delete(s.store, key)
 		}
 	}

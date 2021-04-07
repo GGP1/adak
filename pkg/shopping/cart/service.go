@@ -28,13 +28,13 @@ func NewService(db *sqlx.DB) *Shopping {
 
 // Run starts the server.
 func (s *Shopping) Run(port int) error {
-	lis, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", port))
+	srv := grpc.NewServer()
+	RegisterShoppingServer(srv, s)
+
+	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 	if err != nil {
 		return errors.Wrapf(err, "shopping: failed listening on port %d", port)
 	}
-
-	srv := grpc.NewServer()
-	RegisterShoppingServer(srv, s)
 
 	return srv.Serve(lis)
 }
@@ -219,13 +219,7 @@ func (s *Shopping) Size(ctx context.Context, req *SizeRequest) (*SizeResponse, e
 }
 
 // String returns a string with the cart details.
-func String(ctx context.Context, db *sqlx.DB, cartID string) (string, error) {
-	var c Cart
-
-	if err := db.GetContext(ctx, &c, "SELECT * FROM carts WHERE id=$1", cartID); err != nil {
-		return "", errors.Wrap(err, "couldn't find the cart")
-	}
-
+func String(ctx context.Context, c *Cart) (string, error) {
 	const details = `The cart has %d products, a weight of %2.fkg, $%2.f of discounts, 
 	$%2.f of taxes and a total of $%2.f`
 

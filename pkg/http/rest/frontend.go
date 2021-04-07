@@ -66,8 +66,8 @@ func (s *Frontend) Run(port int) error {
 
 	// Auth
 	r.Post("/login", s.Login())
-	r.Get("login/google", s.LoginGoogle())
-	r.Get("login/oauth2/google", s.OAUTH2Google())
+	r.Get("/login/google", s.LoginGoogle())
+	r.Get("/login/oauth2/google", s.OAUTH2Google())
 	r.With(m.RequireLogin).Get("/logout", s.Logout())
 
 	// Cart

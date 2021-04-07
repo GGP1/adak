@@ -162,6 +162,8 @@ func getConfigDir(osName string) string {
 
 var (
 	defaults = map[string]interface{}{
+		// Admins
+		"admin.emails": []string{},
 		// Database
 		"database.username": "postgres",
 		"database.password": "password",
@@ -192,6 +194,8 @@ var (
 	}
 
 	envVars = map[string]string{
+		// Admins
+		"admin.emails": "ADMIN_EMAILS",
 		// Database
 		"database.username": "POSTGRES_USERNAME",
 		"database.password": "POSTGRES_PASSWORD",

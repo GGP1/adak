@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"flag"
-	"fmt"
 	"log"
 	"os"
 
@@ -56,44 +55,47 @@ func main() {
 	defer db.Close()
 
 	var srv server
-	fmt.Println(os.Args)
+
+	if len(os.Args) < 2 {
+		log.Fatal("no service was specified")
+	}
 
 	switch os.Args[1] {
 	case "account":
-		srv = account.NewService(db, initGRPCConn(*useraddr))
+		srv = account.NewService(db, GRPCDial(*useraddr))
 	case "product":
-		srv = product.NewService(db, initGRPCConn(*reviewaddr))
+		srv = product.NewService(db, GRPCDial(*reviewaddr))
 	case "review":
 		srv = review.NewService(db)
 	case "shop":
 		srv = shop.NewService(
 			db,
-			initGRPCConn(*productaddr),
-			initGRPCConn(*reviewaddr),
+			GRPCDial(*productaddr),
+			GRPCDial(*reviewaddr),
 		)
 	case "user":
 		srv = user.NewService(
 			db,
-			initGRPCConn(*orderingaddr),
-			initGRPCConn(*shoppingaddr),
+			GRPCDial(*orderingaddr),
+			GRPCDial(*shoppingaddr),
 		)
 	case "ordering":
-		srv = ordering.NewService(db, initGRPCConn(*shoppingaddr))
+		srv = ordering.NewService(db, GRPCDial(*shoppingaddr))
 	case "session":
-		srv = auth.NewSession(db, initGRPCConn(*useraddr))
+		srv = auth.NewSession(db, GRPCDial(*useraddr))
 	case "shopping":
 		srv = cart.NewService(db)
 	case "frontend":
 		srv = rest.NewFrontend(
 			conf,
-			initGRPCConn(*accountaddr),
-			initGRPCConn(*productaddr),
-			initGRPCConn(*reviewaddr),
-			initGRPCConn(*shopaddr),
-			initGRPCConn(*useraddr),
-			initGRPCConn(*orderingaddr),
-			initGRPCConn(*sessionaddr),
-			initGRPCConn(*shoppingaddr),
+			GRPCDial(*accountaddr),
+			GRPCDial(*productaddr),
+			GRPCDial(*reviewaddr),
+			GRPCDial(*shopaddr),
+			GRPCDial(*useraddr),
+			GRPCDial(*orderingaddr),
+			GRPCDial(*sessionaddr),
+			GRPCDial(*shoppingaddr),
 		)
 	default:
 		log.Fatalf("unknown command %s", os.Args[1])
@@ -104,10 +106,11 @@ func main() {
 	}
 }
 
-func initGRPCConn(addr string) *grpc.ClientConn {
+// GRPCDial initializes a connection on the address provided.
+func GRPCDial(addr string) *grpc.ClientConn {
 	conn, err := grpc.Dial(addr, grpc.WithInsecure())
 	if err != nil {
-		log.Fatalf("error: failed dial on %s: %v", addr, err)
+		log.Fatalf("error: dial on %s: %v", addr, err)
 	}
 	return conn
 }

@@ -3,7 +3,6 @@ package product
 import (
 	"context"
 	"fmt"
-	"math"
 	"net"
 	"strings"
 	"time"
@@ -33,13 +32,13 @@ func NewService(db *sqlx.DB, reviewConn *grpc.ClientConn) *Products {
 
 // Run starts the server.
 func (p *Products) Run(port int) error {
-	lis, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", port))
+	srv := grpc.NewServer()
+	RegisterProductsServer(srv, p)
+
+	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 	if err != nil {
 		return errors.Wrapf(err, "products: failed listening on port %d", port)
 	}
-
-	srv := grpc.NewServer()
-	RegisterProductsServer(srv, p)
 
 	return srv.Serve(lis)
 }
@@ -57,16 +56,13 @@ func (p *Products) Create(ctx context.Context, req *CreateRequest) (*CreateRespo
 	taxes := ((req.Product.Subtotal / 100) * req.Product.Taxes)
 	discount := ((req.Product.Subtotal / 100) * req.Product.Discount)
 
-	// round floats
-	req.Product.Weight = math.Ceil(req.Product.Weight*100) / 100
-	req.Product.Discount = math.Ceil(discount*100) / 100
-	req.Product.Taxes = math.Ceil(taxes*100) / 100
-	req.Product.Subtotal = math.Ceil(req.Product.Subtotal*100) / 100
+	req.Product.Discount = discount
+	req.Product.Taxes = taxes
 	req.Product.Total = req.Product.Subtotal + req.Product.Taxes - req.Product.Discount
 
 	_, err := p.db.ExecContext(ctx, q, id, req.Product.ShopID, req.Product.Stock, req.Product.Brand,
-		req.Product.Category, req.Product.Type, req.Product.Description, req.Product.Weight,
-		req.Product.Discount, req.Product.Taxes, req.Product.Subtotal, req.Product.Total, req.Product.CreatedAt, req.Product.UpdatedAt)
+		req.Product.Category, req.Product.Type, req.Product.Description, req.Product.Weight, req.Product.Discount,
+		req.Product.Taxes, req.Product.Subtotal, req.Product.Total, req.Product.CreatedAt, req.Product.UpdatedAt)
 	if err != nil {
 		return nil, errors.Wrap(err, "couldn't create the product")
 	}

@@ -12,12 +12,12 @@ import (
 // Home gives users a welcome and takes non-invasive information from them.
 func Home(t tracking.Tracker) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
+		// ctx := r.Context()
 
-		if err := t.Hit(ctx, r); err != nil {
-			response.Error(w, http.StatusInternalServerError, err)
-			return
-		}
+		// if err := t.Hit(ctx, r); err != nil {
+		// 	response.Error(w, http.StatusInternalServerError, err)
+		// 	return
+		// }
 
 		lang := r.Header.Get("Accept-Language")
 

@@ -31,13 +31,13 @@ func NewService(db *sqlx.DB, userConn *grpc.ClientConn) *Accounts {
 
 // Run starts the server.
 func (a *Accounts) Run(port int) error {
-	lis, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", port))
+	srv := grpc.NewServer()
+	RegisterAccountsServer(srv, a)
+
+	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 	if err != nil {
 		return errors.Wrapf(err, "products: failed listening on port %d", port)
 	}
-
-	srv := grpc.NewServer()
-	RegisterAccountsServer(srv, a)
 
 	return srv.Serve(lis)
 }

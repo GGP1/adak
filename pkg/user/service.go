@@ -37,13 +37,13 @@ func NewService(db *sqlx.DB, orderingConn, shoppingConn *grpc.ClientConn) *Users
 
 // Run starts the server.
 func (u *Users) Run(port int) error {
-	lis, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", port))
+	srv := grpc.NewServer()
+	RegisterUsersServer(srv, u)
+
+	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 	if err != nil {
 		return errors.Wrapf(err, "users: failed listening on port %d", port)
 	}
-
-	srv := grpc.NewServer()
-	RegisterUsersServer(srv, u)
 
 	return srv.Serve(lis)
 }
@@ -177,15 +177,14 @@ func (u *Users) GetByUsername(ctx context.Context, req *GetByUsernameRequest) (*
 
 // Search looks for the users that contain the value specified. (Only text fields)
 func (u *Users) Search(ctx context.Context, req *SearchRequest) (*SearchResponse, error) {
-	var users []*ListUser
-
-	q := `SELECT * FROM users WHERE
-	to_tsvector(id || ' ' || username || ' ' || email) 
-	@@ to_tsquery($1)`
-
 	if strings.ContainsAny(req.Search, ";-\\|@#~€¬<>_()[]}{¡'") {
 		return nil, errors.New("invalid search")
 	}
+
+	users := []*ListUser{}
+	q := `SELECT * FROM users WHERE
+	to_tsvector(id || ' ' || username || ' ' || email) 
+	@@ to_tsquery($1)`
 
 	if err := u.db.SelectContext(ctx, &users, q, req.Search); err != nil {
 		return nil, errors.Wrap(err, "couldn't find the users")
@@ -201,34 +200,7 @@ func (u *Users) Search(ctx context.Context, req *SearchRequest) (*SearchResponse
 
 // Update sets new values for an already existing user.
 func (u *Users) Update(ctx context.Context, req *UpdateRequest) (*UpdateResponse, error) {
-	var user *UpdateUser
-	get := "SELECT username, email, password, verified_email, confirmation_code, updated_at FROM users WHERE id=$1"
-	update := "UPDATE users SET username=$2, email=$3, password=$4, verified_email=$5, confirmation_code=$6, updated_at=$7 WHERE id=$1"
-
-	// Get the user and fill empty fields to not overwrite them when updating.
-	if err := u.db.GetContext(ctx, &user, get, req.ID); err != nil {
-		return nil, errors.Wrap(err, "couldn't find the user")
-	}
-
-	if req.User.Username == "" {
-		req.User.Username = user.Username
-	}
-	if req.User.Email == "" {
-		req.User.Email = user.Email
-	}
-	if req.User.Password == "" {
-		req.User.Password = user.Password
-	}
-	if req.User.VerifiedEmail == false {
-		req.User.VerifiedEmail = user.VerifiedEmail
-	}
-	if req.User.ConfirmationCode == "" {
-		req.User.ConfirmationCode = user.ConfirmationCode
-	}
-	updatedAt := time.Now()
-
-	_, err := u.db.ExecContext(ctx, update, req.ID, req.User.Username, req.User.Email, req.User.Password,
-		req.User.VerifiedEmail, req.User.ConfirmationCode, updatedAt)
+	_, err := u.db.ExecContext(ctx, "UPDATE users SET username=$2 WHERE id=$1", req.ID, req.User.Username)
 	if err != nil {
 		return nil, errors.Wrap(err, "couldn't update the user")
 	}
@@ -237,8 +209,6 @@ func (u *Users) Update(ctx context.Context, req *UpdateRequest) (*UpdateResponse
 }
 
 func getRelationships(ctx context.Context, db *sqlx.DB, users []*ListUser) ([]*ListUser, error) {
-	var list []*ListUser
-
 	ch, errCh := make(chan *ListUser), make(chan error, 1)
 
 	for _, user := range users {
@@ -248,8 +218,12 @@ func getRelationships(ctx context.Context, db *sqlx.DB, users []*ListUser) ([]*L
 				orders  []*ordering.Order
 			)
 
-			if err := db.SelectContext(ctx, &reviews, "SELECT * FROM reviews WHERE user_id=$1", user.ID); err != nil {
+			if err := db.Select(&reviews, "SELECT * FROM reviews WHERE user_id=$1", user.ID); err != nil {
 				errCh <- errors.Wrap(err, "couldn't find the reviews")
+			}
+
+			if err := db.Select(&orders, "SELECT * FROM orders WHERE user_id=$1", user.ID); err != nil {
+				errCh <- errors.Wrap(err, "couldn't find the orders")
 			}
 
 			user.Orders = orders
@@ -259,10 +233,11 @@ func getRelationships(ctx context.Context, db *sqlx.DB, users []*ListUser) ([]*L
 		}(user)
 	}
 
-	for i := 0; i < len(users); i++ {
+	list := make([]*ListUser, len(users))
+	for i := range users {
 		select {
 		case user := <-ch:
-			list = append(list, user)
+			list[i] = user
 		case err := <-errCh:
 			return nil, err
 		}

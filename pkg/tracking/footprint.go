@@ -3,6 +3,7 @@ package tracking
 import (
 	"crypto/md5"
 	"encoding/hex"
+	"fmt"
 	"io"
 	"net"
 	"net/http"
@@ -22,7 +23,7 @@ func Footprint(r *http.Request, salt string) (string, error) {
 
 	sb.WriteString(r.Header.Get("User-Agent"))
 	sb.WriteString(ip)
-	sb.WriteString(string(time.Now().UnixNano()))
+	sb.WriteString(fmt.Sprint(time.Now().UnixNano()))
 	sb.WriteString(salt)
 	hash := md5.New()
 

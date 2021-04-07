@@ -4,4 +4,6 @@ TODO.txt
 postgres-data
 
 cmd/server/certs
-pkg/auth/adminList.go
+api
+
+*.exe

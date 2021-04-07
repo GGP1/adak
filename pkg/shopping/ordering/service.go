@@ -43,13 +43,13 @@ func NewService(db *sqlx.DB, shoppingConn *grpc.ClientConn) *Ordering {
 
 // Run starts the server.
 func (o *Ordering) Run(port int) error {
-	lis, err := net.Listen("tcp", fmt.Sprintf("localhost:%d", port))
+	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 	if err != nil {
 		return errors.Wrapf(err, "ordering: failed connecting to the server on port %d", port)
 	}
 
 	srv := grpc.NewServer()
-	// RegisterOrderingServer(srv, o)
+	RegisterOrderingServer(srv, o)
 
 	return srv.Serve(lis)
 }

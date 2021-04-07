@@ -11,11 +11,12 @@ import (
 	"github.com/GGP1/adak/internal/sanitize"
 	"github.com/GGP1/adak/internal/token"
 	"github.com/GGP1/adak/pkg/auth"
-	"golang.org/x/oauth2"
-	"golang.org/x/oauth2/google"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/pkg/errors"
+	"github.com/spf13/viper"
+	"golang.org/x/oauth2"
+	"golang.org/x/oauth2/google"
 )
 
 var (
@@ -71,11 +72,10 @@ func (s *Frontend) Login() http.HandlerFunc {
 			return
 		}
 
-		for _, admin := range auth.AdminList {
-			if admin == user.Email {
-				admID := token.GenerateRunes(8)
-				auth.SetCookie(w, "AID", admID, "/", int(login.SessionLength))
-			}
+		adminEmails := viper.GetStringMap("admins.email")
+		if _, ok := adminEmails[user.Email]; ok {
+			admID := token.GenerateRunes(8)
+			auth.SetCookie(w, "AID", admID, "/", int(login.SessionLength))
 		}
 
 		userID, err := token.GenerateFixedJWT(user.ID)
