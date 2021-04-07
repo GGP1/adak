@@ -8,6 +8,8 @@ services:
       POSTGRES_PASSWORD: postgres
     ports:
       - 5432:5432
+    networks: 
+      - net
     volumes: 
       - ./postgres-data:/var/lib/postgresql/data
 
@@ -24,23 +26,18 @@ services:
       POSTGRES_DB: postgres
     ports:
       - 4000:4000
+    networks: 
+      - net
     depends_on:
       - db
   
   frontend:
     image: adak_adak
-    entrypoint: main frontend
+    entrypoint: adak frontend
     ports:
-      - 9000:9000
-    links:
-      - account
-      - product
-      - review
-      - shop
-      - user
-      - ordering
-      - session
-      - shopping
+      - 8080:8080
+    networks: 
+      - net
     depends_on:
       - db
       - adak
@@ -54,42 +51,45 @@ services:
       - shopping
   account:
     image: adak_adak
-    entrypoint: main account
-    links:
-      - user
+    entrypoint: adak account
+    networks: 
+      - net
   product:
     image: adak_adak
-    entrypoint: main product
-    links:
-      - review
+    entrypoint: adak product
+    networks: 
+      - net
   review:
     image: adak_adak
-    entrypoint: main review
+    entrypoint: adak review
   shop:
     image: adak_adak
-    entrypoint: main shop
-    links:
-      - product
-      - review
+    entrypoint: adak shop
+    networks: 
+      - net
   user:
     image: adak_adak
-    entrypoint: main user
-    links:
-      - ordering
-      - shopping
+    entrypoint: adak user
+    networks: 
+      - net
   ordering:
     image: adak_adak
-    entrypoint: main ordering
-    links:
-      - shopping
+    entrypoint: adak ordering
+    networks: 
+      - net
   session:
     image: adak_adak
-    entrypoint: main session
-    links:
-      - user
+    entrypoint: adak session
+    networks: 
+      - net
   shopping:
     image: adak_adak
-    entrypoint: main shopping
+    entrypoint: adak shopping
+    networks: 
+      - net
 
 volumes:
   postgres-data:
+
+networks:
+  net:
