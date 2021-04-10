@@ -94,11 +94,7 @@ func (h *Handler) FilterByBrand() http.HandlerFunc {
 
 		ctx := r.Context()
 		brand := chi.URLParam(r, "brand")
-
-		if err := sanitize.Normalize(&brand); err != nil {
-			response.Error(w, http.StatusBadRequest, err)
-			return
-		}
+		brand = sanitize.Normalize(brand)
 
 		products, err := h.Service.FilterByBrand(ctx, cartID, brand)
 		if err != nil {
@@ -121,11 +117,7 @@ func (h *Handler) FilterByCategory() http.HandlerFunc {
 
 		ctx := r.Context()
 		category := chi.URLParam(r, "category")
-
-		if err := sanitize.Normalize(&category); err != nil {
-			response.Error(w, http.StatusBadRequest, err)
-			return
-		}
+		category = sanitize.Normalize(category)
 
 		products, err := h.Service.FilterByCategory(ctx, cartID, category)
 		if err != nil {
@@ -284,11 +276,7 @@ func (h *Handler) FilterByType() http.HandlerFunc {
 
 		ctx := r.Context()
 		pType := chi.URLParam(r, "type")
-
-		if err := sanitize.Normalize(&pType); err != nil {
-			response.Error(w, http.StatusBadRequest, err)
-			return
-		}
+		pType = sanitize.Normalize(pType)
 
 		products, err := h.Service.FilterByType(ctx, cartID, pType)
 		if err != nil {

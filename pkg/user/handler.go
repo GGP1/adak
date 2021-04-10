@@ -44,10 +44,8 @@ func (h *Handler) Create() http.HandlerFunc {
 			return
 		}
 
-		if err := sanitize.Normalize(&user.Username, &user.Email); err != nil {
-			response.Error(w, http.StatusBadRequest, err)
-			return
-		}
+		user.Username = sanitize.Normalize(user.Username)
+		user.Email = sanitize.Normalize(user.Email)
 
 		confirmationCode := token.RandString(20)
 		if err := email.SendValidation(ctx, user.Username, user.Email, confirmationCode); err != nil {
@@ -203,10 +201,7 @@ func (h *Handler) Search() http.HandlerFunc {
 		query := chi.URLParam(r, "query")
 		ctx := r.Context()
 
-		if err := sanitize.Normalize(&query); err != nil {
-			response.Error(w, http.StatusBadRequest, err)
-			return
-		}
+		query = sanitize.Normalize(query)
 
 		users, err := h.Service.Search(ctx, query)
 		if err != nil {

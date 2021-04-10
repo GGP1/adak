@@ -104,10 +104,7 @@ func (h *Handler) Search() http.HandlerFunc {
 		query := chi.URLParam(r, "query")
 		ctx := r.Context()
 
-		if err := sanitize.Normalize(&query); err != nil {
-			response.Error(w, http.StatusBadRequest, err)
-			return
-		}
+		query = sanitize.Normalize(query)
 
 		shops, err := h.Service.Search(ctx, query)
 		if err != nil {

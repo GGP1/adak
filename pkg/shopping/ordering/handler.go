@@ -150,11 +150,12 @@ func (h *Handler) New() http.HandlerFunc {
 			response.Error(w, http.StatusBadRequest, err.(validator.ValidationErrors))
 			return
 		}
-
-		if err := sanitize.Normalize(&oParams.Address, &oParams.City, &oParams.Country, &oParams.Currency, &oParams.State, &oParams.ZipCode); err != nil {
-			response.Error(w, http.StatusBadRequest, err)
-			return
-		}
+		oParams.Address = sanitize.Normalize(oParams.Address)
+		oParams.City = sanitize.Normalize(oParams.City)
+		oParams.Country = sanitize.Normalize(oParams.Country)
+		oParams.Currency = sanitize.Normalize(oParams.Currency)
+		oParams.State = sanitize.Normalize(oParams.State)
+		oParams.ZipCode = sanitize.Normalize(oParams.ZipCode)
 
 		// Format date
 		deliveryDate := time.Date(oParams.Date.Year, time.Month(oParams.Date.Month), oParams.Date.Day, oParams.Date.Hour, oParams.Date.Minutes, 0, 0, time.Local)

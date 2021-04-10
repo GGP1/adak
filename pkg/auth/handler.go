@@ -54,10 +54,8 @@ func Login(s Session) http.HandlerFunc {
 			return
 		}
 
-		if err := sanitize.Normalize(&auth.Email, &auth.Password); err != nil {
-			response.Error(w, http.StatusBadRequest, err)
-			return
-		}
+		auth.Email = sanitize.Normalize(auth.Email)
+		auth.Password = sanitize.Normalize(auth.Password)
 
 		if err := s.Login(ctx, w, r, auth.Email, auth.Password); err != nil {
 			response.Error(w, http.StatusForbidden, err)
