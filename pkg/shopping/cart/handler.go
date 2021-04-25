@@ -10,8 +10,8 @@ import (
 	"github.com/GGP1/adak/internal/response"
 	"github.com/GGP1/adak/internal/sanitize"
 
+	"github.com/bradfitz/gomemcache/memcache"
 	"github.com/go-chi/chi"
-	lru "github.com/hashicorp/golang-lru"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 )
@@ -20,7 +20,7 @@ import (
 type Handler struct {
 	Service Service
 	DB      *sqlx.DB
-	Cache   *lru.Cache
+	Cache   *memcache.Client
 }
 
 // Add appends a product to the cart.
@@ -332,9 +332,9 @@ func (h *Handler) Get() http.HandlerFunc {
 			return
 		}
 
-		item, _ := h.Cache.Get(cartID)
-		if ct, ok := item.(Cart); ok {
-			response.JSON(w, http.StatusOK, &ct)
+		item, err := h.Cache.Get(cartID)
+		if err == nil {
+			response.EncodedJSON(w, item.Value)
 			return
 		}
 
@@ -344,8 +344,7 @@ func (h *Handler) Get() http.HandlerFunc {
 			return
 		}
 
-		h.Cache.Add(cartID, cart)
-		response.JSON(w, http.StatusOK, cart)
+		response.JSONAndCache(h.Cache, w, cartID, cart)
 	}
 }
 

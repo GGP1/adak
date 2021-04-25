@@ -7,16 +7,16 @@ import (
 
 	"github.com/GGP1/adak/internal/response"
 	"github.com/GGP1/adak/internal/sanitize"
+	"github.com/bradfitz/gomemcache/memcache"
 
 	"github.com/go-chi/chi"
 	validator "github.com/go-playground/validator/v10"
-	lru "github.com/hashicorp/golang-lru"
 )
 
 // Handler handles product endpoints.
 type Handler struct {
 	Service Service
-	Cache   *lru.Cache
+	Cache   *memcache.Client
 }
 
 // Create creates a new product and saves it.
@@ -81,9 +81,9 @@ func (h *Handler) GetByID() http.HandlerFunc {
 		id := chi.URLParam(r, "id")
 		ctx := r.Context()
 
-		item, _ := h.Cache.Get(id)
-		if pr, ok := item.(Product); ok {
-			response.JSON(w, http.StatusOK, pr)
+		item, err := h.Cache.Get(id)
+		if err == nil {
+			response.EncodedJSON(w, item.Value)
 			return
 		}
 
@@ -93,8 +93,7 @@ func (h *Handler) GetByID() http.HandlerFunc {
 			return
 		}
 
-		h.Cache.Add(id, product)
-		response.JSON(w, http.StatusOK, product)
+		response.JSONAndCache(h.Cache, w, id, product)
 	}
 }
 

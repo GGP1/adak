@@ -5,7 +5,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"os/user"
 	"time"
 
 	"github.com/GGP1/adak/internal/cookie"
@@ -14,10 +13,10 @@ import (
 	"github.com/GGP1/adak/internal/token"
 	"github.com/GGP1/adak/pkg/shopping/cart"
 	"github.com/GGP1/adak/pkg/shopping/payment/stripe"
+	"github.com/bradfitz/gomemcache/memcache"
 
 	"github.com/go-chi/chi"
 	validator "github.com/go-playground/validator/v10"
-	lru "github.com/hashicorp/golang-lru"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -46,7 +45,7 @@ type Handler struct {
 	Service     Service
 	CartService cart.Service
 	DB          *sqlx.DB
-	Cache       *lru.Cache
+	Cache       *memcache.Client
 }
 
 // Delete deletes an order.
@@ -108,9 +107,9 @@ func (h *Handler) GetByUserID() http.HandlerFunc {
 
 		// Distinguish from the other ids of the same user
 		cacheKey := fmt.Sprintf("%s-ods", id)
-		item, _ := h.Cache.Get(cacheKey)
-		if us, ok := item.(user.User); ok {
-			response.JSON(w, http.StatusOK, us)
+		item, err := h.Cache.Get(cacheKey)
+		if err == nil {
+			response.EncodedJSON(w, item.Value)
 			return
 		}
 
@@ -120,8 +119,7 @@ func (h *Handler) GetByUserID() http.HandlerFunc {
 			return
 		}
 
-		h.Cache.Add(cacheKey, orders)
-		response.JSON(w, http.StatusOK, orders)
+		response.JSONAndCache(h.Cache, w, cacheKey, orders)
 	}
 }
 

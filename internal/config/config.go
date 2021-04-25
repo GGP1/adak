@@ -21,13 +21,13 @@ var (
 
 // Config constains all the server configurations.
 type Config struct {
-	Admin    Admin
-	Database Database
-	Cache    Cache
-	Server   Server
-	Email    Email
-	Stripe   Stripe
-	Static   Static
+	Admin     Admin
+	Database  Database
+	Memcached Memcached
+	Server    Server
+	Email     Email
+	Stripe    Stripe
+	Static    Static
 }
 
 // Admin contains the admins emails.
@@ -45,9 +45,9 @@ type Database struct {
 	SSLMode  string
 }
 
-// Cache is the LRU-cache configuration.
-type Cache struct {
-	Size int
+// Memcached is the LRU-cache configuration.
+type Memcached struct {
+	Servers []string
 }
 
 // Server holds the server attributes.
@@ -194,8 +194,8 @@ var (
 		"database.port":     "5432",
 		"database.name":     "postgres",
 		"database.sslmode":  "disable",
-		// Cache
-		"cache.size": 100,
+		// Memcached
+		"memcached.servers": []string{"localhost:11211"},
 		// Server
 		"server.host":             "localhost",
 		"server.port":             "7070",
@@ -228,8 +228,8 @@ var (
 		"database.port":     "POSTGRES_PORT",
 		"database.name":     "POSTGRES_DB",
 		"database.sslmode":  "POSTGRES_SSL",
-		// Cache
-		"cache.size": "CACHE_SIZE",
+		// Memcached
+		"memcached.servers": "MEMCACHED_SERVERS",
 		// Server
 		"server.host":             "SV_HOST",
 		"server.port":             "SV_PORT",

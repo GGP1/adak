@@ -8,9 +8,9 @@ import (
 
 	"github.com/GGP1/adak/internal/config"
 	"github.com/GGP1/adak/pkg/http/rest"
+	"github.com/GGP1/adak/pkg/memcached"
 	"github.com/GGP1/adak/pkg/postgres"
 
-	lru "github.com/hashicorp/golang-lru"
 	"github.com/stretchr/testify/assert"
 
 	_ "github.com/lib/pq"
@@ -25,17 +25,13 @@ func TestRouter(t *testing.T) {
 	assert.NoError(t, err)
 
 	db, err := postgres.Connect(ctx, &conf.Database)
-	if err != nil {
-		t.Fatal("Database failed connecting")
-	}
+	assert.NoError(t, err)
 	defer db.Close()
 
-	cache, err := lru.New(conf.Cache.Size)
-	if err != nil {
-		t.Fatalf("couldn't create the cache: %v", err)
-	}
+	mc, err := memcached.Connect(conf.Memcached)
+	assert.NoError(t, err)
 
-	srv := httptest.NewServer(rest.NewRouter(db, cache))
+	srv := httptest.NewServer(rest.NewRouter(db, mc))
 	defer srv.Close()
 
 	res, err := http.Get("http://localhost:4000/")

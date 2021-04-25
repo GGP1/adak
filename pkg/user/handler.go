@@ -3,7 +3,6 @@ package user
 import (
 	"encoding/json"
 	"fmt"
-	"image"
 	"net/http"
 
 	"github.com/GGP1/adak/internal/cookie"
@@ -13,10 +12,10 @@ import (
 	"github.com/GGP1/adak/internal/token"
 	"github.com/GGP1/adak/pkg/auth"
 	"github.com/GGP1/adak/pkg/shopping/cart"
+	"github.com/bradfitz/gomemcache/memcache"
 
 	"github.com/go-chi/chi"
 	validator "github.com/go-playground/validator/v10"
-	lru "github.com/hashicorp/golang-lru"
 	"github.com/jmoiron/sqlx"
 )
 
@@ -24,7 +23,7 @@ import (
 type Handler struct {
 	Service     Service
 	CartService cart.Service
-	Cache       *lru.Cache
+	Cache       *memcache.Client
 }
 
 // Create creates a new user and saves it.
@@ -114,9 +113,9 @@ func (h *Handler) GetByID() http.HandlerFunc {
 		id := chi.URLParam(r, "id")
 		ctx := r.Context()
 
-		item, _ := h.Cache.Get(id)
-		if us, ok := item.(User); ok {
-			response.JSON(w, http.StatusOK, us)
+		item, err := h.Cache.Get(id)
+		if err == nil {
+			response.EncodedJSON(w, item.Value)
 			return
 		}
 
@@ -126,8 +125,7 @@ func (h *Handler) GetByID() http.HandlerFunc {
 			return
 		}
 
-		h.Cache.Add(id, user)
-		response.JSON(w, http.StatusOK, user)
+		response.JSONAndCache(h.Cache, w, id, user)
 	}
 }
 
@@ -166,15 +164,14 @@ func (h *Handler) GetByUsername() http.HandlerFunc {
 // QRCode shows the user id in a qrcode format.
 func (h *Handler) QRCode() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var user ListUser
 		id := chi.URLParam(r, "id")
 		ctx := r.Context()
 
 		// Distinguish from the other ids of the same user
 		cacheKey := fmt.Sprintf("%s-qr", id)
-		item, _ := h.Cache.Get(cacheKey)
-		if img, ok := item.(image.Image); ok {
-			response.PNG(w, http.StatusOK, img)
+		item, err := h.Cache.Get(cacheKey)
+		if err == nil {
+			response.EncodedJSON(w, item.Value)
 			return
 		}
 
@@ -190,8 +187,7 @@ func (h *Handler) QRCode() http.HandlerFunc {
 			return
 		}
 
-		h.Cache.Add(cacheKey, img)
-		response.PNG(w, http.StatusOK, img)
+		response.PNGAndCache(w, h.Cache, cacheKey, img)
 	}
 }
 

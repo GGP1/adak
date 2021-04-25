@@ -8,10 +8,10 @@ import (
 	"github.com/GGP1/adak/internal/config"
 	"github.com/GGP1/adak/internal/logger"
 	"github.com/GGP1/adak/pkg/http/rest"
+	"github.com/GGP1/adak/pkg/memcached"
 	"github.com/GGP1/adak/pkg/postgres"
 	"github.com/spf13/viper"
 
-	lru "github.com/hashicorp/golang-lru"
 	_ "github.com/lib/pq"
 )
 
@@ -35,12 +35,12 @@ func main() {
 	}
 	defer db.Close()
 
-	cache, err := lru.New(conf.Cache.Size)
+	mc, err := memcached.Connect(conf.Memcached)
 	if err != nil {
-		logger.Log.Fatalf("couldn't create the cache: %v", err)
+		logger.Log.Fatal(err)
 	}
 
-	router := rest.NewRouter(db, cache)
+	router := rest.NewRouter(db, mc)
 	srv := server.New(conf, router)
 
 	if err := srv.Start(ctx); err != nil {

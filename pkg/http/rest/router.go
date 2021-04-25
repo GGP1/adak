@@ -14,14 +14,14 @@ import (
 	"github.com/GGP1/adak/pkg/tracking"
 	"github.com/GGP1/adak/pkg/user"
 	"github.com/GGP1/adak/pkg/user/account"
+	"github.com/bradfitz/gomemcache/memcache"
 
 	"github.com/go-chi/chi"
-	lru "github.com/hashicorp/golang-lru"
 	"github.com/jmoiron/sqlx"
 )
 
 // NewRouter initializes services, creates and returns a mux router
-func NewRouter(db *sqlx.DB, cache *lru.Cache) http.Handler {
+func NewRouter(db *sqlx.DB, mc *memcache.Client) http.Handler {
 	r := chi.NewRouter()
 
 	// Services
@@ -40,7 +40,6 @@ func NewRouter(db *sqlx.DB, cache *lru.Cache) http.Handler {
 	// Authentication middleware
 	mAuth := middleware.Auth{
 		DB:          db,
-		Cache:       cache,
 		UserService: userService,
 	}
 	adminsOnly := mAuth.AdminsOnly
@@ -60,7 +59,7 @@ func NewRouter(db *sqlx.DB, cache *lru.Cache) http.Handler {
 	cart := cart.Handler{
 		Service: cartService,
 		DB:      db,
-		Cache:   cache,
+		Cache:   mc,
 	}
 	r.Route("/cart", func(r chi.Router) {
 		r.Use(requireLogin)
@@ -89,7 +88,7 @@ func NewRouter(db *sqlx.DB, cache *lru.Cache) http.Handler {
 		Service:     orderingService,
 		CartService: cartService,
 		DB:          db,
-		Cache:       cache,
+		Cache:       mc,
 	}
 	r.With(adminsOnly).Get("/orders", order.Get())
 	r.With(adminsOnly).Delete("/order/{id}", order.Delete())
@@ -100,7 +99,7 @@ func NewRouter(db *sqlx.DB, cache *lru.Cache) http.Handler {
 	// Product
 	product := product.Handler{
 		Service: productService,
-		Cache:   cache,
+		Cache:   mc,
 	}
 	r.Route("/products", func(r chi.Router) {
 		r.Get("/", product.Get())
@@ -114,7 +113,7 @@ func NewRouter(db *sqlx.DB, cache *lru.Cache) http.Handler {
 	// Review
 	review := review.Handler{
 		Service: reviewService,
-		Cache:   cache,
+		Cache:   mc,
 	}
 	r.Route("/reviews", func(r chi.Router) {
 		r.Get("/", review.Get())
@@ -126,7 +125,7 @@ func NewRouter(db *sqlx.DB, cache *lru.Cache) http.Handler {
 	// Shop
 	shop := shop.Handler{
 		Service: shopService,
-		Cache:   cache,
+		Cache:   mc,
 	}
 	r.Route("/shops", func(r chi.Router) {
 		r.Get("/", shop.Get())
@@ -164,7 +163,7 @@ func NewRouter(db *sqlx.DB, cache *lru.Cache) http.Handler {
 	user := user.Handler{
 		Service:     userService,
 		CartService: cartService,
-		Cache:       cache,
+		Cache:       mc,
 	}
 	r.Route("/users", func(r chi.Router) {
 		r.Get("/", user.Get())
