@@ -223,10 +223,7 @@ func (s *service) Remove(ctx context.Context, cartID string, pID string, quantit
 	}
 
 	if cart.Counter == 1 {
-		if err := s.Reset(ctx, cartID); err != nil {
-			return err
-		}
-		return nil
+		return s.Reset(ctx, cartID)
 	}
 
 	taxes := (p.Subtotal / 100) * p.Taxes

@@ -48,7 +48,7 @@ func Get(r *http.Request, name string) (*http.Cookie, error) {
 func GetValue(r *http.Request, name string) (string, error) {
 	cookie, err := Get(r, name)
 	if err != nil {
-		return "", nil
+		return "", err
 	}
 
 	return cookie.Value, nil
