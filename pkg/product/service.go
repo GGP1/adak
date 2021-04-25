@@ -24,7 +24,7 @@ type Service interface {
 }
 
 type service struct {
-	DB *sqlx.DB
+	db *sqlx.DB
 }
 
 // NewService returns a new product service.
@@ -49,7 +49,7 @@ func (s *service) Create(ctx context.Context, p *Product) error {
 	p.Taxes = taxes
 	p.Total = p.Subtotal + p.Taxes - p.Discount
 
-	_, err := s.DB.ExecContext(ctx, q, id, p.ShopID, p.Stock, p.Brand, p.Category, p.Type, p.Description,
+	_, err := s.db.ExecContext(ctx, q, id, p.ShopID, p.Stock, p.Brand, p.Category, p.Type, p.Description,
 		p.Weight, p.Discount, p.Taxes, p.Subtotal, p.Total, p.CreatedAt, p.UpdatedAt)
 	if err != nil {
 		logger.Log.Errorf("failed creating product: %v", err)
@@ -61,7 +61,7 @@ func (s *service) Create(ctx context.Context, p *Product) error {
 
 // Delete permanently deletes a product from the database.
 func (s *service) Delete(ctx context.Context, id string) error {
-	_, err := s.DB.ExecContext(ctx, "DELETE FROM products WHERE id=$1", id)
+	_, err := s.db.ExecContext(ctx, "DELETE FROM products WHERE id=$1", id)
 	if err != nil {
 		logger.Log.Errorf("failed deleting product: %v", err)
 		return errors.Wrap(err, "couldn't delete the product")
@@ -74,7 +74,7 @@ func (s *service) Delete(ctx context.Context, id string) error {
 func (s *service) Get(ctx context.Context) ([]Product, error) {
 	var products []Product
 
-	if err := s.DB.Select(&products, "SELECT * FROM products"); err != nil {
+	if err := s.db.Select(&products, "SELECT * FROM products"); err != nil {
 		logger.Log.Errorf("failed listing products: %v", err)
 		return nil, errors.Wrap(err, "couldn't find the products")
 	}
@@ -94,11 +94,11 @@ func (s *service) GetByID(ctx context.Context, id string) (Product, error) {
 		reviews []review.Review
 	)
 
-	if err := s.DB.GetContext(ctx, &product, "SELECT * FROM products WHERE id=$1", id); err != nil {
+	if err := s.db.GetContext(ctx, &product, "SELECT * FROM products WHERE id=$1", id); err != nil {
 		return Product{}, errors.Wrap(err, "couldn't find the product")
 	}
 
-	if err := s.DB.SelectContext(ctx, &reviews, "SELECT * FROM reviews WHERE product_id=$1", id); err != nil {
+	if err := s.db.SelectContext(ctx, &reviews, "SELECT * FROM reviews WHERE product_id=$1", id); err != nil {
 		logger.Log.Errorf("failed listing product's reviews: %v", err)
 		return Product{}, errors.Wrap(err, "couldn't find the reviews")
 	}
@@ -119,7 +119,7 @@ func (s *service) Search(ctx context.Context, search string) ([]Product, error) 
 	to_tsvector(id || ' ' || shop_id || ' ' || brand || ' ' || type || ' ' || category || ' ' || description)
 	@@ plainto_tsquery($1)`
 
-	if err := s.DB.SelectContext(ctx, &products, q, search); err != nil {
+	if err := s.db.SelectContext(ctx, &products, q, search); err != nil {
 		logger.Log.Errorf("failed searching products: %v", err)
 		return nil, errors.Wrap(err, "couldn't find the products")
 	}
@@ -138,7 +138,7 @@ func (s *service) Update(ctx context.Context, p *Product, id string) error {
 	description=$6, weight=$7, discount=$8, taxes=$9, subtotal=$10, total=$11
 	WHERE id=$1`
 
-	_, err := s.DB.ExecContext(ctx, q, id, p.Stock, p.Brand, p.Category, p.Type,
+	_, err := s.db.ExecContext(ctx, q, id, p.Stock, p.Brand, p.Category, p.Type,
 		p.Description, p.Weight, p.Discount, p.Taxes, p.Subtotal, p.Total)
 	if err != nil {
 		return errors.Wrap(err, "couldn't update the product")
@@ -154,7 +154,7 @@ func (s *service) getRelationships(ctx context.Context, products []Product) ([]P
 		go func(product Product) {
 			var reviews []review.Review
 
-			if err := s.DB.SelectContext(ctx, &reviews, "SELECT * FROM reviews WHERE product_id=$1", product.ID); err != nil {
+			if err := s.db.SelectContext(ctx, &reviews, "SELECT * FROM reviews WHERE product_id=$1", product.ID); err != nil {
 				logger.Log.Errorf("failed listing product's reviews: %v", err)
 				errCh <- errors.Wrap(err, "couldn't find the reviews")
 			}

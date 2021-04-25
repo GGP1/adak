@@ -30,7 +30,7 @@ type Service interface {
 }
 
 type service struct {
-	DB *sqlx.DB
+	db *sqlx.DB
 }
 
 // NewService returns a new user service.
@@ -49,11 +49,11 @@ func (s *service) Create(ctx context.Context, user *AddUser) error {
 	VALUES ($1, $2, $3, $4, $5, $6, $7)`
 
 	var count int
-	_ = s.DB.GetContext(ctx, &count, "SELECT COUNT(id) FROM users WHERE email=$1", user.Email)
+	_ = s.db.GetContext(ctx, &count, "SELECT COUNT(id) FROM users WHERE email=$1", user.Email)
 	if count > 0 {
 		return errors.New("email is already taken")
 	}
-	_ = s.DB.GetContext(ctx, &count, "SELECT COUNT(id) FROM users WHERE username=$1", user.Username)
+	_ = s.db.GetContext(ctx, &count, "SELECT COUNT(id) FROM users WHERE username=$1", user.Username)
 	if count > 0 {
 		return errors.New("username is already taken")
 	}
@@ -72,7 +72,7 @@ func (s *service) Create(ctx context.Context, user *AddUser) error {
 
 	cart := cart.New(user.CartID)
 
-	_, err = s.DB.ExecContext(ctx, cartQuery, cart.ID, cart.Counter, cart.Weight,
+	_, err = s.db.ExecContext(ctx, cartQuery, cart.ID, cart.Counter, cart.Weight,
 		cart.Discount, cart.Taxes, cart.Subtotal, cart.Total)
 	if err != nil {
 		logger.Log.Errorf("failed creating user's cart: %v", err)
@@ -90,7 +90,7 @@ func (s *service) Create(ctx context.Context, user *AddUser) error {
 		}
 	}
 
-	_, err = s.DB.ExecContext(ctx, userQuery, userID, cart.ID, user.Username, user.Email,
+	_, err = s.db.ExecContext(ctx, userQuery, userID, cart.ID, user.Username, user.Email,
 		user.Password, user.CreatedAt, user.UpdatedAt)
 	if err != nil {
 		logger.Log.Errorf("failed creating user: %v", err)
@@ -102,7 +102,7 @@ func (s *service) Create(ctx context.Context, user *AddUser) error {
 
 // Delete permanently deletes a user from the database.
 func (s *service) Delete(ctx context.Context, id string) error {
-	_, err := s.DB.ExecContext(ctx, "DELETE FROM users WHERE id=$1", id)
+	_, err := s.db.ExecContext(ctx, "DELETE FROM users WHERE id=$1", id)
 	if err != nil {
 		logger.Log.Errorf("failed deleting user: %v", err)
 		return errors.Wrap(err, "couldn't delete the user")
@@ -115,7 +115,7 @@ func (s *service) Delete(ctx context.Context, id string) error {
 func (s *service) Get(ctx context.Context) ([]ListUser, error) {
 	var users []ListUser
 
-	if err := s.DB.SelectContext(ctx, &users, "SELECT id, cart_id, username, email FROM users"); err != nil {
+	if err := s.db.SelectContext(ctx, &users, "SELECT id, cart_id, username, email FROM users"); err != nil {
 		logger.Log.Errorf("failed listing users: %v", err)
 		return nil, errors.Wrap(err, "couldn't find the users")
 	}
@@ -132,7 +132,7 @@ func (s *service) Get(ctx context.Context) ([]ListUser, error) {
 func (s *service) GetByEmail(ctx context.Context, email string) (ListUser, error) {
 	var user ListUser
 
-	if err := s.DB.GetContext(ctx, &user, "SELECT id, cart_id, username, email, is_admin FROM users WHERE email=$1", email); err != nil {
+	if err := s.db.GetContext(ctx, &user, "SELECT id, cart_id, username, email, is_admin FROM users WHERE email=$1", email); err != nil {
 		return ListUser{}, errors.Wrap(err, "couldn't find the user")
 	}
 
@@ -148,7 +148,7 @@ func (s *service) GetByEmail(ctx context.Context, email string) (ListUser, error
 func (s *service) GetByID(ctx context.Context, id string) (ListUser, error) {
 	var user ListUser
 
-	if err := s.DB.GetContext(ctx, &user, "SELECT id, cart_id, username, email, is_admin FROM users WHERE id=$1", id); err != nil {
+	if err := s.db.GetContext(ctx, &user, "SELECT id, cart_id, username, email, is_admin FROM users WHERE id=$1", id); err != nil {
 		return ListUser{}, errors.Wrap(err, "couldn't find the user")
 	}
 
@@ -164,7 +164,7 @@ func (s *service) GetByID(ctx context.Context, id string) (ListUser, error) {
 func (s *service) GetByUsername(ctx context.Context, username string) (ListUser, error) {
 	var user ListUser
 
-	if err := s.DB.GetContext(ctx, &user, "SELECT id FROM users WHERE username=$1", username); err != nil {
+	if err := s.db.GetContext(ctx, &user, "SELECT id FROM users WHERE username=$1", username); err != nil {
 		return ListUser{}, errors.Wrap(err, "couldn't find the user")
 	}
 
@@ -187,7 +187,7 @@ func (s *service) Search(ctx context.Context, search string) ([]ListUser, error)
 	to_tsvector(id || ' ' || username || ' ' || email) 
 	@@ plainto_tsquery($1)`
 
-	if err := s.DB.SelectContext(ctx, &users, q, search); err != nil {
+	if err := s.db.SelectContext(ctx, &users, q, search); err != nil {
 		logger.Log.Errorf("failed searching users: %v", err)
 		return nil, errors.Wrap(err, "couldn't find the users")
 	}
@@ -202,7 +202,7 @@ func (s *service) Search(ctx context.Context, search string) ([]ListUser, error)
 
 // Update sets new values for an already existing user.
 func (s *service) Update(ctx context.Context, u *UpdateUser, id string) error {
-	_, err := s.DB.ExecContext(ctx, "UPDATE users SET username=$2 WHERE id=$1", id, u.Username)
+	_, err := s.db.ExecContext(ctx, "UPDATE users SET username=$2 WHERE id=$1", id, u.Username)
 	if err != nil {
 		logger.Log.Errorf("failed updating user: %v", err)
 		return errors.Wrap(err, "couldn't update the user")
@@ -217,12 +217,12 @@ func (s *service) getRelationship(ctx context.Context, user ListUser) (ListUser,
 		orders  []ordering.Order
 	)
 
-	if err := s.DB.Select(&reviews, "SELECT * FROM reviews WHERE user_id=$1", user.ID); err != nil {
+	if err := s.db.Select(&reviews, "SELECT * FROM reviews WHERE user_id=$1", user.ID); err != nil {
 		logger.Log.Errorf("failed listing user's reviews: %v", err)
 		return ListUser{}, errors.Wrap(err, "couldn't find the reviews")
 	}
 
-	if err := s.DB.Select(&orders, "SELECT * FROM orders WHERE user_id=$1", user.ID); err != nil {
+	if err := s.db.Select(&orders, "SELECT * FROM orders WHERE user_id=$1", user.ID); err != nil {
 		logger.Log.Errorf("failed listing user's orders: %v", err)
 		return ListUser{}, errors.Wrap(err, "couldn't find the orders")
 	}

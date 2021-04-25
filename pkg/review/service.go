@@ -20,7 +20,7 @@ type Service interface {
 }
 
 type service struct {
-	DB *sqlx.DB
+	db *sqlx.DB
 }
 
 // NewService returns a new review service.
@@ -37,7 +37,7 @@ func (s *service) Create(ctx context.Context, r *Review, userID string) error {
 	id := token.RandString(30)
 	r.CreatedAt = time.Now()
 
-	_, err := s.DB.ExecContext(ctx, q, id, r.Stars, r.Comment, userID, r.ProductID, r.ShopID, r.CreatedAt, r.UpdatedAt)
+	_, err := s.db.ExecContext(ctx, q, id, r.Stars, r.Comment, userID, r.ProductID, r.ShopID, r.CreatedAt, r.UpdatedAt)
 	if err != nil {
 		logger.Log.Errorf("failed creating review: %v", err)
 		return errors.Wrap(err, "couldn't create the review")
@@ -48,7 +48,7 @@ func (s *service) Create(ctx context.Context, r *Review, userID string) error {
 
 // Delete permanently deletes a review from the database.
 func (s *service) Delete(ctx context.Context, id string) error {
-	_, err := s.DB.ExecContext(ctx, "DELETE FROM reviews WHERE id=$1", id)
+	_, err := s.db.ExecContext(ctx, "DELETE FROM reviews WHERE id=$1", id)
 	if err != nil {
 		logger.Log.Errorf("failed deleting review: %v", err)
 		return errors.Wrap(err, "couldn't delete the review")
@@ -61,7 +61,7 @@ func (s *service) Delete(ctx context.Context, id string) error {
 func (s *service) Get(ctx context.Context) ([]*Review, error) {
 	var reviews []*Review
 
-	if err := s.DB.SelectContext(ctx, &reviews, "SELECT * FROM reviews"); err != nil {
+	if err := s.db.SelectContext(ctx, &reviews, "SELECT * FROM reviews"); err != nil {
 		logger.Log.Errorf("failed listing reviews: %v", err)
 		return nil, errors.Wrap(err, "couldn't find the reviews")
 	}
@@ -73,7 +73,7 @@ func (s *service) Get(ctx context.Context) ([]*Review, error) {
 func (s *service) GetByID(ctx context.Context, id string) (Review, error) {
 	var review Review
 
-	if err := s.DB.GetContext(ctx, &review, "SELECT * FROM reviews WHERE id=$1", id); err != nil {
+	if err := s.db.GetContext(ctx, &review, "SELECT * FROM reviews WHERE id=$1", id); err != nil {
 		return Review{}, errors.Wrap(err, "couldn't find the review")
 	}
 

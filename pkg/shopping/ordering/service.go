@@ -25,12 +25,12 @@ type Service interface {
 }
 
 type service struct {
-	DB *sqlx.DB
+	db *sqlx.DB
 }
 
 // NewService returns a new ordering service.
 func NewService(db *sqlx.DB) Service {
-	return &service{DB: db}
+	return &service{db}
 }
 
 // New creates an order.
@@ -82,7 +82,7 @@ func (s *service) New(ctx context.Context, userID, cartID string, oParams OrderP
 
 	// Save order products
 	for _, product := range cart.Products {
-		_, err := s.DB.ExecContext(ctx, orderProdQuery, product.ID, id, product.Quantity, product.Brand,
+		_, err := s.db.ExecContext(ctx, orderProdQuery, product.ID, id, product.Quantity, product.Brand,
 			product.Category, product.Type, product.Description, product.Weight,
 			product.Discount, product.Taxes, product.Subtotal, product.Total)
 		if err != nil {
@@ -92,7 +92,7 @@ func (s *service) New(ctx context.Context, userID, cartID string, oParams OrderP
 	}
 
 	// Save order
-	_, err = s.DB.ExecContext(ctx, orderQuery, id, userID, oParams.Currency, oParams.Address, oParams.City, oParams.Country,
+	_, err = s.db.ExecContext(ctx, orderQuery, id, userID, oParams.Currency, oParams.Address, oParams.City, oParams.Country,
 		oParams.State, oParams.ZipCode, pending, time.Now(), deliveryDate, cart.ID)
 	if err != nil {
 		logger.Log.Errorf("failed creating order: %v", err)
@@ -100,7 +100,7 @@ func (s *service) New(ctx context.Context, userID, cartID string, oParams OrderP
 	}
 
 	// Save order cart
-	_, err = s.DB.ExecContext(ctx, orderCartsQuery, id, cart.Counter, cart.Weight, cart.Discount,
+	_, err = s.db.ExecContext(ctx, orderCartsQuery, id, cart.Counter, cart.Weight, cart.Discount,
 		cart.Taxes, cart.Subtotal, cart.Total)
 	if err != nil {
 		logger.Log.Errorf("failed creating order's cart: %v", err)
@@ -117,18 +117,18 @@ func (s *service) New(ctx context.Context, userID, cartID string, oParams OrderP
 
 // Delete removes an order.
 func (s *service) Delete(ctx context.Context, orderID string) error {
-	if _, err := s.DB.ExecContext(ctx, "DELETE FROM orders WHERE id=$1", orderID); err != nil {
+	if _, err := s.db.ExecContext(ctx, "DELETE FROM orders WHERE id=$1", orderID); err != nil {
 		logger.Log.Errorf("failed deleting order: %v", err)
 		return errors.Wrap(err, "couldn't delete the order")
 	}
 
-	_, err := s.DB.ExecContext(ctx, "DELETE FROM order_carts WHERE order_id=$1", orderID)
+	_, err := s.db.ExecContext(ctx, "DELETE FROM order_carts WHERE order_id=$1", orderID)
 	if err != nil {
 		logger.Log.Errorf("failed deleting order's cart: %v", err)
 		return errors.Wrap(err, "couldn't delete the order cart")
 	}
 
-	_, err = s.DB.ExecContext(ctx, "DELETE FROM order_products WHERE order_id=$1", orderID)
+	_, err = s.db.ExecContext(ctx, "DELETE FROM order_products WHERE order_id=$1", orderID)
 	if err != nil {
 		logger.Log.Errorf("failed deleting order's products: %v", err)
 		return errors.Wrap(err, "couldn't delete the order products")
@@ -141,7 +141,7 @@ func (s *service) Delete(ctx context.Context, orderID string) error {
 func (s *service) Get(ctx context.Context) ([]Order, error) {
 	var orders []Order
 
-	if err := s.DB.SelectContext(ctx, &orders, "SELECT * FROM orders"); err != nil {
+	if err := s.db.SelectContext(ctx, &orders, "SELECT * FROM orders"); err != nil {
 		logger.Log.Errorf("failed listing orders: %v", err)
 		return nil, errors.Wrap(err, "couldn't find the orders")
 	}
@@ -158,7 +158,7 @@ func (s *service) Get(ctx context.Context) ([]Order, error) {
 func (s *service) GetByID(ctx context.Context, orderID string) (Order, error) {
 	var order Order
 
-	if err := s.DB.GetContext(ctx, "SELECT * FROM orders WHERE id=$1", orderID); err != nil {
+	if err := s.db.GetContext(ctx, "SELECT * FROM orders WHERE id=$1", orderID); err != nil {
 		return Order{}, errors.Wrap(err, "couldn't find the order")
 	}
 
@@ -182,7 +182,7 @@ func (s *service) GetByID(ctx context.Context, orderID string) (Order, error) {
 func (s *service) GetByUserID(ctx context.Context, userID string) ([]Order, error) {
 	var orders []Order
 
-	if err := s.DB.SelectContext(ctx, &orders, "SELECT * FROM orders WHERE user_id=$1", userID); err != nil {
+	if err := s.db.SelectContext(ctx, &orders, "SELECT * FROM orders WHERE user_id=$1", userID); err != nil {
 		return nil, errors.Wrap(err, "couldn't find the orders")
 	}
 
@@ -198,7 +198,7 @@ func (s *service) GetByUserID(ctx context.Context, userID string) ([]Order, erro
 func (s *service) GetCartByID(ctx context.Context, orderID string) (OrderCart, error) {
 	var cart OrderCart
 
-	if err := s.DB.GetContext(ctx, &cart, "SELECT * FROM order_carts WHERE order_id=$1", orderID); err != nil {
+	if err := s.db.GetContext(ctx, &cart, "SELECT * FROM order_carts WHERE order_id=$1", orderID); err != nil {
 		logger.Log.Errorf("failed order's cart: %v", err)
 		return OrderCart{}, errors.Wrap(err, "couldn't find the order cart")
 	}
@@ -210,7 +210,7 @@ func (s *service) GetCartByID(ctx context.Context, orderID string) (OrderCart, e
 func (s *service) GetProductsByID(ctx context.Context, orderID string) ([]OrderProduct, error) {
 	var products []OrderProduct
 
-	if err := s.DB.SelectContext(ctx, &products, "SELECT * FROM order_products WHERE order_id=$1", orderID); err != nil {
+	if err := s.db.SelectContext(ctx, &products, "SELECT * FROM order_products WHERE order_id=$1", orderID); err != nil {
 		logger.Log.Errorf("failed order's products: %v", err)
 		return nil, errors.Wrap(err, "couldn't find the order products")
 	}
@@ -220,7 +220,7 @@ func (s *service) GetProductsByID(ctx context.Context, orderID string) ([]OrderP
 
 // UpdateStatus updates the order status.
 func (s *service) UpdateStatus(ctx context.Context, orderID string, status status) error {
-	_, err := s.DB.ExecContext(ctx, "UPDATE orders SET status=$2 WHERE id=$1", orderID, status)
+	_, err := s.db.ExecContext(ctx, "UPDATE orders SET status=$2 WHERE id=$1", orderID, status)
 	if err != nil {
 		logger.Log.Errorf("failed updating order's status: %v", err)
 		return errors.Wrap(err, "couldn't update the order status")

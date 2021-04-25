@@ -14,7 +14,7 @@ func (s *service) FilterByBrand(ctx context.Context, cartID, brand string) ([]Pr
 
 	query := `SELECT * FROM cart_products WHERE cart_id=$1 AND brand=$2`
 
-	if err := s.DB.SelectContext(ctx, &products, query, cartID, brand); err != nil {
+	if err := s.db.SelectContext(ctx, &products, query, cartID, brand); err != nil {
 		return nil, errors.Wrap(err, errNotFound.Error())
 	}
 
@@ -31,7 +31,7 @@ func (s *service) FilterByCategory(ctx context.Context, cartID, category string)
 
 	query := `SELECT * FROM cart_products WHERE cart_id=$1 AND category=$2`
 
-	if err := s.DB.SelectContext(ctx, &products, query, cartID, category); err != nil {
+	if err := s.db.SelectContext(ctx, &products, query, cartID, category); err != nil {
 		return nil, errors.Wrap(err, errNotFound.Error())
 	}
 
@@ -48,7 +48,7 @@ func (s *service) FilterByDiscount(ctx context.Context, cartID string, min, max 
 
 	query := `SELECT * FROM cart_products WHERE cart_id=$1 AND AND discount >= $2 AND discount <= $3`
 
-	if err := s.DB.SelectContext(ctx, &products, query, cartID, min, max); err != nil {
+	if err := s.db.SelectContext(ctx, &products, query, cartID, min, max); err != nil {
 		return nil, errors.Wrap(err, errNotFound.Error())
 	}
 
@@ -65,7 +65,7 @@ func (s *service) FilterBySubtotal(ctx context.Context, cartID string, min, max 
 
 	query := `SELECT * FROM cart_products WHERE cart_id=$1 AND AND subtotal >= $2 AND subtotal <= $3`
 
-	if err := s.DB.SelectContext(ctx, &products, query, cartID, min, max); err != nil {
+	if err := s.db.SelectContext(ctx, &products, query, cartID, min, max); err != nil {
 		return nil, errors.Wrap(err, errNotFound.Error())
 	}
 
@@ -82,7 +82,7 @@ func (s *service) FilterByTaxes(ctx context.Context, cartID string, min, max flo
 
 	query := `SELECT * FROM cart_products WHERE cart_id=$1 AND AND taxes >= $2 AND taxes <= $3`
 
-	if err := s.DB.SelectContext(ctx, &products, query, cartID, min, max); err != nil {
+	if err := s.db.SelectContext(ctx, &products, query, cartID, min, max); err != nil {
 		return nil, errors.Wrap(err, errNotFound.Error())
 	}
 
@@ -99,7 +99,7 @@ func (s *service) FilterByTotal(ctx context.Context, cartID string, min, max flo
 
 	query := `SELECT * FROM cart_products WHERE cart_id=$1 AND AND total >= $2 AND total <= $3`
 
-	if err := s.DB.SelectContext(ctx, &products, query, cartID, min, max); err != nil {
+	if err := s.db.SelectContext(ctx, &products, query, cartID, min, max); err != nil {
 		return nil, errors.Wrap(err, errNotFound.Error())
 	}
 
@@ -116,7 +116,7 @@ func (s *service) FilterByType(ctx context.Context, cartID, pType string) ([]Pro
 
 	query := `SELECT * FROM cart_products WHERE cart_id=$1 AND type=$2`
 
-	if err := s.DB.SelectContext(ctx, &products, query, cartID, pType); err != nil {
+	if err := s.db.SelectContext(ctx, &products, query, cartID, pType); err != nil {
 		return nil, errors.Wrap(err, errNotFound.Error())
 	}
 
@@ -133,7 +133,7 @@ func (s *service) FilterByWeight(ctx context.Context, cartID string, min, max fl
 
 	query := `SELECT * FROM cart_products WHERE cart_id=$1 AND AND weight >= $2 AND weight <= $3`
 
-	if err := s.DB.SelectContext(ctx, &products, query, cartID, min, max); err != nil {
+	if err := s.db.SelectContext(ctx, &products, query, cartID, min, max); err != nil {
 		return nil, errors.Wrap(err, errNotFound.Error())
 	}
 

@@ -32,12 +32,12 @@ type Service interface {
 }
 
 type service struct {
-	DB *sqlx.DB
+	db *sqlx.DB
 }
 
 // NewService returns a new cart service.
 func NewService(db *sqlx.DB) Service {
-	return &service{DB: db}
+	return &service{db}
 }
 
 // New returns a cart with the default values.
@@ -69,7 +69,7 @@ func (s *service) Add(ctx context.Context, cartID string, p *Product, quantity i
 	cartQuery := `UPDATE carts SET counter=$2, weight=$3, discount=$4, taxes=$5, 
 	subtotal=$6, total=$7 WHERE id=$1`
 
-	if err := s.DB.GetContext(ctx, &cart, "SELECT * FROM carts WHERE id=$1", cartID); err != nil {
+	if err := s.db.GetContext(ctx, &cart, "SELECT * FROM carts WHERE id=$1", cartID); err != nil {
 		logger.Log.Errorf("failed listing cart: %v", err)
 		return nil, errors.Wrap(err, "couldn't find the cart")
 	}
@@ -93,14 +93,14 @@ func (s *service) Add(ctx context.Context, cartID string, p *Product, quantity i
 	}
 	cart.mu.Unlock()
 
-	err := s.DB.QueryRow("SELECT SUM(quantity) FROM cart_products WHERE id=$1 AND cart_id=$2", p.ID, cartID).Scan(&sum)
+	err := s.db.QueryRow("SELECT SUM(quantity) FROM cart_products WHERE id=$1 AND cart_id=$2", p.ID, cartID).Scan(&sum)
 	if err != nil {
 		return nil, errors.Wrap(err, "couldn't get the product quantity")
 	}
 
 	// Create the product.
 	if sum == 0 {
-		_, err := s.DB.ExecContext(ctx, productsQuery, p.ID, cartID, p.Quantity, p.Brand, p.Category,
+		_, err := s.db.ExecContext(ctx, productsQuery, p.ID, cartID, p.Quantity, p.Brand, p.Category,
 			p.Type, p.Description, p.Weight, p.Discount, p.Taxes, p.Subtotal, p.Total)
 		if err != nil {
 			logger.Log.Errorf("failed creating cart's products: %v", err)
@@ -111,14 +111,14 @@ func (s *service) Add(ctx context.Context, cartID string, p *Product, quantity i
 	if sum != 0 {
 		p.Quantity += sum
 
-		_, err := s.DB.ExecContext(ctx, "UPDATE cart_products SET quantity=$2 WHERE cart_id=$1", cartID, p.Quantity)
+		_, err := s.db.ExecContext(ctx, "UPDATE cart_products SET quantity=$2 WHERE cart_id=$1", cartID, p.Quantity)
 		if err != nil {
 			logger.Log.Errorf("failed updating cart's products: %v", err)
 			return nil, errors.Wrap(err, "couldn't update the product")
 		}
 	}
 
-	_, err = s.DB.ExecContext(ctx, cartQuery, cartID, cart.Counter, cart.Weight, cart.Discount,
+	_, err = s.db.ExecContext(ctx, cartQuery, cartID, cart.Counter, cart.Weight, cart.Discount,
 		cart.Taxes, cart.Subtotal, cart.Total)
 	if err != nil {
 		logger.Log.Errorf("failed updating the cart: %v", err)
@@ -132,7 +132,7 @@ func (s *service) Add(ctx context.Context, cartID string, p *Product, quantity i
 func (s *service) Checkout(ctx context.Context, cartID string) (int64, error) {
 	var cart Cart
 
-	if err := s.DB.GetContext(ctx, &cart, "SELECT * FROM carts WHERE id=$1", cartID); err != nil {
+	if err := s.db.GetContext(ctx, &cart, "SELECT * FROM carts WHERE id=$1", cartID); err != nil {
 		logger.Log.Errorf("failed listing cart: %v", err)
 		return 0, errors.Wrap(err, "couldn't find the cart")
 	}
@@ -144,7 +144,7 @@ func (s *service) Checkout(ctx context.Context, cartID string) (int64, error) {
 
 // Delete permanently deletes a cart from the database.
 func (s *service) Delete(ctx context.Context, cartID string) error {
-	if _, err := s.DB.ExecContext(ctx, "DELETE FROM carts WHERE id=$1", cartID); err != nil {
+	if _, err := s.db.ExecContext(ctx, "DELETE FROM carts WHERE id=$1", cartID); err != nil {
 		logger.Log.Errorf("failed deleting cart: %v", err)
 		return errors.New("couldn't delete the cart")
 	}
@@ -159,12 +159,12 @@ func (s *service) Get(ctx context.Context, cartID string) (*Cart, error) {
 		products []Product
 	)
 
-	if err := s.DB.GetContext(ctx, &cart, "SELECT * FROM carts WHERE id=$1", cartID); err != nil {
+	if err := s.db.GetContext(ctx, &cart, "SELECT * FROM carts WHERE id=$1", cartID); err != nil {
 		logger.Log.Errorf("failed listing cart: %v", err)
 		return nil, errors.Wrap(err, "couldn't find the cart")
 	}
 
-	if err := s.DB.SelectContext(ctx, &products, "SELECT * FROM cart_products WHERE cart_id=$1", cartID); err != nil {
+	if err := s.db.SelectContext(ctx, &products, "SELECT * FROM cart_products WHERE cart_id=$1", cartID); err != nil {
 		logger.Log.Errorf("failed listing cart's products: %v", err)
 		return nil, errors.Wrap(err, "couldn't find the cart products")
 	}
@@ -178,7 +178,7 @@ func (s *service) Get(ctx context.Context, cartID string) (*Cart, error) {
 func (s *service) Products(ctx context.Context, cartID string) ([]Product, error) {
 	var products []Product
 
-	if err := s.DB.SelectContext(ctx, &products, "SELECT * FROM cart_products WHERE cart_id=$1", cartID); err != nil {
+	if err := s.db.SelectContext(ctx, &products, "SELECT * FROM cart_products WHERE cart_id=$1", cartID); err != nil {
 		logger.Log.Errorf("failed listing cart's products: %v", err)
 		return nil, errors.Wrap(err, "couldn't find the cart products")
 	}
@@ -200,12 +200,12 @@ func (s *service) Remove(ctx context.Context, cartID string, pID string, quantit
 	cQuery := `UPDATE carts SET counter=$2, weight=$3, discount=$4, taxes=$5, 
 	subtotal=$6, total=$7 WHERE id=$1`
 
-	if err := s.DB.GetContext(ctx, &cart, "SELECT * FROM carts WHERE id=$1", cartID); err != nil {
+	if err := s.db.GetContext(ctx, &cart, "SELECT * FROM carts WHERE id=$1", cartID); err != nil {
 		logger.Log.Errorf("failed deleting cart: %v", err)
 		return errors.Wrap(err, "couldn't find the cart")
 	}
 
-	if err := s.DB.GetContext(ctx, &p, "SELECT * FROM cart_products WHERE id = $1 AND cart_id=$2", pID, cartID); err != nil {
+	if err := s.db.GetContext(ctx, &p, "SELECT * FROM cart_products WHERE id = $1 AND cart_id=$2", pID, cartID); err != nil {
 		logger.Log.Errorf("failed listing cart's products: %v", err)
 		return errors.New("couldn't find the product")
 	}
@@ -215,7 +215,7 @@ func (s *service) Remove(ctx context.Context, cartID string, pID string, quantit
 	}
 
 	if quantity == p.Quantity {
-		_, err := s.DB.ExecContext(ctx, "DELETE FROM cart_products WHERE id=$1 AND cart_id=$2", pID, cartID)
+		_, err := s.db.ExecContext(ctx, "DELETE FROM cart_products WHERE id=$1 AND cart_id=$2", pID, cartID)
 		if err != nil {
 			logger.Log.Errorf("failed deleting cart's products: %v", err)
 			return errors.Wrap(err, "couldn't delete the product")
@@ -241,7 +241,7 @@ func (s *service) Remove(ctx context.Context, cartID string, pID string, quantit
 	}
 	cart.mu.Unlock()
 
-	_, err := s.DB.ExecContext(ctx, cQuery, cartID, cart.Counter, cart.Weight, cart.Discount, cart.Taxes, cart.Subtotal,
+	_, err := s.db.ExecContext(ctx, cQuery, cartID, cart.Counter, cart.Weight, cart.Discount, cart.Taxes, cart.Subtotal,
 		cart.Total)
 	if err != nil {
 		logger.Log.Errorf("failed updating cart: %v", err)
@@ -256,12 +256,12 @@ func (s *service) Reset(ctx context.Context, cartID string) error {
 	cQuery := `UPDATE carts SET counter=$2, weight=$3, discount=$4, taxes=$5, 
 	subtotal=$6, total=$7 WHERE id=$1`
 
-	if _, err := s.DB.ExecContext(ctx, "DELETE FROM cart_products WHERE cart_id=$1", cartID); err != nil {
+	if _, err := s.db.ExecContext(ctx, "DELETE FROM cart_products WHERE cart_id=$1", cartID); err != nil {
 		logger.Log.Errorf("failed deleting cart's products: %v", err)
 		return errors.Wrap(err, "couldn't delete cart products")
 	}
 
-	if _, err := s.DB.ExecContext(ctx, cQuery, cartID, 0, 0, 0, 0, 0, 0); err != nil {
+	if _, err := s.db.ExecContext(ctx, cQuery, cartID, 0, 0, 0, 0, 0, 0); err != nil {
 		logger.Log.Errorf("failed resetting cart: %v", err)
 		return errors.Wrap(err, "couldn't reset the cart")
 	}
@@ -273,7 +273,7 @@ func (s *service) Reset(ctx context.Context, cartID string) error {
 func (s *service) Size(ctx context.Context, cartID string) (int, error) {
 	var cart Cart
 
-	if err := s.DB.GetContext(ctx, &cart, "SELECT * FROM carts WHERE id=$1", cartID); err != nil {
+	if err := s.db.GetContext(ctx, &cart, "SELECT * FROM carts WHERE id=$1", cartID); err != nil {
 		logger.Log.Errorf("failed listing cart: %v", err)
 		return 0, errors.Wrap(err, "couldn't find the cart")
 	}
@@ -285,7 +285,7 @@ func (s *service) Size(ctx context.Context, cartID string) (int, error) {
 func (s *service) String(ctx context.Context, cartID string) (string, error) {
 	var c Cart
 
-	if err := s.DB.GetContext(ctx, &c, "SELECT * FROM carts WHERE id=$1", cartID); err != nil {
+	if err := s.db.GetContext(ctx, &c, "SELECT * FROM carts WHERE id=$1", cartID); err != nil {
 		logger.Log.Errorf("failed listing cart: %v", err)
 		return "", errors.Wrap(err, "couldn't find the cart")
 	}
