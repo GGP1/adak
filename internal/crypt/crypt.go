@@ -5,6 +5,7 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"io"
+	"sync"
 
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
@@ -15,6 +16,9 @@ var (
 	// Do not provide additional information about the failure to potential attackers
 	errEncrypt = errors.New("encrypt error")
 	errDecrypt = errors.New("decrypt error")
+
+	once sync.Once
+	sum  []byte
 )
 
 // Encrypt ciphers data with the given key.
@@ -62,8 +66,11 @@ func Decrypt(data []byte) ([]byte, error) {
 
 // Create an HMAC SHA256 hash (32 bytes) with the key provided.
 func createHMAC() []byte {
-	key := []byte(viper.GetString("token.secretkey"))
-	hash := hmac.New(sha256.New, key)
+	once.Do(func() {
+		key := []byte(viper.GetString("token.secretkey"))
+		hash := hmac.New(sha256.New, key)
+		sum = hash.Sum(nil)
+	})
 
-	return hash.Sum(nil)
+	return sum
 }
