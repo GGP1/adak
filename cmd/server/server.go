@@ -10,8 +10,8 @@ import (
 
 	"github.com/GGP1/adak/internal/config"
 	"github.com/GGP1/adak/internal/logger"
-	"github.com/pkg/errors"
 
+	"github.com/pkg/errors"
 	"github.com/stripe/stripe-go"
 )
 
@@ -37,7 +37,7 @@ type Stripe struct {
 }
 
 // New returns a new server.
-func New(c *config.Config, router http.Handler) *Server {
+func New(c config.Config, router http.Handler) *Server {
 	return &Server{
 		&http.Server{
 			Addr:           c.Server.Host + ":" + c.Server.Port,
@@ -68,8 +68,12 @@ func (srv *Server) Start(ctx context.Context) error {
 	serverErr := make(chan error, 1)
 
 	go func() {
-		// logger.Log.Infof("Listening on https://%s", srv.Addr)
-		// serverErr <- srv.ListenAndServeTLS(srv.CertFile, srv.KeyFile)
+		if srv.CertFile != "" && srv.KeyFile != "" {
+			logger.Log.Infof("Listening on https://%s", srv.Addr)
+			serverErr <- srv.ListenAndServeTLS(srv.CertFile, srv.KeyFile)
+			return
+		}
+
 		logger.Log.Infof("Listening on http://%s", srv.Addr)
 		serverErr <- srv.ListenAndServe()
 	}()
@@ -80,7 +84,7 @@ func (srv *Server) Start(ctx context.Context) error {
 	// Shutdown
 	select {
 	case err := <-serverErr:
-		return errors.Errorf("Listening and serving failed %s", err)
+		return errors.Wrap(err, "Listening and serve failed")
 
 	case <-shutdown:
 		logger.Log.Info("Start shutdown")
