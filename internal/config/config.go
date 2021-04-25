@@ -21,6 +21,8 @@ var (
 
 // Config constains all the server configurations.
 type Config struct {
+	Development bool
+
 	Admin     Admin
 	Database  Database
 	Memcached Memcached
@@ -88,7 +90,7 @@ type Static struct {
 
 // New sets up the configuration with the values the user gave.
 // Defaults and env variables are placed at the end to make the config easier to read.
-func New() (*Config, error) {
+func New() (Config, error) {
 	viper.AddConfigPath(configDir)
 	viper.SetConfigName(configFilename)
 	viper.SetConfigType("yaml")
@@ -100,7 +102,7 @@ func New() (*Config, error) {
 		}
 
 		if err := godotenv.Load(path); err != nil {
-			return nil, errors.Wrap(err, "env loading failed")
+			return Config{}, errors.Wrap(err, "env loading failed")
 		}
 
 		logger.Log.Info("Using customized configuration")
@@ -120,7 +122,7 @@ func New() (*Config, error) {
 
 	// Read or create configuration file
 	if err := loadConfig(); err != nil {
-		return nil, errors.Wrap(err, "couldn't read the configuration file")
+		return Config{}, errors.Wrap(err, "couldn't read the configuration file")
 	}
 
 	// Auto read env variables
@@ -128,11 +130,11 @@ func New() (*Config, error) {
 	config := &Config{}
 
 	if err := viper.Unmarshal(config); err != nil {
-		return nil, errors.Wrap(err, "unmarshal configuration failed")
+		return Config{}, errors.Wrap(err, "unmarshal configuration failed")
 	}
 
 	logger.Log.Info("Configuration created successfully")
-	return config, nil
+	return *config, nil
 }
 
 // read configuration from file.
@@ -194,6 +196,8 @@ var (
 		"database.port":     "5432",
 		"database.name":     "postgres",
 		"database.sslmode":  "disable",
+		// Development
+		"development": true,
 		// Memcached
 		"memcached.servers": []string{"localhost:11211"},
 		// Server
@@ -228,6 +232,8 @@ var (
 		"database.port":     "POSTGRES_PORT",
 		"database.name":     "POSTGRES_DB",
 		"database.sslmode":  "POSTGRES_SSL",
+		// Development
+		"development": "DEVELOPMENT",
 		// Memcached
 		"memcached.servers": "MEMCACHED_SERVERS",
 		// Server

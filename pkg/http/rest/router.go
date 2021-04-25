@@ -3,6 +3,7 @@ package rest
 import (
 	"net/http"
 
+	"github.com/GGP1/adak/internal/config"
 	"github.com/GGP1/adak/pkg/auth"
 	"github.com/GGP1/adak/pkg/http/rest/middleware"
 	"github.com/GGP1/adak/pkg/product"
@@ -21,7 +22,7 @@ import (
 )
 
 // NewRouter initializes services, creates and returns a mux router
-func NewRouter(db *sqlx.DB, mc *memcache.Client) http.Handler {
+func NewRouter(config config.Config, db *sqlx.DB, mc *memcache.Client) http.Handler {
 	r := chi.NewRouter()
 
 	// Services
@@ -33,7 +34,7 @@ func NewRouter(db *sqlx.DB, mc *memcache.Client) http.Handler {
 	shopService := shop.NewService(db)
 	userService := user.NewService(db)
 	// -- Auth session --
-	session := auth.NewSession(db)
+	session := auth.NewSession(db, config.Development)
 	// -- Tracking --
 	trackingService := tracking.NewService(db)
 

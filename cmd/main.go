@@ -40,7 +40,7 @@ func main() {
 		logger.Log.Fatal(err)
 	}
 
-	router := rest.NewRouter(db, mc)
+	router := rest.NewRouter(conf, db, mc)
 	srv := server.New(conf, router)
 
 	if err := srv.Start(ctx); err != nil {

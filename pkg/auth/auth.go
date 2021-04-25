@@ -38,6 +38,7 @@ type session struct {
 
 	DB *sqlx.DB
 
+	dev bool
 	// user sessions store consisting of map[sessionID]lastSeen
 	store map[string]time.Time
 	// frustrated login attempts
@@ -49,9 +50,10 @@ type session struct {
 }
 
 // NewSession creates a new session with the necessary dependencies.
-func NewSession(db *sqlx.DB) Session {
+func NewSession(db *sqlx.DB, dev bool) Session {
 	return &session{
 		DB:         db,
+		dev:        dev,
 		store:      make(map[string]time.Time),
 		cleaned:    time.Now(),
 		length:     0,
@@ -112,7 +114,7 @@ func (s *session) Login(ctx context.Context, w http.ResponseWriter, r *http.Requ
 		return errors.New("invalid email or password")
 	}
 
-	if !user.VerfiedEmail {
+	if !user.VerfiedEmail && !s.dev {
 		return errors.New("please verify your email to log in")
 	}
 
@@ -140,11 +142,7 @@ func (s *session) Login(ctx context.Context, w http.ResponseWriter, r *http.Requ
 		return err
 	}
 	// -CID- cart id, used to identify which cart belongs to each user
-	if err := cookie.Set(w, "CID", user.CartID, "/", s.length); err != nil {
-		return err
-	}
-
-	return nil
+	return cookie.Set(w, "CID", user.CartID, "/", s.length)
 }
 
 // Login authenticates users using OAuth2.
@@ -175,11 +173,7 @@ func (s *session) LoginOAuth(ctx context.Context, w http.ResponseWriter, r *http
 		return err
 	}
 	// -CID- cart id, used to identify which cart belongs to each user
-	if err := cookie.Set(w, "CID", user.CartID, "/", s.length); err != nil {
-		return err
-	}
-
-	return nil
+	return cookie.Set(w, "CID", user.CartID, "/", s.length)
 }
 
 // Logout removes the user session and its cookies.
