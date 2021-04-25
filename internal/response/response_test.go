@@ -13,9 +13,21 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
+func TestEncodedJSON(t *testing.T) {
+	expected := []byte("test")
+	rec := httptest.NewRecorder()
+	EncodedJSON(rec, []byte("test"))
+	res := rec.Result()
+
+	var buf bytes.Buffer
+	_, err := buf.ReadFrom(res.Body)
+	assert.NoError(t, err)
+
+	assert.Equal(t, expected, buf.Bytes())
+}
+
 func TestError(t *testing.T) {
 	expectedHeaderCT := "application/json; charset=UTF-8"
-	expectedHeaderXCTO := "nosniff"
 	expectedStatus := 404
 	expectedText := "{\"status\":404,\"error\":\"test\"}\n"
 
@@ -25,9 +37,6 @@ func TestError(t *testing.T) {
 
 	gotHeaderCT := res.Header.Get("Content-Type")
 	assert.Equal(t, expectedHeaderCT, gotHeaderCT)
-
-	gotHeaderXCTO := res.Header.Get("X-Content-Type-Options")
-	assert.Equal(t, expectedHeaderXCTO, gotHeaderXCTO)
 
 	gotStatus := res.StatusCode
 	assert.Equal(t, expectedStatus, gotStatus)
