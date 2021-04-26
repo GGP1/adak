@@ -1,0 +1,41 @@
+admin: 
+  emails:
+    - email1@provider.com
+    - email2@provider.com
+    - email3@provider.com
+development: true
+postgres:
+  host: postgres
+  port: "5432"
+  name: postgres
+  username: user
+  password: password
+  sslmode: disable
+memcached:
+  servers:
+    - memcached:11211
+server:
+  host: "127.0.0.1"
+  port: "5000"
+  tls:
+    keyfile: path/to/keyfile
+    certfile: path/to/certfile
+  timeout:
+    read: 5s
+    write: 5s
+    shutdown: 5s
+email:
+  host: smtp.gmail.com
+  port: "587"
+  sender: mail@provider.com
+  password: password
+stripe:
+  secretkey: sk_sample_secret
+  logger:
+    level: 1
+token:
+  secretkey: token_secret_key
+google:
+  client:
+    id: test.apps.googleusercontent.com
+    secret: google_client_secret
