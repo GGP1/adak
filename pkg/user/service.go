@@ -45,8 +45,8 @@ func (s *service) Create(ctx context.Context, user *AddUser) error {
 	VALUES ($1, $2, $3, $4, $5, $6, $7)`
 
 	userQuery := `INSERT INTO users
-	(id, cart_id, username, email, password, created_at, updated_at)
-	VALUES ($1, $2, $3, $4, $5, $6, $7)`
+	(id, cart_id, username, email, password, verified_email, created_at, updated_at)
+	VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`
 
 	var count int
 	_ = s.db.GetContext(ctx, &count, "SELECT COUNT(id) FROM users WHERE email=$1", user.Email)
@@ -83,6 +83,7 @@ func (s *service) Create(ctx context.Context, user *AddUser) error {
 	user.CreatedAt = time.Now()
 
 	// Ideally a map should be used but some configuration file types do not support them.
+	user.IsAdmin = false
 	for _, admin := range viper.GetStringSlice("admin.emails") {
 		if admin == user.Email {
 			user.IsAdmin = true
@@ -91,7 +92,7 @@ func (s *service) Create(ctx context.Context, user *AddUser) error {
 	}
 
 	_, err = s.db.ExecContext(ctx, userQuery, userID, cart.ID, user.Username, user.Email,
-		user.Password, user.CreatedAt, user.UpdatedAt)
+		user.Password, false, user.CreatedAt, user.UpdatedAt)
 	if err != nil {
 		logger.Log.Errorf("failed creating user: %v", err)
 		return errors.Wrap(err, "couldn't create the user")
