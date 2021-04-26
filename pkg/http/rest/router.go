@@ -162,6 +162,7 @@ func NewRouter(config config.Config, db *sqlx.DB, mc *memcache.Client) http.Hand
 
 	// User
 	user := user.Handler{
+		Development: config.Development,
 		Service:     userService,
 		CartService: cartService,
 		Cache:       mc,

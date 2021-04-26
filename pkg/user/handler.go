@@ -21,6 +21,7 @@ import (
 
 // Handler handles user endpoints.
 type Handler struct {
+	Development bool
 	Service     Service
 	CartService cart.Service
 	Cache       *memcache.Client
@@ -46,10 +47,12 @@ func (h *Handler) Create() http.HandlerFunc {
 		user.Username = sanitize.Normalize(user.Username)
 		user.Email = sanitize.Normalize(user.Email)
 
-		confirmationCode := token.RandString(20)
-		if err := email.SendValidation(ctx, user.Username, user.Email, confirmationCode); err != nil {
-			response.Error(w, http.StatusInternalServerError, err)
-			return
+		if !h.Development {
+			confirmationCode := token.RandString(20)
+			if err := email.SendValidation(ctx, user.Username, user.Email, confirmationCode); err != nil {
+				response.Error(w, http.StatusInternalServerError, err)
+				return
+			}
 		}
 
 		if err := h.Service.Create(ctx, &user); err != nil {
