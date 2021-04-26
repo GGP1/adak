@@ -4,19 +4,12 @@ import (
 	"embed"
 	"os"
 	"path/filepath"
-	"runtime"
 	"time"
 
 	"github.com/GGP1/adak/internal/logger"
-	"github.com/joho/godotenv"
 	"github.com/pkg/errors"
 	"github.com/spf13/viper"
 	"github.com/stripe/stripe-go"
-)
-
-var (
-	configFilename = "config"
-	configDir      = filepath.Join(getConfigDir(runtime.GOOS), "adak")
 )
 
 // Config constains all the server configurations.
@@ -24,7 +17,7 @@ type Config struct {
 	Development bool
 
 	Admin     Admin
-	Database  Database
+	Postgres  Postgres
 	Memcached Memcached
 	Server    Server
 	Email     Email
@@ -37,8 +30,8 @@ type Admin struct {
 	Emails []string
 }
 
-// Database hols the database attributes.
-type Database struct {
+// Postgres hols the database attributes.
+type Postgres struct {
 	Username string
 	Password string
 	Host     string
@@ -91,111 +84,81 @@ type Static struct {
 // New sets up the configuration with the values the user gave.
 // Defaults and env variables are placed at the end to make the config easier to read.
 func New() (Config, error) {
-	viper.AddConfigPath(configDir)
-	viper.SetConfigName(configFilename)
-	viper.SetConfigType("yaml")
-
-	path := os.Getenv("ADAK_CONFIG")
-	if path != "" {
-		if filepath.Ext(path) == "" {
-			path = filepath.Join(path, ".env")
-		}
-
-		if err := godotenv.Load(path); err != nil {
-			return Config{}, errors.Wrap(err, "env loading failed")
-		}
-
-		logger.Log.Info("Using customized configuration")
-	} else {
-		logger.Log.Info("Using default configuration")
-	}
+	path := getConfigPath()
+	viper.SetConfigFile(path)
 
 	// Bind envs
 	for k, v := range envVars {
 		viper.BindEnv(k, v)
 	}
 
-	// Set defaults
-	for k, v := range defaults {
-		viper.SetDefault(k, v)
-	}
-
 	// Read or create configuration file
-	if err := loadConfig(); err != nil {
+	if err := loadConfig(path); err != nil {
 		return Config{}, errors.Wrap(err, "couldn't read the configuration file")
 	}
 
-	// Auto read env variables
-	viper.AutomaticEnv()
 	config := &Config{}
-
 	if err := viper.Unmarshal(config); err != nil {
 		return Config{}, errors.Wrap(err, "unmarshal configuration failed")
 	}
 
-	logger.Log.Info("Configuration created successfully")
 	return *config, nil
 }
 
 // read configuration from file.
-func loadConfig() error {
-	// Find and read the config file
-	if err := viper.ReadInConfig(); err != nil {
-		configAbsPath := filepath.Join(configDir, configFilename+".yml")
-
-		// if file does not exist, simply create one
-		if _, err := os.Stat(configAbsPath); os.IsNotExist(err) {
-			if err := os.MkdirAll(configDir, 0755); err != nil {
-				return errors.New("failed creating folder")
-			}
-			f, err := os.Create(configAbsPath)
-			if err != nil {
-				return errors.New("failed creating file")
-			}
-			f.Close()
-		} else {
-			return err
+func loadConfig(path string) error {
+	// if file does not exist, create one
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+			return errors.Wrap(err, "creating folder")
 		}
-
+		if err := os.WriteFile(path, []byte{}, 0644); err != nil {
+			return errors.Wrap(err, "creating file")
+		}
+		for k, v := range defaults {
+			viper.SetDefault(k, v)
+		}
 		if err := viper.WriteConfig(); err != nil {
 			return err
 		}
 	}
 
+	if err := viper.ReadInConfig(); err != nil {
+		return errors.Wrap(err, "reading configuration")
+	}
+
 	return nil
 }
 
-// getConfigDir returns the location of the configuration file.
-func getConfigDir(osName string) string {
-	if os.Getenv("SV_DIR") != "" {
-		return os.Getenv("SV_DIR")
+// getConfigPath returns the location of the configuration file.
+func getConfigPath() string {
+	if path := os.Getenv("ADAK_CONFIG"); path != "" {
+		ext := filepath.Ext(path)
+		if ext != "" && ext != "." {
+			viper.SetConfigType(ext[1:])
+		}
+
+		logger.Log.Infof("Using customized configuration: %s", path)
+		return path
 	}
 
-	switch runtime.GOOS {
-	case "windows":
-		return os.Getenv("APPDATA")
-	case "darwin":
-		return filepath.Join(os.Getenv("HOME"), "Library/Application Support")
-	case "linux":
-		return filepath.Join(os.Getenv("HOME"), ".config")
-	default:
-		dir, _ := os.Getwd()
-		return dir
-	}
+	viper.SetConfigType("yaml")
+	logger.Log.Info("Using default configuration")
+	dir, _ := os.UserConfigDir()
+	return filepath.Join(dir, "config.yml")
 }
 
-// Declared at the end to avoid scrolling
 var (
 	defaults = map[string]interface{}{
 		// Admins
 		"admin.emails": []string{},
-		// Database
-		"database.username": "postgres",
-		"database.password": "password",
-		"database.host":     "localhost",
-		"database.port":     "5432",
-		"database.name":     "postgres",
-		"database.sslmode":  "disable",
+		// Postgres
+		"postgres.username": "postgres",
+		"postgres.password": "password",
+		"postgres.host":     "localhost",
+		"postgres.port":     "5432",
+		"postgres.name":     "postgres",
+		"postgres.sslmode":  "disable",
 		// Development
 		"development": true,
 		// Memcached
@@ -203,9 +166,8 @@ var (
 		// Server
 		"server.host":             "localhost",
 		"server.port":             "7070",
-		"server.dir":              "../",
-		"server.tls.keyfile":      "server.key",
-		"server.tls.certfile":     "server.crt",
+		"server.tls.keyfile":      "",
+		"server.tls.certfile":     "",
 		"server.timeout.read":     5,
 		"server.timeout.write":    5,
 		"server.timeout.shutdown": 5,
@@ -225,13 +187,13 @@ var (
 	envVars = map[string]string{
 		// Admins
 		"admin.emails": "ADMIN_EMAILS",
-		// Database
-		"database.username": "POSTGRES_USERNAME",
-		"database.password": "POSTGRES_PASSWORD",
-		"database.host":     "POSTGRES_HOST",
-		"database.port":     "POSTGRES_PORT",
-		"database.name":     "POSTGRES_DB",
-		"database.sslmode":  "POSTGRES_SSL",
+		// Postgres
+		"postgres.username": "POSTGRES_USERNAME",
+		"postgres.password": "POSTGRES_PASSWORD",
+		"postgres.host":     "POSTGRES_HOST",
+		"postgres.port":     "POSTGRES_PORT",
+		"postgres.name":     "POSTGRES_DB",
+		"postgres.sslmode":  "POSTGRES_SSL",
 		// Development
 		"development": "DEVELOPMENT",
 		// Memcached
@@ -239,7 +201,6 @@ var (
 		// Server
 		"server.host":             "SV_HOST",
 		"server.port":             "SV_PORT",
-		"server.dir":              "SV_DIR",
 		"server.tls.keyfile":      "SV_TLS_KEYFILE",
 		"server.tls.certfile":     "SV_TLS_CERTFILE",
 		"server.timeout.read":     "SV_TIMEOUT_READ",

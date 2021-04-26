@@ -1,23 +1,21 @@
 version: "3.8"  
 services:
   
-  adak:
+  server:
     build: .
-    restart: always
-    environment: # Check all the environment variables in .env_example, as they are required
-      SV_HOST: 0.0.0.0 # Do not bind to 127.0.0.1 as Docker can't reach the app inside the container.
-      SV_PORT: 4000
-      POSTGRES_HOST: postgres
-      POSTGRES_PORT: 5432
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: postgres
+    restart: on-failure:10
+    environment:
+      ADAK_CONFIG: /config.yml
     ports:
       - 4000:4000
-    depends_on:
-      - postgres
+    volumes: # Mount private files
+      - ./config.yml:/config.yml
+      - ./cmd/server/certs:/certs/
     networks:
       - storage
+    depends_on:
+      - postgres
+      - memcached
 
   adak-api:
     image: gastonpalomeque/adak-api
@@ -25,11 +23,10 @@ services:
       - 8080:8080
   
   postgres:
-    image: postgres:13.1-alpine
+    image: postgres:13.2-alpine
     environment:
-      POSTGRES_DB: postgres
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
+      POSTGRES_USER: adak
+      POSTGRES_PASSWORD: adak
     ports:
       - 5432:5432
     volumes: 

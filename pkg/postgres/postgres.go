@@ -4,9 +4,11 @@ package postgres
 import (
 	"context"
 	"fmt"
+	"net"
 
 	"github.com/GGP1/adak/internal/config"
 	"github.com/GGP1/adak/internal/logger"
+
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 )
@@ -15,25 +17,20 @@ import (
 // and checks the existence of all the tables.
 //
 // It returns a pointer to the sql.DB struct, the close function and an error.
-func Connect(ctx context.Context, c *config.Database) (*sqlx.DB, error) {
+func Connect(ctx context.Context, c config.Postgres) (*sqlx.DB, error) {
 	url := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
 		c.Host, c.Port, c.Username, c.Password, c.Name, c.SSLMode)
 
-	db, err := sqlx.Open("postgres", url)
+	db, err := sqlx.ConnectContext(ctx, "postgres", url)
 	if err != nil {
 		return nil, errors.Wrap(err, "couldn't open the database")
-	}
-
-	if err := db.Ping(); err != nil {
-		return nil, errors.Wrap(err, "database connection died")
 	}
 
 	if _, err := db.ExecContext(ctx, tables); err != nil {
 		return nil, errors.Wrap(err, "couldn't create the tables")
 	}
 
-	logger.Log.Infof("Postgres listening on %s:%s", c.Host, c.Port)
-
+	logger.Log.Infof("Connected to postgres on %s", net.JoinHostPort(c.Host, c.Port))
 	return db, nil
 }
 
@@ -46,8 +43,8 @@ CREATE TABLE IF NOT EXISTS users
     username text NOT NULL,
     email text NOT NULL,
     password text NOT NULL,
-    verified_email boolean,
-    is_admin boolean,
+    verified_email boolean DEFAULT false,
+    is_admin boolean DEFAULT false,
     confirmation_code text,
     created_at timestamp with time zone DEFAULT NOW(),
     updated_at timestamp DEFAULT NULL,

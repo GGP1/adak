@@ -29,7 +29,7 @@ func main() {
 	}
 	conf.Static.FS = staticFS
 
-	db, err := postgres.Connect(ctx, &conf.Database)
+	db, err := postgres.Connect(ctx, conf.Postgres)
 	if err != nil {
 		logger.Log.Fatal(err)
 	}

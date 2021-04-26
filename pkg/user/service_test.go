@@ -37,7 +37,7 @@ func NewUserService(t *testing.T) (context.Context, Service) {
 	conf, err := config.New()
 	assert.NoError(t, err)
 
-	conf.Database = config.Database{
+	conf.Postgres = config.Postgres{
 		Host:     "localhost",
 		Port:     "6000",
 		Username: "test",
@@ -46,7 +46,7 @@ func NewUserService(t *testing.T) (context.Context, Service) {
 		SSLMode:  "disable",
 	}
 
-	db, err := postgres.Connect(ctx, &conf.Database)
+	db, err := postgres.Connect(ctx, conf.Postgres)
 	assert.NoError(t, err)
 
 	service := NewService(db)

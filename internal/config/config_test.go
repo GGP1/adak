@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 	"testing"
 
+	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 )
 
@@ -15,95 +16,75 @@ func TestNew(t *testing.T) {
 		expected     string
 	}{
 		{
-			desc:         "Defaults",
+			desc:         "Default",
 			configEnvVar: "",
 			expected:     "default@adak.com",
 		},
 		{
-			desc:         "Mock config",
-			configEnvVar: "testdata/.mock_env",
+			desc:         "Custom",
+			configEnvVar: "testdata/mock_config.yml",
 			expected:     "test@testing.com",
 		},
 	}
 
 	for _, tc := range testCases {
 		t.Run(tc.desc, func(t *testing.T) {
+			viper.Reset()
 			os.Setenv("ADAK_CONFIG", tc.configEnvVar)
 
 			config, err := New()
-			assert.NoError(t, err, "New()")
+			assert.NoError(t, err)
 
 			assert.Equal(t, tc.expected, config.Email.Sender)
 		})
 	}
+
+	dir, _ := os.UserConfigDir()
+	assert.NoError(t, os.Remove(filepath.Join(dir, "config.yml")))
 }
 
 func TestLoadConfig(t *testing.T) {
-	err := loadConfig()
-	assert.NoError(t, err, "loadConfig()")
+	t.Run("Create", func(t *testing.T) {
+		path := "config.yml"
+		viper.SetConfigFile(path)
+		assert.NoError(t, loadConfig(path))
+		assert.NoError(t, os.Remove(path))
+	})
+
+	t.Run("Read", func(t *testing.T) {
+		path := "testdata/mock_config.yml"
+		viper.SetConfigFile(path)
+		assert.NoError(t, loadConfig(path))
+	})
 }
 
-func TestLoadConfigCreate(t *testing.T) {
-	old, _ := os.Getwd()
-
-	os.Chdir("testdata")
-	dir, _ := os.Getwd()
-	configDir = dir
-	configFilename = "mock_config"
-
-	err := loadConfig()
-	assert.NoError(t, err, "loadConfig()")
-
-	// Go back to the last directory
-	os.Chdir(old)
-}
-
-func TestGetConfigDir(t *testing.T) {
-	linux := filepath.Join(os.Getenv("HOME"), ".config")
-	darwin := filepath.Join(os.Getenv("HOME"), "Library/Application Support")
-	wd, _ := os.Getwd()
-	appData := os.Getenv("APPDATA")
+func TestGetConfigPath(t *testing.T) {
+	cfgDir, _ := os.UserConfigDir()
 
 	testCases := []struct {
 		desc     string
-		osName   string
 		expected string
-		svDirEnv string
+		path     string
 	}{
 		{
-			desc:     "Linux",
-			osName:   "linux",
-			expected: linux,
-		},
-		{
-			desc:     "Darwin",
-			osName:   "darwin",
-			expected: darwin,
-		},
-		{
-			desc:     "Windows",
-			osName:   "windows",
-			expected: appData,
-		},
-		{
 			desc:     "Default",
-			osName:   "",
-			expected: wd,
+			expected: filepath.Join(cfgDir, "config.yml"),
 		},
 		{
-			desc:     "SV_DIR environment variable",
-			svDirEnv: "/custom/path",
-			expected: "/custom/path",
+			desc:     "Custom",
+			path:     "/custom/path/config.yml",
+			expected: "/custom/path/config.yml",
 		},
 	}
+
 	for _, tc := range testCases {
 		t.Run(tc.desc, func(t *testing.T) {
-			os.Setenv("SV_DIR", "")
-			if tc.svDirEnv != "" {
-				os.Setenv("SV_DIR", tc.svDirEnv)
+			os.Setenv("ADAK_CONFIG", "")
+			if tc.path != "" {
+				os.Setenv("ADAK_CONFIG", tc.path)
 			}
 
-			got := getConfigDir(tc.osName)
+			got := getConfigPath()
 			assert.Equal(t, tc.expected, got)
 		})
 	}
