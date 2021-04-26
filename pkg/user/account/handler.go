@@ -19,6 +19,7 @@ import (
 type Handler struct {
 	Service     Service
 	UserService user.Service
+	Emailer     email.Emailer
 }
 
 type changeEmail struct {
@@ -105,7 +106,7 @@ func (h *Handler) SendChangeConfirmation() http.HandlerFunc {
 		}
 
 		token := token.RandString(20)
-		if err := email.SendChangeConfirmation(user.ID, user.Username, user.Email, token, new.Email); err != nil {
+		if err := h.Emailer.SendChangeConfirmation(user.ID, user.Username, user.Email, token, new.Email); err != nil {
 			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}

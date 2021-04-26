@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	"github.com/GGP1/adak/internal/config"
+	"github.com/GGP1/adak/internal/email"
 	"github.com/GGP1/adak/pkg/auth"
 	"github.com/GGP1/adak/pkg/http/rest/middleware"
 	"github.com/GGP1/adak/pkg/product"
@@ -37,6 +38,8 @@ func NewRouter(config config.Config, db *sqlx.DB, mc *memcache.Client) http.Hand
 	session := auth.NewSession(db, config.Development)
 	// -- Tracking --
 	trackingService := tracking.NewService(db)
+	// -- Email --
+	emailer := email.New()
 
 	// Authentication middleware
 	mAuth := middleware.Auth{
@@ -165,6 +168,7 @@ func NewRouter(config config.Config, db *sqlx.DB, mc *memcache.Client) http.Hand
 		Development: config.Development,
 		Service:     userService,
 		CartService: cartService,
+		Emailer:     emailer,
 		Cache:       mc,
 	}
 	r.Route("/users", func(r chi.Router) {
@@ -183,6 +187,7 @@ func NewRouter(config config.Config, db *sqlx.DB, mc *memcache.Client) http.Hand
 	account := account.Handler{
 		Service:     accountService,
 		UserService: userService,
+		Emailer:     emailer,
 	}
 	r.With(requireLogin).Post("/settings/email", account.SendChangeConfirmation())
 	r.With(requireLogin).Post("/settings/password", account.ChangePassword())

@@ -24,6 +24,7 @@ type Handler struct {
 	Development bool
 	Service     Service
 	CartService cart.Service
+	Emailer     email.Emailer
 	Cache       *memcache.Client
 }
 
@@ -49,7 +50,7 @@ func (h *Handler) Create() http.HandlerFunc {
 
 		if !h.Development {
 			confirmationCode := token.RandString(20)
-			if err := email.SendValidation(ctx, user.Username, user.Email, confirmationCode); err != nil {
+			if err := h.Emailer.SendValidation(ctx, user.Username, user.Email, confirmationCode); err != nil {
 				response.Error(w, http.StatusInternalServerError, err)
 				return
 			}
