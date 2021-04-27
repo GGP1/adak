@@ -9,6 +9,8 @@ services:
       - 5432:5432
     volumes: 
       - ./postgres-data:/var/lib/postgresql/data
+      # Make sure that ./postgres-data/pg_hba.conf contains the following line to connect to postgres
+      # host    all             all             0.0.0.0/0               trust
 
   # This service is used to build the image only, it will fail on execution but it doesn't interfere with the other service functionality
   micro_server:
@@ -37,49 +39,49 @@ services:
   account:
     image: adak_micro_server
     restart: on-failure:3
-    entrypoint: /usr/bin/adak account
+    entrypoint: adak account
     expose:
       - 2727
   product:
     image: adak_micro_server
     restart: on-failure:3
-    entrypoint: /usr/bin/adak product
+    entrypoint: adak product
     expose:
       - 2727
   review:
     image: adak_micro_server
     restart: on-failure:3
-    entrypoint: /usr/bin/adak review
+    entrypoint: adak review
     expose:
       - 2727
   shop:
     image: adak_micro_server
     restart: on-failure:3
-    entrypoint: /usr/bin/adak shop
+    entrypoint: adak shop
     expose:
       - 2727
   user:
     image: adak_micro_server
     restart: on-failure:3
-    entrypoint: /usr/bin/adak user
+    entrypoint: adak user
     expose:
       - 2727
   ordering:
     image: adak_micro_server
     restart: on-failure:3
-    entrypoint: /usr/bin/adak ordering
+    entrypoint: adak ordering
     expose:
       - 2727
   session:
     image: adak_micro_server
     restart: on-failure:3
-    entrypoint: /usr/bin/adak session
+    entrypoint: adak session
     expose:
       - 2727
   shopping:
     image: adak_micro_server
     restart: on-failure:3
-    entrypoint: /usr/bin/adak shopping
+    entrypoint: adak shopping
     expose:
       - 2727
 
