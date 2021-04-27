@@ -27,11 +27,11 @@ func Connect(ctx context.Context, c *config.Postgres, service string) (*sqlx.DB,
 	}
 
 	// Create tables only once
-	if service == "frontend" {
+	if service == "api" {
 		db.MustExecContext(ctx, tables)
 	}
 
-	log.Info().Msgf("Connected to postgres on %s", net.JoinHostPort(c.Host, c.Port))
+	log.Info().Msgf("%s: connected to postgres on %s", service, net.JoinHostPort(c.Host, c.Port))
 	return db, nil
 }
 
