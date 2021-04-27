@@ -48,12 +48,12 @@ func main() {
 	zerolog.SetGlobalLevel(zerolog.DebugLevel)
 	conf, err := config.New()
 	if err != nil {
-		log.Fatal().Err(err)
+		log.Fatal().Msg(err.Error())
 	}
 
 	db, err := postgres.Connect(ctx, &conf.Postgres, os.Args[1])
 	if err != nil {
-		log.Fatal().Err(err)
+		log.Fatal().Msg(err.Error())
 	}
 	defer db.Close()
 
@@ -104,7 +104,7 @@ func main() {
 	}
 
 	if err := srv.Run(*port); err != nil {
-		log.Fatal().Err(errors.Wrapf(err, "failed running %s server", os.Args[1]))
+		log.Fatal().Msgf("failed running %s server: %v", os.Args[1], err)
 	}
 }
 
