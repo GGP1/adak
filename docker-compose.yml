@@ -7,9 +7,10 @@ services:
       POSTGRES_PASSWORD: postgres
     ports:
       - 5432:5432
-    # volumes: 
-    #   - ./postgres-data:/var/lib/postgresql/data
+    volumes: 
+      - ./postgres-data:/var/lib/postgresql/data
 
+  # This service is used to build the image only, it will fail on execution but it doesn't interfere with the other service functionality
   micro_server:
     build: .
     environment:
@@ -17,10 +18,10 @@ services:
     volumes:
       - ./config_micro.yml:/config.yml:ro
   
-  frontend:
+  api:
     image: adak_micro_server
     restart: on-failure:3
-    entrypoint: adak frontend
+    entrypoint: adak api
     ports:
       - 4000:4000
     depends_on:
@@ -82,5 +83,5 @@ services:
     expose:
       - 2727
 
-# volumes:
-#   postgres-data:
+volumes:
+  postgres-data:

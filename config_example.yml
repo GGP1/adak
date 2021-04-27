@@ -1,0 +1,31 @@
+admin: 
+  emails:
+    - mail@provider.com
+postgres:
+  host: postgres
+  port: "5432"
+  name: postgres
+  username: postgres
+  password: postgres
+  sslmode: disable
+memcached:
+  servers:
+    - memcached:11211
+server:
+  host: "0.0.0.0"
+  port: "4000"
+  timeout:
+    read: 5s
+    write: 5s
+    shutdown: 5s
+email:
+  host: smtp.gmail.com
+  port: "587"
+  sender: mail@provider.com
+  password: password
+stripe:
+  secretkey: sk_sample_key
+  logger:
+    level: 1
+token:
+  secretkey: tokenSecretKey
