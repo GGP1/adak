@@ -1,46 +1,30 @@
 version: "3.8" 
 services:
-  db:
-    image: postgres:13.1-alpine
+  postgres:
+    image: postgres:13.2-alpine
     environment:
-      POSTGRES_DB: postgres
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: postgres
     ports:
       - 5432:5432
-    networks: 
-      - net
-    volumes: 
-      - ./postgres-data:/var/lib/postgresql/data
+    # volumes: 
+    #   - ./postgres-data:/var/lib/postgresql/data
 
-  adak:
+  micro_server:
     build: .
-    restart: always
     environment:
-      SV_HOST: 0.0.0.0 # Do not bind to 127.0.0.1 as Docker can't reach the app inside the container.
-      SV_PORT: 4000
-      POSTGRES_HOST: db
-      POSTGRES_PORT: 5432
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: postgres
-    ports:
-      - 4000:4000
-    networks: 
-      - net
-    depends_on:
-      - db
+      ADAK_CONFIG: /config.yml
+    volumes:
+      - ./config_micro.yml:/config.yml:ro
   
   frontend:
-    image: adak_adak
+    image: adak_micro_server
+    restart: on-failure:3
     entrypoint: adak frontend
     ports:
-      - 8080:8080
-    networks: 
-      - net
+      - 4000:4000
     depends_on:
-      - db
-      - adak
+      - postgres
       - account
       - product
       - review
@@ -50,46 +34,53 @@ services:
       - session
       - shopping
   account:
-    image: adak_adak
-    entrypoint: adak account
-    networks: 
-      - net
+    image: adak_micro_server
+    restart: on-failure:3
+    entrypoint: /usr/bin/adak account
+    expose:
+      - 2727
   product:
-    image: adak_adak
-    entrypoint: adak product
-    networks: 
-      - net
+    image: adak_micro_server
+    restart: on-failure:3
+    entrypoint: /usr/bin/adak product
+    expose:
+      - 2727
   review:
-    image: adak_adak
-    entrypoint: adak review
+    image: adak_micro_server
+    restart: on-failure:3
+    entrypoint: /usr/bin/adak review
+    expose:
+      - 2727
   shop:
-    image: adak_adak
-    entrypoint: adak shop
-    networks: 
-      - net
+    image: adak_micro_server
+    restart: on-failure:3
+    entrypoint: /usr/bin/adak shop
+    expose:
+      - 2727
   user:
-    image: adak_adak
-    entrypoint: adak user
-    networks: 
-      - net
+    image: adak_micro_server
+    restart: on-failure:3
+    entrypoint: /usr/bin/adak user
+    expose:
+      - 2727
   ordering:
-    image: adak_adak
-    entrypoint: adak ordering
-    networks: 
-      - net
+    image: adak_micro_server
+    restart: on-failure:3
+    entrypoint: /usr/bin/adak ordering
+    expose:
+      - 2727
   session:
-    image: adak_adak
-    entrypoint: adak session
-    networks: 
-      - net
+    image: adak_micro_server
+    restart: on-failure:3
+    entrypoint: /usr/bin/adak session
+    expose:
+      - 2727
   shopping:
-    image: adak_adak
-    entrypoint: adak shopping
-    networks: 
-      - net
+    image: adak_micro_server
+    restart: on-failure:3
+    entrypoint: /usr/bin/adak shopping
+    expose:
+      - 2727
 
-volumes:
-  postgres-data:
-
-networks:
-  net:
+# volumes:
+#   postgres-data:

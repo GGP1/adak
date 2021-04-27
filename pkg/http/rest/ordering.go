@@ -13,7 +13,6 @@ import (
 	"github.com/GGP1/adak/pkg/shopping/cart"
 	"github.com/GGP1/adak/pkg/shopping/ordering"
 	"github.com/GGP1/adak/pkg/shopping/payment/stripe"
-	"google.golang.org/protobuf/types/known/timestamppb"
 
 	"github.com/go-chi/chi"
 	"github.com/go-playground/validator/v10"
@@ -74,7 +73,6 @@ func (s *Frontend) OrderingGet() http.HandlerFunc {
 func (s *Frontend) OrderingGetByID() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
-
 		ctx := r.Context()
 
 		order, err := s.orderingClient.GetByID(ctx, &ordering.GetByIDRequest{OrderID: id})
@@ -164,7 +162,7 @@ func (s *Frontend) OrderingNew() http.HandlerFunc {
 			Country:      oParams.Country,
 			State:        oParams.State,
 			ZipCode:      oParams.ZipCode,
-			DeliveryDate: timestamppb.New(deliveryDate),
+			DeliveryDate: deliveryDate.Unix(),
 			Cart:         cart.Cart,
 		})
 		if err != nil {
@@ -181,14 +179,14 @@ func (s *Frontend) OrderingNew() http.HandlerFunc {
 
 		_, err = s.orderingClient.UpdateStatus(ctx, &ordering.UpdateStatusRequest{
 			OrderID:     order.Order.ID,
-			OrderStatus: ordering.PaidState,
+			OrderStatus: string(ordering.PaidState),
 		})
 		if err != nil {
 			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
 
-		respond := fmt.Sprintf("Thanks for your purchase! Your products will be delivered on %v.", time.Unix(order.Order.DeliveryDate.Seconds, 0))
+		respond := fmt.Sprintf("Thanks for your purchase! Your products will be delivered on %v.", time.Unix(order.Order.DeliveryDate, 0))
 		response.HTMLText(w, http.StatusCreated, respond)
 	}
 }

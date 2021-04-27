@@ -1,7 +1,6 @@
 syntax = "proto3";
 package user;
 
-import "google/protobuf/timestamp.proto";
 import "github.com/GGP1/adak/pkg/review/review.proto";
 import "github.com/GGP1/adak/pkg/shopping/ordering/ordering.proto";
 
@@ -28,8 +27,8 @@ message User {
     string confirmationCode = 7;
     repeated ordering.Order orders = 8;
     repeated review.Review reviews = 9;
-    google.protobuf.Timestamp createdAt = 10;
-    google.protobuf.Timestamp updatedAt = 11;
+    int64 createdAt = 10;
+    int64 updatedAt = 11;
 }
 
 message AddUser {
@@ -49,7 +48,7 @@ message ListUser {
     bool verifiedEmail = 6;
     repeated ordering.Order orders = 7;
     repeated review.Review reviews = 8;
-    google.protobuf.Timestamp createdAt = 9;
+    int64 createdAt = 9;
 }
 
 message UpdateUser {

@@ -2,7 +2,8 @@
 TODO.txt
 
 postgres-data
-
+config.yml
+config_micro.yml
 cmd/server/certs
 api
 

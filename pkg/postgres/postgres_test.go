@@ -20,7 +20,7 @@ func TestPostgres(t *testing.T) {
 	}
 
 	url := fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=%s",
-		c.Database.Username, c.Database.Password, c.Database.Host, c.Database.Port, c.Database.Name, c.Database.SSLMode)
+		c.Postgres.Username, c.Postgres.Password, c.Postgres.Host, c.Postgres.Port, c.Postgres.Name, c.Postgres.SSLMode)
 
 	db, err := sqlx.Open("postgres", url)
 	if err != nil {

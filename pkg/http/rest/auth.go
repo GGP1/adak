@@ -38,16 +38,13 @@ func (s *Frontend) Login() http.HandlerFunc {
 		ctx := r.Context()
 
 		sID, err := r.Cookie("SID")
-		if err != nil {
-			response.Error(w, http.StatusBadRequest, err)
-			return
-		}
-
-		sLog, _ := s.sessionClient.AlreadyLoggedIn(ctx, &auth.AlreadyLoggedInRequest{SessionID: sID.Value})
-		if sLog.LoggedIn {
-			sID.MaxAge = int(sLog.SessionLength)
-			http.Redirect(w, r, "/", http.StatusSeeOther)
-			return
+		if err == nil {
+			sLog, _ := s.sessionClient.AlreadyLoggedIn(ctx, &auth.AlreadyLoggedInRequest{SessionID: sID.Value})
+			if sLog.LoggedIn {
+				sID.MaxAge = int(sLog.SessionLen)
+				http.Redirect(w, r, "/", http.StatusSeeOther)
+				return
+			}
 		}
 
 		if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
@@ -75,23 +72,23 @@ func (s *Frontend) Login() http.HandlerFunc {
 		adminEmails := viper.GetStringMap("admins.email")
 		if _, ok := adminEmails[user.Email]; ok {
 			admID := token.GenerateRunes(8)
-			auth.SetCookie(w, "AID", admID, "/", int(login.SessionLength))
+			auth.SetCookie(w, "AID", admID, "/", int(login.SessionLen))
 		}
 
-		userID, err := token.GenerateFixedJWT(user.ID)
+		userID, err := token.GenerateFixedJWT(login.UserID)
 		if err != nil {
 			response.Error(w, http.StatusInternalServerError, errors.Wrap(err, "failed generating a jwt token"))
 			return
 		}
 
 		// -SID- is the user session id
-		auth.SetCookie(w, "SID", login.SessionID, "/", int(login.SessionLength))
+		auth.SetCookie(w, "SID", login.SessionID, "/", int(login.SessionLen))
 		// -UID- used to deny users from making requests to other accounts
-		auth.SetCookie(w, "UID", userID, "/", int(login.SessionLength))
+		auth.SetCookie(w, "UID", userID, "/", int(login.SessionLen))
 		// -CID- used to identify which cart belongs to each user
-		auth.SetCookie(w, "CID", user.CartID, "/", int(login.SessionLength))
+		auth.SetCookie(w, "CID", login.CartID, "/", int(login.SessionLen))
 
-		response.HTMLText(w, http.StatusOK, "You logged in!")
+		response.JSONText(w, http.StatusOK, "logged in")
 	}
 }
 
@@ -116,7 +113,7 @@ func (s *Frontend) Logout() http.HandlerFunc {
 		auth.DeleteCookie(w, "UID")
 		auth.DeleteCookie(w, "CID")
 
-		response.HTMLText(w, http.StatusOK, "You are now logged out.")
+		response.JSONText(w, http.StatusOK, "logged out")
 	}
 }
 
@@ -139,7 +136,7 @@ func (s *Frontend) OAUTH2Google() http.HandlerFunc {
 		}
 		res := fmt.Sprintf("Content: %s", content)
 
-		response.HTMLText(w, http.StatusOK, res)
+		response.JSONText(w, http.StatusOK, res)
 	}
 }
 

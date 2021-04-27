@@ -2,8 +2,6 @@ package server
 
 import (
 	"context"
-	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"os/signal"
@@ -11,6 +9,8 @@ import (
 	"time"
 
 	"github.com/GGP1/adak/internal/config"
+	"github.com/pkg/errors"
+	"github.com/rs/zerolog/log"
 
 	"github.com/stripe/stripe-go"
 )
@@ -56,20 +56,19 @@ func (srv *Server) Start() error {
 
 	serverErr := make(chan error, 1)
 	go func() {
-		fmt.Println("Listening on", srv.Addr)
+		log.Info().Msgf("Listening on %s", srv.Addr)
 		serverErr <- srv.ListenAndServe()
 	}()
 
 	interrupt := make(chan os.Signal, 1)
 	signal.Notify(interrupt, os.Interrupt, syscall.SIGTERM)
 
-	// Shutdown
 	select {
 	case err := <-serverErr:
-		return fmt.Errorf("error: Listening and serving failed %s", err)
+		return errors.Wrap(err, "Listen and serve failed")
 
 	case <-interrupt:
-		log.Println("main: Start shutdown")
+		log.Info().Msg("Start shutdown")
 
 		// Give outstanding requests a deadline for completion
 		ctx, cancel := context.WithTimeout(context.Background(), srv.ShutdownTimeout)
@@ -77,11 +76,11 @@ func (srv *Server) Start() error {
 
 		// Asking listener to shutdown and load shed
 		if err := srv.Shutdown(ctx); err != nil {
-			return fmt.Errorf("main: Graceful shutdown did not complete in %v : %v", srv.ShutdownTimeout, err)
+			return errors.Wrapf(err, "Graceful shutdown did not complete in %v", srv.ShutdownTimeout)
 		}
 
 		if err := srv.Close(); err != nil {
-			return fmt.Errorf("main: Couldn't stop server gracefully : %v", err)
+			return errors.Wrap(err, "Couldn't stop server gracefully")
 		}
 		return nil
 	}

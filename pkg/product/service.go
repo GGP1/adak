@@ -9,6 +9,7 @@ import (
 
 	"github.com/GGP1/adak/internal/token"
 	"github.com/GGP1/adak/pkg/review"
+	"github.com/rs/zerolog/log"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
@@ -40,6 +41,7 @@ func (p *Products) Run(port int) error {
 		return errors.Wrapf(err, "products: failed listening on port %d", port)
 	}
 
+	log.Info().Msgf("Product service listening on %d", port)
 	return srv.Serve(lis)
 }
 
@@ -50,7 +52,7 @@ func (p *Products) Create(ctx context.Context, req *CreateRequest) (*CreateRespo
 	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12, $13, $14)`
 
 	id := token.GenerateRunes(35)
-	req.Product.CreatedAt.Seconds = time.Now().Unix()
+	req.Product.CreatedAt = time.Now().Unix()
 
 	// percentages -> numeric values
 	taxes := ((req.Product.Subtotal / 100) * req.Product.Taxes)
@@ -67,7 +69,7 @@ func (p *Products) Create(ctx context.Context, req *CreateRequest) (*CreateRespo
 		return nil, errors.Wrap(err, "couldn't create the product")
 	}
 
-	return nil, nil
+	return &CreateResponse{}, nil
 }
 
 // Delete permanently deletes a product from the database.
@@ -77,7 +79,7 @@ func (p *Products) Delete(ctx context.Context, req *DeleteRequest) (*DeleteRespo
 		return nil, errors.Wrap(err, "couldn't delete the product")
 	}
 
-	return nil, nil
+	return &DeleteResponse{}, nil
 }
 
 // Get returns a list with all the products stored in the database.
@@ -99,7 +101,7 @@ func (p *Products) Get(ctx context.Context, req *GetRequest) (*GetResponse, erro
 // GetByID retrieves the product requested from the database.
 func (p *Products) GetByID(ctx context.Context, req *GetByIDRequest) (*GetByIDResponse, error) {
 	var (
-		product *Product
+		product Product
 		reviews []*review.Review
 	)
 
@@ -113,7 +115,7 @@ func (p *Products) GetByID(ctx context.Context, req *GetByIDRequest) (*GetByIDRe
 
 	product.Reviews = reviews
 
-	return &GetByIDResponse{Product: product}, nil
+	return &GetByIDResponse{Product: &product}, nil
 }
 
 // Search looks for the products that contain the value specified. (Only text fields)
@@ -152,7 +154,7 @@ func (p *Products) Update(ctx context.Context, req *UpdateRequest) (*UpdateRespo
 		return nil, errors.Wrap(err, "couldn't update the product")
 	}
 
-	return nil, nil
+	return &UpdateResponse{}, nil
 }
 
 func getRelationships(ctx context.Context, db *sqlx.DB, products []*Product) ([]*Product, error) {

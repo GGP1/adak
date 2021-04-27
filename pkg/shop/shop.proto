@@ -1,7 +1,6 @@
 syntax = "proto3";
 package shop;
 
-import "google/protobuf/timestamp.proto";
 import "github.com/GGP1/adak/pkg/product/product.proto";
 import "github.com/GGP1/adak/pkg/review/review.proto";
 
@@ -22,8 +21,8 @@ message Shop {
     Location location = 3;
     repeated review.Review reviews = 4;
     repeated product.Product products = 5;
-    google.protobuf.Timestamp createdAt = 6;
-    google.protobuf.Timestamp updatedAt = 7;
+    int64 createdAt = 6;
+    int64 updatedAt = 7;
 }
 
 message Location {

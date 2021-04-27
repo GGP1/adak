@@ -1,8 +1,6 @@
 package rest
 
 import (
-	"net/http"
-
 	"github.com/GGP1/adak/cmd/server"
 	"github.com/GGP1/adak/internal/config"
 	"github.com/GGP1/adak/pkg/auth"
@@ -49,17 +47,13 @@ func NewFrontend(config *config.Config, accountConn,
 		userClient:     user.NewUsersClient(userConn),
 		orderingClient: ordering.NewOrderingClient(orderingConn),
 		sessionClient:  auth.NewSessionClient(sessionConn),
-		shoppingClient: cart.NewShoppingClient(shopConn),
+		shoppingClient: cart.NewShoppingClient(shoppingConn),
 	}
 }
 
 // Run runs the server.
 func (s *Frontend) Run(port int) error {
 	r := chi.NewRouter()
-
-	// Tracking
-	// TODO: write service
-	// trackingService := tracking.NewService(db, "")
 
 	// Middlewares
 	r.Use(m.Cors, m.Secure, m.LimitRate, m.LogFormatter)
@@ -91,7 +85,7 @@ func (s *Frontend) Run(port int) error {
 	})
 
 	// Home
-	r.Get("/", Home(nil /*trackingService*/))
+	r.Get("/", Home())
 
 	// Ordering
 	r.With(m.AdminsOnly).Get("/orders", s.OrderingGet())
@@ -140,17 +134,6 @@ func (s *Frontend) Run(port int) error {
 		r.Get("/transactions", stripe.ListTxs())
 	})
 
-	// Tracking
-	// tracker := tracking.Handler{TrackerSv: trackingService}
-	// r.Route("/tracker", func(r chi.Router) {
-	// 	r.Use(m.AdminsOnly)
-
-	// 	r.Get("/", tracker.GetHits())
-	// 	r.Delete("/{id}", tracker.DeleteHit())
-	// 	r.Get("/search/{query}", tracker.SearchHit())
-	// 	r.Get("/{field}/{value}", tracker.SearchHitByField())
-	// })
-
 	// User
 	r.Route("/users", func(r chi.Router) {
 		r.Get("/", s.UserGet())
@@ -162,12 +145,7 @@ func (s *Frontend) Run(port int) error {
 	})
 
 	// Account
-	r.With(m.RequireLogin).Post("/settings/email", s.AccountSendChangeConfirmation())
-	r.With(m.RequireLogin).Post("/settings/password", s.AccountChangePassword())
-	r.Get("/verification/{email}/{token}", s.AccountSendEmailValidation())
 	r.Get("/verification/{token}/{email}/{id}", s.AccountChangeEmail())
-
-	http.Handle("/", r)
 
 	srv := server.New(s.config, r)
 

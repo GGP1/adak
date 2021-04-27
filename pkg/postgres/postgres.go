@@ -4,8 +4,10 @@ package postgres
 import (
 	"context"
 	"fmt"
+	"net"
 
 	"github.com/GGP1/adak/internal/config"
+	"github.com/rs/zerolog/log"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
@@ -15,21 +17,21 @@ import (
 // and checks the existence of all the tables.
 //
 // It returns a pointer to the sql.DB struct, the close function and an error.
-func Connect(ctx context.Context, c *config.DatabaseConfig) (*sqlx.DB, error) {
+func Connect(ctx context.Context, c *config.Postgres, service string) (*sqlx.DB, error) {
 	url := fmt.Sprintf("host=%s port=%s user=%s password=%s dbname=%s sslmode=%s",
 		c.Host, c.Port, c.Username, c.Password, c.Name, c.SSLMode)
 
-	db, err := sqlx.Open("postgres", url)
+	db, err := sqlx.ConnectContext(ctx, "postgres", url)
 	if err != nil {
 		return nil, errors.Wrap(err, "couldn't open the database")
 	}
 
-	if err := db.Ping(); err != nil {
-		return nil, errors.Wrap(err, "database connection died")
+	// Create tables only once
+	if service == "frontend" {
+		db.MustExecContext(ctx, tables)
 	}
 
-	db.MustExecContext(ctx, tables)
-
+	log.Info().Msgf("Connected to postgres on %s", net.JoinHostPort(c.Host, c.Port))
 	return db, nil
 }
 
@@ -42,20 +44,22 @@ CREATE TABLE IF NOT EXISTS users
     username text NOT NULL,
     email text NOT NULL,
     password text NOT NULL,
-    verified_email boolean,
+    verified_email boolean DEFAULT false,
     confirmation_code text,
-    created_at timestamp with time zone DEFAULT NOW(),
-    updated_at timestamp DEFAULT NULL,
+    created_at integer,
+    updated_at integer,
     CONSTRAINT users_pkey PRIMARY KEY (id)
 );
+
 CREATE TABLE IF NOT EXISTS shops
 (
     id text NOT NULL,
     name text NOT NULL,
-    created_at timestamp with time zone DEFAULT NOW(),
-    updated_at timestamp with time zone,
+    created_at integer,
+    updated_at integer,
     CONSTRAINT shops_pkey PRIMARY KEY (id)
 );
+
 CREATE TABLE IF NOT EXISTS locations
 (
     shop_id text NOT NULL,
@@ -66,6 +70,7 @@ CREATE TABLE IF NOT EXISTS locations
     address text NOT NULL,
     FOREIGN KEY (shop_id) REFERENCES shops (id) ON DELETE CASCADE ON UPDATE CASCADE
 );
+
 CREATE TABLE IF NOT EXISTS products
 (
     id text NOT NULL,
@@ -80,11 +85,12 @@ CREATE TABLE IF NOT EXISTS products
     discount integer,
     subtotal integer NOT NULL,
     total integer NOT NULL,
-    created_at timestamp with time zone DEFAULT NOW(),
-    updated_at timestamp with time zone,
+    created_at integer,
+    updated_at integer,
     CONSTRAINT products_pkey PRIMARY KEY (id),
     FOREIGN KEY (shop_id) REFERENCES shops (id) ON DELETE CASCADE ON UPDATE CASCADE
 );
+
 CREATE TABLE IF NOT EXISTS reviews
 (
     id text NOT NULL,
@@ -93,13 +99,14 @@ CREATE TABLE IF NOT EXISTS reviews
     user_id text NOT NULL,
     product_id text,
     shop_id text,
-    created_at timestamp with time zone DEFAULT NOW(),
-    updated_at timestamp with time zone,
+    created_at integer,
+    updated_at integer,
     CONSTRAINT reviews_pkey PRIMARY KEY (id),
     FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE ON UPDATE CASCADE,
     FOREIGN KEY (product_id) REFERENCES products (id) ON DELETE CASCADE ON UPDATE CASCADE,
     FOREIGN KEY (shop_id) REFERENCES shops (id) ON DELETE CASCADE ON UPDATE CASCADE
 );
+
 CREATE TABLE IF NOT EXISTS carts
 (
     id text NOT NULL,
@@ -111,6 +118,7 @@ CREATE TABLE IF NOT EXISTS carts
     total integer,
     CONSTRAINT carts_pkey PRIMARY KEY (id)
 );
+
 CREATE TABLE IF NOT EXISTS cart_products
 (
     id text NOT NULL,
@@ -128,6 +136,7 @@ CREATE TABLE IF NOT EXISTS cart_products
     CONSTRAINT cart_products_pkey PRIMARY KEY (id),
     FOREIGN KEY (cart_id) REFERENCES carts (id) ON DELETE CASCADE ON UPDATE CASCADE
 );
+
 CREATE TABLE IF NOT EXISTS hits
 (
     id text NOT NULL,
@@ -137,9 +146,10 @@ CREATE TABLE IF NOT EXISTS hits
     language text,
     user_agent text,
     referer text,
-    date timestamp with time zone,
+    date integer,
     CONSTRAINT hits_pkey PRIMARY KEY (id)
 );
+
 CREATE TABLE IF NOT EXISTS orders
 (
     id text NOT NULL,
@@ -151,12 +161,13 @@ CREATE TABLE IF NOT EXISTS orders
     zip_code text,
     country text,
     status text,
-    ordered_at timestamp with time zone,
-    delivery_date timestamp with time zone,
+    ordered_at integer,
+    delivery_date integer,
     cart_id text,
     CONSTRAINT orders_pkey PRIMARY KEY (id),
     FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE ON UPDATE CASCADE
 );
+
 CREATE TABLE IF NOT EXISTS order_carts
 (
     order_id text NOT NULL,
@@ -168,6 +179,7 @@ CREATE TABLE IF NOT EXISTS order_carts
     total integer,
     FOREIGN KEY (order_id) REFERENCES orders (id) ON DELETE CASCADE ON UPDATE CASCADE
 );
+
 CREATE TABLE IF NOT EXISTS order_products
 (
     product_id text NOT NULL,

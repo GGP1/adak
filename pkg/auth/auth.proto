@@ -1,8 +1,6 @@
 syntax = "proto3";
 package auth;
 
-import "google/protobuf/timestamp.proto";
-
 option go_package = "github.com/GGP1/adak/pkg/auth";
 
 service Session {
@@ -12,12 +10,8 @@ service Session {
 }
 
 message User {
-    string ID = 1;
-    string cartID = 2;
-    string username = 3;
-    string email = 4;
-    string password = 5;
-    google.protobuf.Timestamp emailVerifiedAt = 6;
+    string email = 1;
+    string password = 2;
 }
 
 message Void {}
@@ -27,7 +21,7 @@ message AlreadyLoggedInRequest {
 }
 
 message AlreadyLoggedInResponse {
-    int64 sessionLength = 1;
+    int64 sessionLen = 1;
     bool loggedIn = 2;
 }
 
@@ -37,8 +31,10 @@ message LoginRequest {
 }
 
 message LoginResponse {
-    string sessionID = 1;
-    int64 sessionLength = 2;
+    string userID = 1;
+    string sessionID = 2;
+    string cartID = 3;
+    int64 sessionLen = 4;
 }
 
 message LogoutRequest {

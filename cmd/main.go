@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"flag"
-	"log"
 	"os"
 
 	"github.com/GGP1/adak/internal/config"
@@ -19,6 +18,9 @@ import (
 	"github.com/GGP1/adak/pkg/user/account"
 
 	_ "github.com/lib/pq"
+	"github.com/pkg/errors"
+	"github.com/rs/zerolog"
+	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
 )
 
@@ -29,37 +31,37 @@ type server interface {
 func main() {
 	var (
 		port         = flag.Int("port", 2727, "The service port")
-		accountaddr  = flag.String("accountaddr", "account:2727", "Account service addr")
-		productaddr  = flag.String("productaddr", "product:2727", "Product server addr")
-		reviewaddr   = flag.String("reviewaddr", "review:2727", "Review server addr")
-		shopaddr     = flag.String("shopaddr", "shop:2727", "Shop service addr")
-		useraddr     = flag.String("useraddr", "user:2727", "User service addr")
-		orderingaddr = flag.String("orderingaddr", "ordering:2727", "Ordering service addr")
-		sessionaddr  = flag.String("sessionaddr", "session:2727", "Session service addr")
-		shoppingaddr = flag.String("shoppingaddr", "shopping:2727", "Shopping service addr")
+		accountaddr  = flag.String("accountaddr", "account:2727", "Account service address")
+		productaddr  = flag.String("productaddr", "product:2727", "Product server address")
+		reviewaddr   = flag.String("reviewaddr", "review:2727", "Review server address")
+		shopaddr     = flag.String("shopaddr", "shop:2727", "Shop service address")
+		useraddr     = flag.String("useraddr", "user:2727", "User service address")
+		orderingaddr = flag.String("orderingaddr", "ordering:2727", "Ordering service address")
+		sessionaddr  = flag.String("sessionaddr", "session:2727", "Session service address")
+		shoppingaddr = flag.String("shoppingaddr", "shopping:2727", "Shopping service address")
 	)
 	flag.Parse()
 
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 
+	zerolog.SetGlobalLevel(zerolog.DebugLevel)
 	conf, err := config.New()
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal().Err(err)
 	}
 
-	db, err := postgres.Connect(ctx, &conf.Database)
+	db, err := postgres.Connect(ctx, &conf.Postgres, os.Args[1])
 	if err != nil {
-		log.Fatal(err)
+		log.Fatal().Err(err)
 	}
 	defer db.Close()
 
-	var srv server
-
 	if len(os.Args) < 2 {
-		log.Fatal("no service was specified")
+		log.Fatal().Msg("no service was specified")
 	}
 
+	var srv server
 	switch os.Args[1] {
 	case "account":
 		srv = account.NewService(db, GRPCDial(*useraddr))
@@ -98,11 +100,11 @@ func main() {
 			GRPCDial(*shoppingaddr),
 		)
 	default:
-		log.Fatalf("unknown command %s", os.Args[1])
+		log.Fatal().Msgf("unknown command %s", os.Args[1])
 	}
 
 	if err := srv.Run(*port); err != nil {
-		log.Fatalf("failed running frontend server: %v", err)
+		log.Fatal().Err(errors.Wrap(err, "failed running frontend server"))
 	}
 }
 
@@ -110,7 +112,7 @@ func main() {
 func GRPCDial(addr string) *grpc.ClientConn {
 	conn, err := grpc.Dial(addr, grpc.WithInsecure())
 	if err != nil {
-		log.Fatalf("error: dial on %s: %v", addr, err)
+		log.Fatal().Err(errors.Wrapf(err, "dial on %s", addr))
 	}
 	return conn
 }

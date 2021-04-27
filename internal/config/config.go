@@ -3,34 +3,24 @@ package config
 import (
 	"os"
 	"path/filepath"
-	"runtime"
 	"time"
 
-	"github.com/joho/godotenv"
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog/log"
 	"github.com/spf13/viper"
 	"github.com/stripe/stripe-go"
 )
 
-var (
-	configFileName    = "config"
-	configFileExt     = ".yml"
-	configType        = "yaml"
-	appName           = "adak"
-	configDir         = filepath.Join(getConfigDir(runtime.GOOS), appName)
-	configFileAbsPath = filepath.Join(configDir, configFileName)
-)
-
 // Config constains all the server configurations.
 type Config struct {
-	Database DatabaseConfig
-	Server   ServerConfig
-	Email    EmailConfig
-	Stripe   StripeConfig
+	Postgres Postgres
+	Server   Server
+	Email    Email
+	Stripe   Stripe
 }
 
-// DatabaseConfig hols the database attributes.
-type DatabaseConfig struct {
+// Postgres hols the database attributes.
+type Postgres struct {
 	Username string
 	Password string
 	Host     string
@@ -39,13 +29,13 @@ type DatabaseConfig struct {
 	SSLMode  string
 }
 
-// CacheConfig is the LRU-cache configuration.
-type CacheConfig struct {
+// Cache is the LRU-cache configuration.
+type Cache struct {
 	Size int
 }
 
-// ServerConfig holds the server attributes.
-type ServerConfig struct {
+// Server holds the server attributes.
+type Server struct {
 	Host    string
 	Port    string
 	Timeout struct {
@@ -55,8 +45,8 @@ type ServerConfig struct {
 	}
 }
 
-// EmailConfig holds email attributes.
-type EmailConfig struct {
+// Email holds email attributes.
+type Email struct {
 	Host        string
 	Port        string
 	Sender      string
@@ -64,8 +54,8 @@ type EmailConfig struct {
 	AdminEmails string
 }
 
-// StripeConfig hold stripe attributes
-type StripeConfig struct {
+// Stripe hold stripe attributes
+type Stripe struct {
 	SecretKey string
 	Logger    struct {
 		Level stripe.Level
@@ -74,38 +64,19 @@ type StripeConfig struct {
 
 // New sets up the configuration with the values the user gave.
 func New() (*Config, error) {
-	viper.AddConfigPath(configDir)
-	viper.SetConfigName(configFileName)
-	viper.SetConfigType(configType)
-
-	path := os.Getenv("ADAK_CONFIG")
-	if path != "" {
-		if filepath.Ext(path) == "" {
-			path = filepath.Join(path, ".env")
-		}
-
-		if err := godotenv.Load(path); err != nil {
-			return nil, errors.Wrap(err, "env loading failed")
-		}
-	}
+	path := getConfigDir()
+	viper.SetConfigFile(path)
 
 	// Bind envs
 	for k, v := range envVars {
 		viper.BindEnv(k, v)
 	}
 
-	// Set defaults
-	for k, v := range defaults {
-		viper.SetDefault(k, v)
-	}
-
 	// Read or create configuration file
-	if err := loadConfig(); err != nil {
+	if err := loadConfig(path); err != nil {
 		return nil, errors.Wrap(err, "read configuration failed")
 	}
 
-	// Auto read env variables
-	viper.AutomaticEnv()
 	config := &Config{}
 
 	// Unmarshal config file to struct
@@ -117,66 +88,61 @@ func New() (*Config, error) {
 }
 
 // read configuration from file.
-func loadConfig() error {
-	// Find and read the config file
-	if err := viper.ReadInConfig(); err != nil {
-		// if file does not exist, simply create one
-		if _, err := os.Stat(configFileAbsPath + configFileExt); os.IsNotExist(err) {
-			if err := os.MkdirAll(configDir, 0755); err != nil {
-				return errors.New("failed creating folder")
-			}
-			f, err := os.Create(configFileAbsPath + configFileExt)
-			if err != nil {
-				return errors.New("failed creating file")
-			}
-			f.Close()
-		} else {
-			return err
+func loadConfig(path string) error {
+	// if file does not exist, simply create one
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		log.Info().Msgf("Configuration file not found, creating it on: %s", path)
+		if err := os.MkdirAll(filepath.Dir(path), 0755); err != nil {
+			return errors.New("failed creating folder")
 		}
-
+		f, err := os.Create(path)
+		if err != nil {
+			return errors.New("failed creating file")
+		}
+		f.Close()
+		// Set defaults
+		for k, v := range defaults {
+			viper.SetDefault(k, v)
+		}
 		if err := viper.WriteConfig(); err != nil {
 			return err
 		}
 	}
 
-	return nil
+	return viper.ReadInConfig()
 }
 
-func getConfigDir(osName string) string {
-	if os.Getenv("SV_DIR") != "" {
-		return os.Getenv("SV_DIR")
+func getConfigDir() string {
+	if path := os.Getenv("ADAK_CONFIG"); path != "" {
+		log.Info().Msgf("Using customized configuration: %s", path)
+		if ext := filepath.Ext(path); ext != "" && ext != "." {
+			viper.SetConfigType(ext[1:])
+		}
+		return path
 	}
 
-	switch osName {
-	case "windows":
-		return os.Getenv("APPDATA")
-	case "darwin":
-		return os.Getenv("HOME") + "/Library/Application Support"
-	case "linux":
-		return os.Getenv("HOME") + "/.config"
-	default:
-		dir, _ := os.Getwd()
-		return dir
-	}
+	log.Info().Msg("Using default configuration")
+	viper.SetConfigType("yaml")
+	dir, _ := os.UserConfigDir()
+	return filepath.Join(dir, "config.yml")
 }
 
 var (
 	defaults = map[string]interface{}{
 		// Admins
 		"admin.emails": []string{},
-		// Database
-		"database.username": "postgres",
-		"database.password": "password",
-		"database.host":     "localhost",
-		"database.port":     "5432",
-		"database.name":     "postgres",
-		"database.sslmode":  "disable",
+		// Postgres
+		"postgres.host":     "postgres",
+		"postgres.port":     "5432",
+		"postgres.name":     "postgres",
+		"postgres.username": "postgres",
+		"postgres.password": "postgres",
+		"postgres.sslmode":  "disable",
 		// Cache
 		"cache.size": 100,
 		// Server
-		"server.host":             "localhost",
-		"server.port":             "7070",
-		"server.dir":              "../",
+		"server.host":             "0.0.0.0",
+		"server.port":             "4000",
 		"server.timeout.read":     5,
 		"server.timeout.write":    5,
 		"server.timeout.shutdown": 5,
@@ -196,19 +162,18 @@ var (
 	envVars = map[string]string{
 		// Admins
 		"admin.emails": "ADMIN_EMAILS",
-		// Database
-		"database.username": "POSTGRES_USERNAME",
-		"database.password": "POSTGRES_PASSWORD",
-		"database.host":     "POSTGRES_HOST",
-		"database.port":     "POSTGRES_PORT",
-		"database.name":     "POSTGRES_NAME",
-		"database.sslmode":  "POSTGRES_SSL",
+		// Postgres
+		"postgres.host":     "POSTGRES_HOST",
+		"postgres.port":     "POSTGRES_PORT",
+		"postgres.name":     "POSTGRES_DB",
+		"postgres.username": "POSTGRES_USER",
+		"postgres.password": "POSTGRES_PASSWORD",
+		"postgres.sslmode":  "POSTGRES_SSL",
 		// Cache
 		"cache.size": "CACHE_SIZE",
 		// Server
 		"server.host":             "SV_HOST",
 		"server.port":             "SV_PORT",
-		"server.dir":              "SV_DIR",
 		"server.timeout.read":     "SV_TIMEOUT_READ",
 		"server.timeout.write":    "SV_TIMEOUT_WRITE",
 		"server.timeout.shutdown": "SV_TIMEOUT_SHUTDOWN",

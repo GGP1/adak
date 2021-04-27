@@ -10,20 +10,17 @@ import (
 
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog/log"
 )
 
 // Shopping implements the shopping service.
 type Shopping struct {
-	db   *sqlx.DB
-	Cart *Cart
+	db *sqlx.DB
 }
 
 // NewService returns a new shopping server.
 func NewService(db *sqlx.DB) *Shopping {
-	return &Shopping{
-		db:   db,
-		Cart: &Cart{},
-	}
+	return &Shopping{db}
 }
 
 // Run starts the server.
@@ -36,21 +33,21 @@ func (s *Shopping) Run(port int) error {
 		return errors.Wrapf(err, "shopping: failed listening on port %d", port)
 	}
 
+	log.Info().Msgf("Shopping service listening on %d", port)
 	return srv.Serve(lis)
 }
 
 // New returns a new cart with the id provided.
 func (s *Shopping) New(ctx context.Context, req *NewRequest) (*NewResponse, error) {
-	return &NewResponse{
-		Cart: &Cart{
-			ID: req.ID,
-		},
-	}, nil
+	return &NewResponse{Cart: &Cart{ID: req.ID}}, nil
 }
 
 // Add adds a product to the cart.
 func (s *Shopping) Add(ctx context.Context, req *AddRequest) (*AddResponse, error) {
-	var sum int64
+	var (
+		cart Cart
+		sum  int64
+	)
 
 	pQuery := `INSERT INTO cart_products
 	(id, cart_id, quantity, brand, category, type, description, weight, 
@@ -60,11 +57,11 @@ func (s *Shopping) Add(ctx context.Context, req *AddRequest) (*AddResponse, erro
 	cQuery := `UPDATE carts SET counter=$2, weight=$3, discount=$4, taxes=$5, 
 	subtotal=$6, total=$7 WHERE id=$1`
 
-	if err := s.db.GetContext(ctx, &s.Cart, "SELECT * FROM carts WHERE id=$1", req.CartID); err != nil {
+	if err := s.db.GetContext(ctx, &cart, "SELECT * FROM carts WHERE id=$1", req.CartID); err != nil {
 		return nil, errors.Wrap(err, "couldn't find the cart")
 	}
 
-	AddProduct(s.Cart, req.Product, req.Quantity)
+	AddProduct(&cart, req.Product, req.Quantity)
 
 	// Check how many products are in the cart with the product id provided
 	// If sum == 0 (there is no product with the same id and cart_id), create the product
@@ -86,8 +83,8 @@ func (s *Shopping) Add(ctx context.Context, req *AddRequest) (*AddResponse, erro
 		}
 	}
 
-	_, err := s.db.ExecContext(ctx, cQuery, req.CartID, s.Cart.Counter, s.Cart.Weight, s.Cart.Discount, s.Cart.Taxes, s.Cart.Subtotal,
-		s.Cart.Total)
+	_, err := s.db.ExecContext(ctx, cQuery, req.CartID, cart.Counter, cart.Weight, cart.Discount, cart.Taxes, cart.Subtotal,
+		cart.Total)
 	if err != nil {
 		return nil, errors.Wrap(err, "couldn't update the cart")
 	}
@@ -97,28 +94,32 @@ func (s *Shopping) Add(ctx context.Context, req *AddRequest) (*AddResponse, erro
 
 // Checkout returns the cart total.
 func (s *Shopping) Checkout(ctx context.Context, req *CheckoutRequest) (*CheckoutResponse, error) {
-	if err := s.db.GetContext(ctx, &s.Cart, "SELECT * FROM carts WHERE id=$1", req.CartID); err != nil {
+	var cart Cart
+	if err := s.db.GetContext(ctx, &cart, "SELECT * FROM carts WHERE id=$1", req.CartID); err != nil {
 		return nil, errors.Wrap(err, "couldn't find the cart")
 	}
 
-	return &CheckoutResponse{Total: s.Cart.Total}, nil
+	return &CheckoutResponse{Total: cart.Total}, nil
 }
 
 // Delete permanently deletes a cart from the database.
 func (s *Shopping) Delete(ctx context.Context, req *DeleteRequest) (*DeleteResponse, error) {
 	_, err := s.db.ExecContext(ctx, "DELETE FROM carts WHERE id=$1", req.CartID)
 	if err != nil {
-		return nil, errors.New("couldn't delete the cart")
+		return nil, errors.Wrap(err, "couldn't delete the cart")
 	}
 
-	return nil, nil
+	return &DeleteResponse{}, nil
 }
 
 // Get returns the user cart.
 func (s *Shopping) Get(ctx context.Context, req *GetRequest) (*GetResponse, error) {
-	var products []*Product
+	var (
+		cart     Cart
+		products []*Product
+	)
 
-	if err := s.db.GetContext(ctx, &s.Cart, "SELECT * FROM carts WHERE id=$1", req.CartID); err != nil {
+	if err := s.db.GetContext(ctx, &cart, "SELECT * FROM carts WHERE id=$1", req.CartID); err != nil {
 		return nil, errors.Wrap(err, "couldn't find the cart")
 	}
 
@@ -126,9 +127,9 @@ func (s *Shopping) Get(ctx context.Context, req *GetRequest) (*GetResponse, erro
 		return nil, errors.Wrap(err, "couldn't find the cart products")
 	}
 
-	s.Cart.Products = products
+	cart.Products = products
 
-	return &GetResponse{Cart: s.Cart}, nil
+	return &GetResponse{Cart: &cart}, nil
 }
 
 // Products returns the cart products.
@@ -148,17 +149,20 @@ func (s *Shopping) Products(ctx context.Context, req *ProductsRequest) (*Product
 
 // Remove takes away the specified quantity of products from the cart.
 func (s *Shopping) Remove(ctx context.Context, req *RemoveRequest) (*RemoveResponse, error) {
-	var p *Product
+	var (
+		cart Cart
+		p    *Product
+	)
 
 	cQuery := `UPDATE carts SET counter=$2, weight=$3, discount=$4, taxes=$5, 
 	subtotal=$6, total=$7 WHERE id=$1`
 
-	if err := s.db.GetContext(ctx, &s.Cart, "SELECT * FROM carts WHERE id=$1", req.CartID); err != nil {
+	if err := s.db.GetContext(ctx, &cart, "SELECT * FROM carts WHERE id=$1", req.CartID); err != nil {
 		return nil, errors.Wrap(err, "couldn't find the cart")
 	}
 
 	if err := s.db.GetContext(ctx, &p, "SELECT * FROM cart_products WHERE id = $1 AND cart_id=$2", req.ProductID, req.CartID); err != nil {
-		return nil, errors.New("couldn't find the product")
+		return nil, errors.Wrap(err, "couldn't find the product")
 	}
 
 	if req.Quantity > p.Quantity {
@@ -172,18 +176,18 @@ func (s *Shopping) Remove(ctx context.Context, req *RemoveRequest) (*RemoveRespo
 		}
 	}
 
-	if s.Cart.Counter == 1 {
+	if cart.Counter == 1 {
 		_, err := s.Reset(ctx, &ResetRequest{CartID: req.CartID})
 		if err != nil {
 			return nil, err
 		}
-		return nil, nil
+		return &RemoveResponse{}, nil
 	}
 
-	RemoveProduct(s.Cart, p, req.Quantity)
+	RemoveProduct(&cart, p, req.Quantity)
 
-	_, err := s.db.ExecContext(ctx, cQuery, req.CartID, s.Cart.Counter, s.Cart.Weight, s.Cart.Discount, s.Cart.Taxes, s.Cart.Subtotal,
-		s.Cart.Total)
+	_, err := s.db.ExecContext(ctx, cQuery, req.CartID, cart.Counter, cart.Weight, cart.Discount, cart.Taxes, cart.Subtotal,
+		cart.Total)
 	if err != nil {
 		return nil, errors.Wrap(err, "couldn't update the cart")
 	}
@@ -211,11 +215,12 @@ func (s *Shopping) Reset(ctx context.Context, req *ResetRequest) (*ResetResponse
 
 // Size returns the quantity of products inside the cart.
 func (s *Shopping) Size(ctx context.Context, req *SizeRequest) (*SizeResponse, error) {
-	if err := s.db.GetContext(ctx, &s.Cart, "SELECT * FROM carts WHERE id=$1", req.CartID); err != nil {
+	var cart Cart
+	if err := s.db.GetContext(ctx, &cart, "SELECT * FROM carts WHERE id=$1", req.CartID); err != nil {
 		return nil, errors.Wrap(err, "couldn't find the cart")
 	}
 
-	return &SizeResponse{Counter: s.Cart.Counter}, nil
+	return &SizeResponse{Counter: cart.Counter}, nil
 }
 
 // String returns a string with the cart details.

@@ -55,8 +55,8 @@ func LimitRate(next http.Handler) http.Handler {
 // Checks if the visitors map exists and creates a new one
 // if not, update last visit and return the visitor limiter.
 func getVisitor(ip string, r rate.Limit, b int) *rate.Limiter {
-	mu.RLock()
-	defer mu.RUnlock()
+	mu.Lock()
+	defer mu.Unlock()
 
 	v, exists := visitors[ip]
 	if !exists {
@@ -81,7 +81,7 @@ func cleanupVisitors() {
 	for {
 		time.Sleep(time.Minute * 30)
 
-		mu.RLock()
+		mu.Lock()
 		for ip, v := range visitors {
 			go func(v *visitor, ip string) {
 				if time.Since(v.lastSeen) > 5*time.Hour {
@@ -89,6 +89,6 @@ func cleanupVisitors() {
 				}
 			}(v, ip)
 		}
-		mu.RUnlock()
+		mu.Unlock()
 	}
 }

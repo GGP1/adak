@@ -1,7 +1,6 @@
 package response
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"image"
@@ -9,6 +8,8 @@ import (
 	"io"
 	"net/http"
 	"strconv"
+
+	"github.com/GGP1/adak/internal/bufferpool"
 
 	"github.com/pkg/errors"
 )
@@ -25,25 +26,10 @@ type errResponse struct {
 
 // Error is the function used to send error resposes.
 func Error(w http.ResponseWriter, status int, err error) {
-	var buf bytes.Buffer
-	e := &errResponse{
+	JSON(w, status, &errResponse{
 		Status: status,
 		Err:    err.Error(),
-	}
-
-	if err := json.NewEncoder(&buf).Encode(e); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	// Set content type, status code and instructs browsers to disable content or MIME sniffing
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	w.Header().Set("X-Content-Type-Options", "nosniff")
-	w.WriteHeader(status)
-
-	if _, err := io.Copy(w, &buf); err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-	}
+	})
 }
 
 // HTMLText is the function used to send html text resposes.
@@ -58,9 +44,10 @@ func HTMLText(w http.ResponseWriter, status int, text string) {
 
 // JSON is the function used to send JSON responses.
 func JSON(w http.ResponseWriter, status int, v interface{}) {
-	var buf bytes.Buffer
+	buf := bufferpool.Get()
+	defer bufferpool.Put(buf)
 
-	if err := json.NewEncoder(&buf).Encode(v); err != nil {
+	if err := json.NewEncoder(buf).Encode(v); err != nil {
 		Error(w, http.StatusInternalServerError, err)
 		return
 	}
@@ -68,38 +55,25 @@ func JSON(w http.ResponseWriter, status int, v interface{}) {
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
 	w.WriteHeader(status)
 
-	if _, err := io.Copy(w, &buf); err != nil {
+	if _, err := io.Copy(w, buf); err != nil {
 		Error(w, http.StatusInternalServerError, errors.Wrap(err, "couldn't write to response writer"))
 	}
 }
 
 // JSONText is the function used to send JSON formatted text responses.
 func JSONText(w http.ResponseWriter, status int, message string) {
-	var buf bytes.Buffer
-
-	v := msgResponse{
+	JSON(w, status, msgResponse{
 		Message: message,
 		Code:    status,
-	}
-
-	if err := json.NewEncoder(&buf).Encode(v); err != nil {
-		Error(w, http.StatusInternalServerError, err)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	w.WriteHeader(status)
-
-	if _, err := io.Copy(w, &buf); err != nil {
-		Error(w, http.StatusInternalServerError, errors.Wrap(err, "couldn't write to response writer"))
-	}
+	})
 }
 
 // PNG is used to respond with a png image.
 func PNG(w http.ResponseWriter, status int, img image.Image) {
-	var buf bytes.Buffer
+	buf := bufferpool.Get()
+	defer bufferpool.Put(buf)
 
-	if err := png.Encode(&buf, img); err != nil {
+	if err := png.Encode(buf, img); err != nil {
 		Error(w, http.StatusInternalServerError, errors.New("couldn't encode the PNG image"))
 		return
 	}
@@ -108,7 +82,7 @@ func PNG(w http.ResponseWriter, status int, img image.Image) {
 	w.Header().Set("Content-Length", strconv.Itoa(buf.Len()))
 	w.WriteHeader(status)
 
-	if _, err := io.Copy(w, &buf); err != nil {
+	if _, err := io.Copy(w, buf); err != nil {
 		Error(w, http.StatusInternalServerError, errors.Wrap(err, "couldn't write to response writer"))
 	}
 }

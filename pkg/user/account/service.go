@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/GGP1/adak/pkg/user"
+	"github.com/rs/zerolog/log"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
@@ -39,6 +40,7 @@ func (a *Accounts) Run(port int) error {
 		return errors.Wrapf(err, "products: failed listening on port %d", port)
 	}
 
+	log.Info().Msgf("Account service listening on port %d", port)
 	return srv.Serve(lis)
 }
 
@@ -49,7 +51,7 @@ func (a *Accounts) ChangeEmail(ctx context.Context, req *ChangeEmailRequest) (*C
 		return nil, err
 	}
 
-	if u.User.CreatedAt.Seconds > time.Now().Add(72*time.Hour).Unix() {
+	if u.User.CreatedAt > time.Now().Add(72*time.Hour).Unix() {
 		return nil, errors.New("accounts must be 3 days old to change email")
 	}
 
@@ -63,7 +65,7 @@ func (a *Accounts) ChangeEmail(ctx context.Context, req *ChangeEmailRequest) (*C
 		return nil, err
 	}
 
-	return nil, nil
+	return &ChangeEmailResponse{}, nil
 }
 
 // ChangePassword changes the user password.
@@ -73,7 +75,7 @@ func (a *Accounts) ChangePassword(ctx context.Context, req *ChangePasswordReques
 		return nil, err
 	}
 
-	if u.User.CreatedAt.Seconds > time.Now().Add(72*time.Hour).Unix() {
+	if u.User.CreatedAt > time.Now().Add(72*time.Hour).Unix() {
 		return nil, errors.New("accounts must be 3 days old to change password")
 	}
 
@@ -97,7 +99,7 @@ func (a *Accounts) ChangePassword(ctx context.Context, req *ChangePasswordReques
 		return nil, err
 	}
 
-	return nil, nil
+	return &ChangePasswordResponse{}, nil
 }
 
 // ValidateEmail sets the time when the user validated its email and the token he received.
@@ -118,5 +120,5 @@ func (a *Accounts) ValidateEmail(ctx context.Context, req *ValidateEmailRequest)
 		return nil, err
 	}
 
-	return nil, nil
+	return &ValidateEmailResponse{}, nil
 }

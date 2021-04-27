@@ -10,6 +10,7 @@ import (
 
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
 )
 
@@ -35,6 +36,7 @@ func (r *Reviews) Run(port int) error {
 		return errors.Wrapf(err, "reviews: failed listening on port %d", port)
 	}
 
+	log.Info().Msgf("Review service listening on %d", port)
 	return srv.Serve(lis)
 }
 
@@ -44,14 +46,14 @@ func (r *Reviews) Create(ctx context.Context, req *CreateRequest) (*CreateRespon
 	VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`
 
 	id := token.GenerateRunes(30)
-	req.Review.CreatedAt.Seconds = time.Now().Unix()
+	req.Review.CreatedAt = time.Now().Unix()
 
 	_, err := r.db.ExecContext(ctx, q, id, req.Review.Stars, req.Review.Comment, req.UserID, req.Review.ProductID, req.Review.ShopID, req.Review.CreatedAt, req.Review.UpdatedAt)
 	if err != nil {
 		return nil, errors.Wrap(err, "couldn't create the review")
 	}
 
-	return nil, nil
+	return &CreateResponse{}, nil
 }
 
 // Delete permanently deletes a review from the database.
@@ -61,7 +63,7 @@ func (r *Reviews) Delete(ctx context.Context, req *DeleteRequest) (*DeleteRespon
 		return nil, errors.Wrap(err, "couldn't delete the review")
 	}
 
-	return nil, nil
+	return &DeleteResponse{}, nil
 }
 
 // Get returns a list with all the reviews stored in the database.
@@ -77,11 +79,11 @@ func (r *Reviews) Get(ctx context.Context, req *GetRequest) (*GetResponse, error
 
 // GetByID retrieves the review requested from the database.
 func (r *Reviews) GetByID(ctx context.Context, req *GetByIDRequest) (*GetByIDResponse, error) {
-	var review *Review
+	var review Review
 
 	if err := r.db.GetContext(ctx, &review, "SELECT * FROM reviews WHERE id=$1", req.ID); err != nil {
 		return nil, errors.Wrap(err, "couldn't find the review")
 	}
 
-	return &GetByIDResponse{Reviews: review}, nil
+	return &GetByIDResponse{Reviews: &review}, nil
 }

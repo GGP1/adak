@@ -12,18 +12,20 @@ import (
 
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // Order status
 const (
-	PendingState  = "pending"
-	PaidState     = "paid"
-	ShippingState = "shipping"
-	ShippedState  = "shipped"
-	FailedState   = "failed"
+	PendingState  orderStatus = "pending"
+	PaidState     orderStatus = "paid"
+	ShippingState orderStatus = "shipping"
+	ShippedState  orderStatus = "shipped"
+	FailedState   orderStatus = "failed"
 )
+
+type orderStatus string
 
 // Ordering implements the ordering service
 type Ordering struct {
@@ -43,14 +45,15 @@ func NewService(db *sqlx.DB, shoppingConn *grpc.ClientConn) *Ordering {
 
 // Run starts the server.
 func (o *Ordering) Run(port int) error {
+	srv := grpc.NewServer()
+	RegisterOrderingServer(srv, o)
+
 	lis, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
 	if err != nil {
 		return errors.Wrapf(err, "ordering: failed connecting to the server on port %d", port)
 	}
 
-	srv := grpc.NewServer()
-	RegisterOrderingServer(srv, o)
-
+	log.Info().Msgf("Ordering service listening on %d", port)
 	return srv.Serve(lis)
 }
 
@@ -82,8 +85,8 @@ func (o *Ordering) New(ctx context.Context, req *NewRequest) (*NewResponse, erro
 		City:         req.City,
 		State:        req.State,
 		ZipCode:      req.ZipCode,
-		Status:       PendingState,
-		OrderedAt:    timestamppb.Now(),
+		Status:       string(PendingState),
+		OrderedAt:    time.Now().Unix(),
 		DeliveryDate: req.DeliveryDate,
 		CartID:       req.Cart.ID,
 		Cart: &OrderCart{
@@ -143,7 +146,7 @@ func (o *Ordering) Delete(ctx context.Context, req *DeleteRequest) (*DeleteRespo
 		return nil, errors.Wrap(err, "couldn't delete the order products")
 	}
 
-	return nil, nil
+	return &DeleteResponse{}, nil
 }
 
 // Get retrieves all the orders.
@@ -211,7 +214,7 @@ func (o *Ordering) UpdateStatus(ctx context.Context, req *UpdateStatusRequest) (
 		return nil, errors.Wrap(err, "couldn't update the order status")
 	}
 
-	return nil, nil
+	return &UpdateStatusResponse{}, nil
 }
 
 func (o *Ordering) getRelationships(ctx context.Context, orders []*Order) ([]*Order, error) {
@@ -227,7 +230,7 @@ func (o *Ordering) getRelationships(ctx context.Context, orders []*Order) ([]*Or
 			)
 
 			// Remove expired leaving a gap of 1 week to compute the shipping order
-			if order.DeliveryDate.Seconds > time.Now().Add(time.Hour*168).Unix() {
+			if order.DeliveryDate > time.Now().Add(time.Hour*168).Unix() {
 				_, err := o.Delete(ctx, &DeleteRequest{OrderID: order.ID})
 				if err != nil {
 					errCh <- err

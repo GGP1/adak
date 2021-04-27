@@ -1,7 +1,6 @@
 syntax = "proto3";
 package product;
 
-import "google/protobuf/timestamp.proto";
 import "github.com/GGP1/adak/pkg/review/review.proto";
 
 option go_package = "github.com/GGP1/adak/pkg/product";
@@ -29,8 +28,8 @@ message Product {
     double subtotal = 11;
     double total  = 12;
     repeated review.Review reviews = 13;
-    google.protobuf.Timestamp createdAt = 14;
-    google.protobuf.Timestamp updatedAt = 15;
+    int64 createdAt = 14;
+    int64 updatedAt = 15;
 }
 
 message Void {}

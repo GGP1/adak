@@ -1,7 +1,6 @@
 syntax = "proto3";
 package ordering;
 
-import "google/protobuf/timestamp.proto";
 import "github.com/GGP1/adak/pkg/shopping/cart/cart.proto";
 
 option go_package = "github.com/GGP1/adak/pkg/shopping/ordering";
@@ -25,8 +24,8 @@ message Order {
     string zipCode = 7;
     string country = 8;
     string status = 9;
-    google.protobuf.Timestamp orderedAt = 10;
-    google.protobuf.Timestamp deliveryDate = 11;
+    int64 orderedAt = 10;
+    int64 deliveryDate = 11;
     string cartID = 12;
     OrderCart cart = 13;
     repeated OrderProduct products = 14;
@@ -67,7 +66,7 @@ message NewRequest {
     string country = 5;
     string state = 6;
     string zipCode = 7;
-    google.protobuf.Timestamp deliveryDate = 8;
+    int64 deliveryDate = 8;
     cart.Cart cart = 10;
 }
 

@@ -14,6 +14,7 @@ import (
 
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
+	"github.com/rs/zerolog/log"
 	"golang.org/x/crypto/bcrypt"
 	"google.golang.org/grpc"
 )
@@ -45,6 +46,7 @@ func (u *Users) Run(port int) error {
 		return errors.Wrapf(err, "users: failed listening on port %d", port)
 	}
 
+	log.Info().Msgf("User service listening on port %d", port)
 	return srv.Serve(lis)
 }
 
@@ -89,8 +91,8 @@ func (u *Users) Create(ctx context.Context, req *CreateRequest) (*CreateResponse
 	}
 
 	userID := token.GenerateRunes(30)
-	createdAt := time.Now()
-	updatedAt := time.Now()
+	createdAt := time.Now().Unix()
+	updatedAt := time.Now().Unix()
 
 	// Create user
 	_, err = u.db.ExecContext(ctx, userQuery, userID, new.Cart.ID, req.User.Username, req.User.Email,
@@ -99,7 +101,7 @@ func (u *Users) Create(ctx context.Context, req *CreateRequest) (*CreateResponse
 		return nil, errors.Wrap(err, "couldn't create the user")
 	}
 
-	return nil, nil
+	return &CreateResponse{}, nil
 }
 
 // Delete permanently deletes a user from the database.
@@ -109,7 +111,7 @@ func (u *Users) Delete(ctx context.Context, req *DeleteRequest) (*DeleteResponse
 		return nil, errors.Wrap(err, "couldn't delete the user")
 	}
 
-	return nil, nil
+	return &DeleteResponse{}, nil
 }
 
 // Get returns a list with all the users stored in the database.
@@ -130,19 +132,19 @@ func (u *Users) Get(ctx context.Context, req *GetRequest) (*GetResponse, error) 
 
 // GetByEmail retrieves the user requested from the database.
 func (u *Users) GetByEmail(ctx context.Context, req *GetByEmailRequest) (*GetByEmailResponse, error) {
-	var user *ListUser
-
-	if err := u.db.GetContext(ctx, &user, "SELECT id, email, username, created_at FROM users WHERE email=$1", req.Email); err != nil {
+	var user ListUser
+	q := "SELECT id, cart_id, email, username, password, created_at FROM users WHERE email=$1"
+	if err := u.db.GetContext(ctx, &user, q, req.Email); err != nil {
 		return nil, errors.Wrap(err, "couldn't find the user")
 	}
 
-	return &GetByEmailResponse{User: user}, nil
+	return &GetByEmailResponse{User: &user}, nil
 }
 
 // GetByID retrieves the user requested from the database.
 func (u *Users) GetByID(ctx context.Context, req *GetByIDRequest) (*GetByIDResponse, error) {
 	var (
-		user    *ListUser
+		user    ListUser
 		reviews []*review.Review
 	)
 
@@ -161,18 +163,18 @@ func (u *Users) GetByID(ctx context.Context, req *GetByIDRequest) (*GetByIDRespo
 
 	user.Orders = getByUserID.Orders
 
-	return &GetByIDResponse{User: user}, nil
+	return &GetByIDResponse{User: &user}, nil
 }
 
 // GetByUsername retrieves the user requested from the database.
 func (u *Users) GetByUsername(ctx context.Context, req *GetByUsernameRequest) (*GetByUsernameResponse, error) {
-	var user *ListUser
+	var user ListUser
 
 	if err := u.db.GetContext(ctx, &user, "SELECT id, cart_id, username, email, created_at FROM users WHERE username=$1", req.Username); err != nil {
 		return nil, errors.Wrap(err, "couldn't find the user")
 	}
 
-	return &GetByUsernameResponse{User: user}, nil
+	return &GetByUsernameResponse{User: &user}, nil
 }
 
 // Search looks for the users that contain the value specified. (Only text fields)
@@ -205,7 +207,7 @@ func (u *Users) Update(ctx context.Context, req *UpdateRequest) (*UpdateResponse
 		return nil, errors.Wrap(err, "couldn't update the user")
 	}
 
-	return nil, nil
+	return &UpdateResponse{}, nil
 }
 
 func getRelationships(ctx context.Context, db *sqlx.DB, users []*ListUser) ([]*ListUser, error) {

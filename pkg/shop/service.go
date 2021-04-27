@@ -5,15 +5,16 @@ import (
 	"fmt"
 	"net"
 	"strings"
+	"time"
 
 	"github.com/GGP1/adak/internal/token"
 	"github.com/GGP1/adak/pkg/product"
 	"github.com/GGP1/adak/pkg/review"
+	"github.com/rs/zerolog/log"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 	"google.golang.org/grpc"
-	"google.golang.org/protobuf/types/known/timestamppb"
 )
 
 // Shops implements the shops interface.
@@ -43,6 +44,7 @@ func (s *Shops) Run(port int) error {
 		return errors.Wrapf(err, "shops: failed listening on port %d", port)
 	}
 
+	log.Info().Msgf("Shop service listening on %d", port)
 	return srv.Serve(lis)
 }
 
@@ -57,7 +59,7 @@ func (s *Shops) Create(ctx context.Context, req *CreateRequest) (*CreateResponse
 	VALUES ($1, $2, $3, $4, $5, $6)`
 
 	id := token.GenerateRunes(30)
-	req.Shop.CreatedAt = timestamppb.Now()
+	req.Shop.CreatedAt = time.Now().Unix()
 
 	_, err := s.db.ExecContext(ctx, sQuery, id, req.Shop.Name, req.Shop.CreatedAt, req.Shop.UpdatedAt)
 	if err != nil {
@@ -70,7 +72,7 @@ func (s *Shops) Create(ctx context.Context, req *CreateRequest) (*CreateResponse
 		return nil, errors.Wrap(err, "couldn't create the location")
 	}
 
-	return nil, nil
+	return &CreateResponse{}, nil
 }
 
 // Delete permanently deletes a shop from the database.
@@ -80,7 +82,7 @@ func (s *Shops) Delete(ctx context.Context, req *DeleteRequest) (*DeleteResponse
 		return nil, errors.Wrap(err, "couldn't delete the shop")
 	}
 
-	return nil, nil
+	return &DeleteResponse{}, nil
 }
 
 // Get returns a list with all the shops stored in the database.
@@ -102,7 +104,7 @@ func (s *Shops) Get(ctx context.Context, req *GetRequest) (*GetResponse, error) 
 // GetByID retrieves the shop requested from the database.
 func (s *Shops) GetByID(ctx context.Context, req *GetByIDRequest) (*GetByIDResponse, error) {
 	var (
-		shop     *Shop
+		shop     Shop
 		location *Location
 		reviews  []*review.Review
 		products []*product.Product
@@ -128,7 +130,7 @@ func (s *Shops) GetByID(ctx context.Context, req *GetByIDRequest) (*GetByIDRespo
 	shop.Reviews = reviews
 	shop.Products = products
 
-	return &GetByIDResponse{Shop: shop}, nil
+	return &GetByIDResponse{Shop: &shop}, nil
 }
 
 // Search looks for the shops that contain the value specified. (Only text fields)
@@ -165,7 +167,7 @@ func (s *Shops) Update(ctx context.Context, req *UpdateRequest) (*UpdateResponse
 		return nil, errors.Wrap(err, "couldn't update the shop")
 	}
 
-	return nil, nil
+	return &UpdateResponse{}, nil
 }
 
 func getRelationships(ctx context.Context, db *sqlx.DB, shops []*Shop) ([]*Shop, error) {

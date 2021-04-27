@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"github.com/GGP1/adak/internal/email"
 	"github.com/GGP1/adak/internal/response"
 	"github.com/GGP1/adak/internal/sanitize"
 	"github.com/GGP1/adak/internal/token"
@@ -13,7 +12,6 @@ import (
 
 	"github.com/go-chi/chi"
 	"github.com/go-playground/validator/v10"
-	"github.com/pkg/errors"
 )
 
 // UserCreate creates a new user and saves it.
@@ -33,23 +31,12 @@ func (s *Frontend) UserCreate() http.HandlerFunc {
 			return
 		}
 
-		errCh := make(chan error, 1)
-		go email.SendValidation(ctx, addUser.Username, addUser.Email, errCh)
-
-		select {
-		case <-ctx.Done():
-			response.Error(w, http.StatusInternalServerError, ctx.Err())
-		case <-errCh:
-			response.Error(w, http.StatusInternalServerError, errors.Wrap(<-errCh, "failed sending validation email"))
-		default:
-			_, err := s.userClient.Create(ctx, &user.CreateRequest{User: &addUser})
-			if err != nil {
-				response.Error(w, http.StatusBadRequest, err)
-				return
-			}
-
-			response.HTMLText(w, http.StatusCreated, "Your account was successfully created.\nWe've sent you an email to validate your account.")
+		if _, err := s.userClient.Create(ctx, &user.CreateRequest{User: &addUser}); err != nil {
+			response.Error(w, http.StatusBadRequest, err)
+			return
 		}
+
+		response.HTMLText(w, http.StatusCreated, "Your account was successfully created.")
 	}
 }
 
@@ -82,8 +69,8 @@ func (s *Frontend) UserDelete() http.HandlerFunc {
 			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
-		response.HTMLText(w, http.StatusOK, "User deleted successfully.")
 
+		response.HTMLText(w, http.StatusOK, "User deleted successfully.")
 		http.Redirect(w, r, "/logout", http.StatusTemporaryRedirect)
 	}
 }

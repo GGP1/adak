@@ -138,7 +138,7 @@ type Product struct {
 	unknownFields protoimpl.UnknownFields
 
 	ID          string  `protobuf:"bytes,1,opt,name=ID,proto3" json:"ID,omitempty"`
-	CartID      string  `protobuf:"bytes,2,opt,name=cartID,proto3" json:"cartID,omitempty"`
+	CartID      string  `protobuf:"bytes,2,opt,name=cartID,proto3" json:"cartID,omitempty" db:"cart_id"`
 	Quantity    int64   `protobuf:"varint,3,opt,name=quantity,proto3" json:"quantity,omitempty"`
 	Brand       string  `protobuf:"bytes,4,opt,name=brand,proto3" json:"brand,omitempty"`
 	Category    string  `protobuf:"bytes,5,opt,name=category,proto3" json:"category,omitempty"`

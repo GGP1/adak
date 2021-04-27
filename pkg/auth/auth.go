@@ -11,6 +11,7 @@ import (
 
 	"github.com/GGP1/adak/internal/token"
 	"github.com/GGP1/adak/pkg/user"
+	"github.com/rs/zerolog/log"
 	"google.golang.org/grpc"
 
 	"github.com/jmoiron/sqlx"
@@ -79,7 +80,7 @@ func (s *Session) AlreadyLoggedIn(ctx context.Context, req *AlreadyLoggedInReque
 	}
 	s.Unlock()
 
-	return &AlreadyLoggedInResponse{SessionLength: int64(s.length), LoggedIn: ok}, nil
+	return &AlreadyLoggedInResponse{SessionLen: int64(s.length), LoggedIn: ok}, nil
 }
 
 // Login authenticates users.
@@ -94,15 +95,13 @@ func (s *Session) Login(ctx context.Context, req *LoginRequest) (*LoginResponse,
 	u, err := s.userClient.GetByEmail(ctx, &user.GetByEmailRequest{Email: req.Email})
 	if err != nil {
 		s.loginDelay(req.Email)
+		log.Debug().Err(err)
 		return nil, errInvalidEmailOrPwd
-	}
-
-	if !u.User.VerifiedEmail {
-		return nil, errors.New("your email is not verified")
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(u.User.Password), []byte(req.Password)); err != nil {
 		s.loginDelay(req.Email)
+		log.Debug().Err(err)
 		return nil, errInvalidEmailOrPwd
 	}
 
@@ -116,27 +115,29 @@ func (s *Session) Login(ctx context.Context, req *LoginRequest) (*LoginResponse,
 	delete(s.delay, req.Email)
 	s.Unlock()
 
-	return &LoginResponse{SessionID: sID, SessionLength: int64(s.length)}, nil
+	return &LoginResponse{
+		UserID:     u.User.ID,
+		SessionID:  sID,
+		CartID:     u.User.CartID,
+		SessionLen: int64(s.length),
+	}, nil
 }
 
 // Logout removes the user session and its cookies.
 func (s *Session) Logout(ctx context.Context, req *LogoutRequest) (*LogoutResponse, error) {
 	s.Lock()
+	defer s.Unlock()
 	delete(s.store, req.SessionID)
-	s.Unlock()
 
 	if time.Now().Sub(s.cleaned) > (time.Minute * 30) {
-		go s.clean()
+		s.clean()
 	}
 
-	return nil, nil
+	return &LogoutResponse{}, nil
 }
 
 // clean deletes all the sessions that have expired.
 func (s *Session) clean() {
-	s.Lock()
-	defer s.Unlock()
-
 	for key, value := range s.store {
 		if time.Now().Sub(value.lastSeen) > (time.Hour * 168) {
 			delete(s.store, key)
@@ -148,12 +149,10 @@ func (s *Session) clean() {
 // loginDelay increments the time that the user will have to wait after failing.
 func (s *Session) loginDelay(email string) {
 	s.Lock()
-	defer s.Unlock()
-
 	s.tries[email] = append(s.tries[email], struct{}{})
-
 	d := (len(s.tries[email]) * 2)
 	s.delay[email] = time.Now().Add(time.Second * time.Duration(d))
+	s.Unlock()
 }
 
 // DeleteCookie removes a cookie.
@@ -163,7 +162,7 @@ func DeleteCookie(w http.ResponseWriter, name string) {
 		Value:    "0",
 		Expires:  time.Unix(1414414788, 1414414788000),
 		Path:     "/",
-		Domain:   "127.0.0.1",
+		Domain:   "localhost",
 		Secure:   false,
 		HttpOnly: true,
 		MaxAge:   -1,
@@ -176,7 +175,7 @@ func SetCookie(w http.ResponseWriter, name, value, path string, length int) {
 		Name:     name,
 		Value:    value,
 		Path:     path,
-		Domain:   "127.0.0.1",
+		Domain:   "localhost",
 		Secure:   false,
 		HttpOnly: true,
 		SameSite: 3,
