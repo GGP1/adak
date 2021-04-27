@@ -36,17 +36,17 @@ type Order struct {
 	unknownFields protoimpl.UnknownFields
 
 	ID           string          `protobuf:"bytes,1,opt,name=ID,proto3" json:"ID,omitempty"`
-	UserID       string          `protobuf:"bytes,2,opt,name=userID,proto3" json:"userID,omitempty" db:"user_id"`
+	UserID       string          `protobuf:"bytes,2,opt,name=userID,proto3" json:"user_id,omitempty" db:"user_id"`
 	Currency     string          `protobuf:"bytes,3,opt,name=currency,proto3" json:"currency,omitempty"`
 	Address      string          `protobuf:"bytes,4,opt,name=address,proto3" json:"address,omitempty"`
 	City         string          `protobuf:"bytes,5,opt,name=city,proto3" json:"city,omitempty"`
 	State        string          `protobuf:"bytes,6,opt,name=state,proto3" json:"state,omitempty"`
-	ZipCode      string          `protobuf:"bytes,7,opt,name=zipCode,proto3" json:"zipCode,omitempty" db:"zip_code"`
+	ZipCode      string          `protobuf:"bytes,7,opt,name=zipCode,proto3" json:"zip_code,omitempty" db:"zip_code"`
 	Country      string          `protobuf:"bytes,8,opt,name=country,proto3" json:"country,omitempty"`
 	Status       string          `protobuf:"bytes,9,opt,name=status,proto3" json:"status,omitempty"`
-	OrderedAt    int64           `protobuf:"varint,10,opt,name=orderedAt,proto3" json:"orderedAt,omitempty" db:"ordered_at"`
-	DeliveryDate int64           `protobuf:"varint,11,opt,name=deliveryDate,proto3" json:"deliveryDate,omitempty" db:"delivery_date"`
-	CartID       string          `protobuf:"bytes,12,opt,name=cartID,proto3" json:"cartID,omitempty" db:"cart_id"`
+	OrderedAt    int64           `protobuf:"varint,10,opt,name=orderedAt,proto3" json:"ordered_at,omitempty" db:"ordered_at"`
+	DeliveryDate int64           `protobuf:"varint,11,opt,name=deliveryDate,proto3" json:"delivery_date,omitempty" db:"delivery_date"`
+	CartID       string          `protobuf:"bytes,12,opt,name=cartID,proto3" json:"cart_id,omitempty" db:"cart_id"`
 	Cart         *OrderCart      `protobuf:"bytes,13,opt,name=cart,proto3" json:"cart,omitempty"`
 	Products     []*OrderProduct `protobuf:"bytes,14,rep,name=products,proto3" json:"products,omitempty"`
 }
@@ -281,7 +281,7 @@ type OrderProduct struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	ProductID   string  `protobuf:"bytes,1,opt,name=productID,proto3" json:"productID,omitempty" db:"product_id"`
+	ProductID   string  `protobuf:"bytes,1,opt,name=productID,proto3" json:"product_id,omitempty" db:"product_id"`
 	OrderID     string  `protobuf:"bytes,2,opt,name=orderID,proto3" json:"orderID,omitempty" db:"order_id"`
 	Quantity    int64   `protobuf:"varint,3,opt,name=quantity,proto3" json:"quantity,omitempty"`
 	Brand       string  `protobuf:"bytes,4,opt,name=brand,proto3" json:"brand,omitempty"`
@@ -454,14 +454,14 @@ type NewRequest struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	UserID       string     `protobuf:"bytes,1,opt,name=userID,proto3" json:"userID,omitempty"`
+	UserID       string     `protobuf:"bytes,1,opt,name=userID,proto3" json:"user_id,omitempty"`
 	Currency     string     `protobuf:"bytes,2,opt,name=currency,proto3" json:"currency,omitempty"`
 	Address      string     `protobuf:"bytes,3,opt,name=address,proto3" json:"address,omitempty"`
 	City         string     `protobuf:"bytes,4,opt,name=city,proto3" json:"city,omitempty"`
 	Country      string     `protobuf:"bytes,5,opt,name=country,proto3" json:"country,omitempty"`
 	State        string     `protobuf:"bytes,6,opt,name=state,proto3" json:"state,omitempty"`
-	ZipCode      string     `protobuf:"bytes,7,opt,name=zipCode,proto3" json:"zipCode,omitempty"`
-	DeliveryDate int64      `protobuf:"varint,8,opt,name=deliveryDate,proto3" json:"deliveryDate,omitempty"`
+	ZipCode      string     `protobuf:"bytes,7,opt,name=zipCode,proto3" json:"zip_code,omitempty"`
+	DeliveryDate int64      `protobuf:"varint,8,opt,name=deliveryDate,proto3" json:"delivery_date,omitempty"`
 	Cart         *cart.Cart `protobuf:"bytes,10,opt,name=cart,proto3" json:"cart,omitempty"`
 }
 
@@ -894,7 +894,7 @@ type GetByUserIDRequest struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	UserID string `protobuf:"bytes,1,opt,name=userID,proto3" json:"userID,omitempty"`
+	UserID string `protobuf:"bytes,1,opt,name=userID,proto3" json:"user_id,omitempty"`
 }
 
 func (x *GetByUserIDRequest) Reset() {

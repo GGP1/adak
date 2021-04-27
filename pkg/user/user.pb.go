@@ -37,7 +37,7 @@ type User struct {
 	unknownFields protoimpl.UnknownFields
 
 	ID               string            `protobuf:"bytes,1,opt,name=ID,proto3" json:"ID,omitempty"`
-	CartID           string            `protobuf:"bytes,2,opt,name=cartID,proto3" json:"cartID,omitempty" db:"cart_id"`
+	CartID           string            `protobuf:"bytes,2,opt,name=cartID,proto3" json:"cart_id,omitempty" db:"cart_id"`
 	Username         string            `protobuf:"bytes,3,opt,name=username,proto3" json:"username,omitempty"`
 	Email            string            `protobuf:"bytes,4,opt,name=email,proto3" json:"email,omitempty"`
 	Password         string            `protobuf:"bytes,5,opt,name=password,proto3" json:"password,omitempty"`
@@ -45,8 +45,8 @@ type User struct {
 	ConfirmationCode string            `protobuf:"bytes,7,opt,name=confirmationCode,proto3" json:"confirmationCode,omitempty" db:"confirmation_code"`
 	Orders           []*ordering.Order `protobuf:"bytes,8,rep,name=orders,proto3" json:"orders,omitempty"`
 	Reviews          []*review.Review  `protobuf:"bytes,9,rep,name=reviews,proto3" json:"reviews,omitempty"`
-	CreatedAt        int64             `protobuf:"varint,10,opt,name=createdAt,proto3" json:"createdAt,omitempty" db:"created_at"`
-	UpdatedAt        int64             `protobuf:"varint,11,opt,name=updatedAt,proto3" json:"updatedAt,omitempty" db:"updated_at"`
+	CreatedAt        int64             `protobuf:"varint,10,opt,name=createdAt,proto3" json:"created_at,omitempty" db:"created_at"`
+	UpdatedAt        int64             `protobuf:"varint,11,opt,name=updatedAt,proto3" json:"updated_at,omitempty" db:"updated_at"`
 }
 
 func (x *User) Reset() {
@@ -164,7 +164,7 @@ type AddUser struct {
 	unknownFields protoimpl.UnknownFields
 
 	ID       string `protobuf:"bytes,1,opt,name=ID,proto3" json:"ID,omitempty"`
-	CartID   string `protobuf:"bytes,2,opt,name=cartID,proto3" json:"cartID,omitempty" db:"cart_id"`
+	CartID   string `protobuf:"bytes,2,opt,name=cartID,proto3" json:"cart_id,omitempty" db:"cart_id"`
 	Username string `protobuf:"bytes,3,opt,name=username,proto3" json:"username,omitempty"`
 	Email    string `protobuf:"bytes,4,opt,name=email,proto3" json:"email,omitempty"`
 	Password string `protobuf:"bytes,5,opt,name=password,proto3" json:"password,omitempty"`
@@ -243,14 +243,14 @@ type ListUser struct {
 	unknownFields protoimpl.UnknownFields
 
 	ID            string            `protobuf:"bytes,1,opt,name=ID,proto3" json:"ID,omitempty"`
-	CartID        string            `protobuf:"bytes,2,opt,name=cartID,proto3" json:"cartID,omitempty" db:"cart_id"`
+	CartID        string            `protobuf:"bytes,2,opt,name=cartID,proto3" json:"cart_id,omitempty" db:"cart_id"`
 	Username      string            `protobuf:"bytes,3,opt,name=username,proto3" json:"username,omitempty"`
 	Email         string            `protobuf:"bytes,4,opt,name=email,proto3" json:"email,omitempty"`
 	Password      string            `protobuf:"bytes,5,opt,name=password,proto3" json:"password,omitempty"`
 	VerifiedEmail bool              `protobuf:"varint,6,opt,name=verifiedEmail,proto3" json:"verifiedEmail,omitempty" db:"verified_email"`
 	Orders        []*ordering.Order `protobuf:"bytes,7,rep,name=orders,proto3" json:"orders,omitempty"`
 	Reviews       []*review.Review  `protobuf:"bytes,8,rep,name=reviews,proto3" json:"reviews,omitempty"`
-	CreatedAt     int64             `protobuf:"varint,9,opt,name=createdAt,proto3" json:"createdAt,omitempty" db:"created_at"`
+	CreatedAt     int64             `protobuf:"varint,9,opt,name=createdAt,proto3" json:"created_at,omitempty" db:"created_at"`
 }
 
 func (x *ListUser) Reset() {

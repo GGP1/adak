@@ -36,7 +36,7 @@ type Product struct {
 	unknownFields protoimpl.UnknownFields
 
 	ID          string           `protobuf:"bytes,1,opt,name=ID,proto3" json:"ID,omitempty"`
-	ShopID      string           `protobuf:"bytes,2,opt,name=shopID,proto3" json:"shopID,omitempty" db:"shop_id"`
+	ShopID      string           `protobuf:"bytes,2,opt,name=shopID,proto3" json:"shop_id,omitempty" db:"shop_id"`
 	Stock       uint64           `protobuf:"varint,3,opt,name=stock,proto3" json:"stock,omitempty"`
 	Brand       string           `protobuf:"bytes,4,opt,name=brand,proto3" json:"brand,omitempty"`
 	Category    string           `protobuf:"bytes,5,opt,name=category,proto3" json:"category,omitempty"`
@@ -48,8 +48,8 @@ type Product struct {
 	Subtotal    float64          `protobuf:"fixed64,11,opt,name=subtotal,proto3" json:"subtotal,omitempty"`
 	Total       float64          `protobuf:"fixed64,12,opt,name=total,proto3" json:"total,omitempty"`
 	Reviews     []*review.Review `protobuf:"bytes,13,rep,name=reviews,proto3" json:"reviews,omitempty"`
-	CreatedAt   int64            `protobuf:"varint,14,opt,name=createdAt,proto3" json:"createdAt,omitempty" db:"created_at"`
-	UpdatedAt   int64            `protobuf:"varint,15,opt,name=updatedAt,proto3" json:"updatedAt,omitempty" db:"updated_at"`
+	CreatedAt   int64            `protobuf:"varint,14,opt,name=createdAt,proto3" json:"created_at,omitempty" db:"created_at"`
+	UpdatedAt   int64            `protobuf:"varint,15,opt,name=updatedAt,proto3" json:"updated_at,omitempty" db:"updated_at"`
 }
 
 func (x *Product) Reset() {

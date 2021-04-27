@@ -41,8 +41,8 @@ type Shop struct {
 	Location  *Location          `protobuf:"bytes,3,opt,name=location,proto3" json:"location,omitempty"`
 	Reviews   []*review.Review   `protobuf:"bytes,4,rep,name=reviews,proto3" json:"reviews,omitempty"`
 	Products  []*product.Product `protobuf:"bytes,5,rep,name=products,proto3" json:"products,omitempty"`
-	CreatedAt int64              `protobuf:"varint,6,opt,name=createdAt,proto3" json:"createdAt,omitempty" db:"created_at"`
-	UpdatedAt int64              `protobuf:"varint,7,opt,name=updatedAt,proto3" json:"updatedAt,omitempty" db:"updated_at"`
+	CreatedAt int64              `protobuf:"varint,6,opt,name=createdAt,proto3" json:"created_at,omitempty" db:"created_at"`
+	UpdatedAt int64              `protobuf:"varint,7,opt,name=updatedAt,proto3" json:"updated_at,omitempty" db:"updated_at"`
 }
 
 func (x *Shop) Reset() {
@@ -131,10 +131,10 @@ type Location struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	ShopID  string `protobuf:"bytes,1,opt,name=shopID,proto3" json:"shopID,omitempty" db:"shop_id"`
+	ShopID  string `protobuf:"bytes,1,opt,name=shopID,proto3" json:"shop_id,omitempty" db:"shop_id"`
 	Country string `protobuf:"bytes,2,opt,name=country,proto3" json:"country,omitempty"`
 	State   string `protobuf:"bytes,3,opt,name=state,proto3" json:"state,omitempty"`
-	ZipCode string `protobuf:"bytes,4,opt,name=zipCode,proto3" json:"zipCode,omitempty" db:"zip_code"`
+	ZipCode string `protobuf:"bytes,4,opt,name=zipCode,proto3" json:"zip_code,omitempty" db:"zip_code"`
 	City    string `protobuf:"bytes,5,opt,name=city,proto3" json:"city,omitempty"`
 	Address string `protobuf:"bytes,6,opt,name=address,proto3" json:"address,omitempty"`
 }

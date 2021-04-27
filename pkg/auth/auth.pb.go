@@ -284,9 +284,9 @@ type LoginResponse struct {
 	sizeCache     protoimpl.SizeCache
 	unknownFields protoimpl.UnknownFields
 
-	UserID     string `protobuf:"bytes,1,opt,name=userID,proto3" json:"userID,omitempty"`
+	UserID     string `protobuf:"bytes,1,opt,name=userID,proto3" json:"user_id,omitempty"`
 	SessionID  string `protobuf:"bytes,2,opt,name=sessionID,proto3" json:"sessionID,omitempty"`
-	CartID     string `protobuf:"bytes,3,opt,name=cartID,proto3" json:"cartID,omitempty"`
+	CartID     string `protobuf:"bytes,3,opt,name=cartID,proto3" json:"cart_id,omitempty"`
 	SessionLen int64  `protobuf:"varint,4,opt,name=sessionLen,proto3" json:"sessionLen,omitempty"`
 }
 

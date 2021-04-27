@@ -37,11 +37,11 @@ type Review struct {
 	ID        string `protobuf:"bytes,1,opt,name=ID,proto3" json:"ID,omitempty"`
 	Stars     uint32 `protobuf:"varint,2,opt,name=stars,proto3" json:"stars,omitempty"`
 	Comment   string `protobuf:"bytes,3,opt,name=comment,proto3" json:"comment,omitempty"`
-	UserID    string `protobuf:"bytes,4,opt,name=userID,proto3" json:"userID,omitempty" db:"user_id"`
-	ProductID string `protobuf:"bytes,5,opt,name=productID,proto3" json:"productID,omitempty" db:"product_id"`
-	ShopID    string `protobuf:"bytes,6,opt,name=shopID,proto3" json:"shopID,omitempty" db:"shop_id"`
-	CreatedAt int64  `protobuf:"varint,7,opt,name=createdAt,proto3" json:"createdAt,omitempty" db:"created_at"`
-	UpdatedAt int64  `protobuf:"varint,8,opt,name=updatedAt,proto3" json:"updatedAt,omitempty" db:"updated_at"`
+	UserID    string `protobuf:"bytes,4,opt,name=userID,proto3" json:"user_id,omitempty" db:"user_id"`
+	ProductID string `protobuf:"bytes,5,opt,name=productID,proto3" json:"product_id,omitempty" db:"product_id"`
+	ShopID    string `protobuf:"bytes,6,opt,name=shopID,proto3" json:"shop_id,omitempty" db:"shop_id"`
+	CreatedAt int64  `protobuf:"varint,7,opt,name=createdAt,proto3" json:"created_at,omitempty" db:"created_at"`
+	UpdatedAt int64  `protobuf:"varint,8,opt,name=updatedAt,proto3" json:"updated_at,omitempty" db:"updated_at"`
 }
 
 func (x *Review) Reset() {
@@ -176,7 +176,7 @@ type CreateRequest struct {
 	unknownFields protoimpl.UnknownFields
 
 	Review *Review `protobuf:"bytes,1,opt,name=review,proto3" json:"review,omitempty"`
-	UserID string  `protobuf:"bytes,2,opt,name=userID,proto3" json:"userID,omitempty"`
+	UserID string  `protobuf:"bytes,2,opt,name=userID,proto3" json:"user_id,omitempty"`
 }
 
 func (x *CreateRequest) Reset() {
