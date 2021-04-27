@@ -19,7 +19,7 @@ var (
 )
 
 // CartAdd appends a product to the cart.
-func (s *Frontend) CartAdd() http.HandlerFunc {
+func (s *API) CartAdd() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var product *cart.Product
 		q := chi.URLParam(r, "quantity")
@@ -57,7 +57,7 @@ func (s *Frontend) CartAdd() http.HandlerFunc {
 }
 
 // CartCheckout returns the final purchase.
-func (s *Frontend) CartCheckout() http.HandlerFunc {
+func (s *API) CartCheckout() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		c, _ := r.Cookie("CID")
 		ctx := r.Context()
@@ -75,7 +75,7 @@ func (s *Frontend) CartCheckout() http.HandlerFunc {
 }
 
 // CartFilterByBrand returns the products filtered by brand.
-func (s *Frontend) CartFilterByBrand() http.HandlerFunc {
+func (s *API) CartFilterByBrand() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		brand := chi.URLParam(r, "brand")
 		c, _ := r.Cookie("CID")
@@ -100,7 +100,7 @@ func (s *Frontend) CartFilterByBrand() http.HandlerFunc {
 }
 
 // CartFilterByCategory returns the products filtered by category.
-func (s *Frontend) CartFilterByCategory() http.HandlerFunc {
+func (s *API) CartFilterByCategory() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		category := chi.URLParam(r, "category")
 		c, _ := r.Cookie("CID")
@@ -125,7 +125,7 @@ func (s *Frontend) CartFilterByCategory() http.HandlerFunc {
 }
 
 // CartFilterByDiscount returns the products filtered by discount.
-func (s *Frontend) CartFilterByDiscount() http.HandlerFunc {
+func (s *API) CartFilterByDiscount() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		min := chi.URLParam(r, "min")
 		max := chi.URLParam(r, "max")
@@ -159,7 +159,7 @@ func (s *Frontend) CartFilterByDiscount() http.HandlerFunc {
 }
 
 // CartFilterBySubtotal returns the products filtered by subtotal.
-func (s *Frontend) CartFilterBySubtotal() http.HandlerFunc {
+func (s *API) CartFilterBySubtotal() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		min := chi.URLParam(r, "min")
 		max := chi.URLParam(r, "max")
@@ -193,7 +193,7 @@ func (s *Frontend) CartFilterBySubtotal() http.HandlerFunc {
 }
 
 // CartFilterByTaxes returns the products filtered by taxes.shoppingClient.
-func (s *Frontend) CartFilterByTaxes() http.HandlerFunc {
+func (s *API) CartFilterByTaxes() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		min := chi.URLParam(r, "min")
 		max := chi.URLParam(r, "max")
@@ -227,7 +227,7 @@ func (s *Frontend) CartFilterByTaxes() http.HandlerFunc {
 }
 
 // CartFilterByTotal returns the products filtered by total.
-func (s *Frontend) CartFilterByTotal() http.HandlerFunc {
+func (s *API) CartFilterByTotal() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		min := chi.URLParam(r, "min")
 		max := chi.URLParam(r, "max")
@@ -261,7 +261,7 @@ func (s *Frontend) CartFilterByTotal() http.HandlerFunc {
 }
 
 // CartFilterByType returns the products filtered by type.
-func (s *Frontend) CartFilterByType() http.HandlerFunc {
+func (s *API) CartFilterByType() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		pType := chi.URLParam(r, "type")
 		c, _ := r.Cookie("CID")
@@ -286,7 +286,7 @@ func (s *Frontend) CartFilterByType() http.HandlerFunc {
 }
 
 // CartFilterByWeight returns the products filtered by weight.
-func (s *Frontend) CartFilterByWeight() http.HandlerFunc {
+func (s *API) CartFilterByWeight() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		min := chi.URLParam(r, "min")
 		max := chi.URLParam(r, "max")
@@ -320,7 +320,7 @@ func (s *Frontend) CartFilterByWeight() http.HandlerFunc {
 }
 
 // CartGet returns the cart in a JSON format.
-func (s *Frontend) CartGet() http.HandlerFunc {
+func (s *API) CartGet() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		c, _ := r.Cookie("CID")
 		ctx := r.Context()
@@ -336,7 +336,7 @@ func (s *Frontend) CartGet() http.HandlerFunc {
 }
 
 // CartProducts retrieves cart products.shoppingClient.
-func (s *Frontend) CartProducts() http.HandlerFunc {
+func (s *API) CartProducts() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		c, _ := r.Cookie("CID")
 		ctx := r.Context()
@@ -354,7 +354,7 @@ func (s *Frontend) CartProducts() http.HandlerFunc {
 }
 
 // CartRemove takes out a product from the shopping cart.
-func (s *Frontend) CartRemove() http.HandlerFunc {
+func (s *API) CartRemove() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
 		q := chi.URLParam(r, "quantity")
@@ -382,7 +382,7 @@ func (s *Frontend) CartRemove() http.HandlerFunc {
 }
 
 // CartReset resets the cart to its default state.
-func (s *Frontend) CartReset() http.HandlerFunc {
+func (s *API) CartReset() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		c, _ := r.Cookie("CID")
 		ctx := r.Context()
@@ -400,7 +400,7 @@ func (s *Frontend) CartReset() http.HandlerFunc {
 }
 
 // CartSize returns the size of the shopping cart.
-func (s *Frontend) CartSize() http.HandlerFunc {
+func (s *API) CartSize() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		c, _ := r.Cookie("CID")
 		ctx := r.Context()

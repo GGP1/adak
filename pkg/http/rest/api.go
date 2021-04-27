@@ -20,8 +20,8 @@ import (
 	"google.golang.org/grpc"
 )
 
-// Frontend implements the frontend service.
-type Frontend struct {
+// API implements the api service.
+type API struct {
 	server         *server.Server
 	config         *config.Config
 	accountClient  account.AccountsClient
@@ -34,11 +34,11 @@ type Frontend struct {
 	shoppingClient cart.ShoppingClient
 }
 
-// NewFrontend returns the frontend server.
-func NewFrontend(config *config.Config, accountConn,
+// NewAPI returns the api server.
+func NewAPI(config *config.Config, accountConn,
 	productConn, reviewConn, shopConn, userConn, orderingConn,
-	sessionConn, shoppingConn *grpc.ClientConn) *Frontend {
-	return &Frontend{
+	sessionConn, shoppingConn *grpc.ClientConn) *API {
+	return &API{
 		config:         config,
 		accountClient:  account.NewAccountsClient(accountConn),
 		productClient:  product.NewProductsClient(productConn),
@@ -52,7 +52,7 @@ func NewFrontend(config *config.Config, accountConn,
 }
 
 // Run runs the server.
-func (s *Frontend) Run(port int) error {
+func (s *API) Run(port int) error {
 	r := chi.NewRouter()
 
 	// Middlewares

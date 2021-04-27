@@ -15,7 +15,7 @@ import (
 )
 
 // UserCreate creates a new user and saves it.
-func (s *Frontend) UserCreate() http.HandlerFunc {
+func (s *API) UserCreate() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var addUser user.AddUser
 		ctx := r.Context()
@@ -41,7 +41,7 @@ func (s *Frontend) UserCreate() http.HandlerFunc {
 }
 
 // UserDelete removes a user.
-func (s *Frontend) UserDelete() http.HandlerFunc {
+func (s *API) UserDelete() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
 		uID, _ := r.Cookie("UID")
@@ -76,7 +76,7 @@ func (s *Frontend) UserDelete() http.HandlerFunc {
 }
 
 // UserGet lists all the users.
-func (s *Frontend) UserGet() http.HandlerFunc {
+func (s *API) UserGet() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
@@ -91,7 +91,7 @@ func (s *Frontend) UserGet() http.HandlerFunc {
 }
 
 // UserGetByID lists the user with the id requested.
-func (s *Frontend) UserGetByID() http.HandlerFunc {
+func (s *API) UserGetByID() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
 		ctx := r.Context()
@@ -107,7 +107,7 @@ func (s *Frontend) UserGetByID() http.HandlerFunc {
 }
 
 // UserSearch looks for the products with the given value.
-func (s *Frontend) UserSearch() http.HandlerFunc {
+func (s *API) UserSearch() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		query := chi.URLParam(r, "query")
 		ctx := r.Context()
@@ -128,7 +128,7 @@ func (s *Frontend) UserSearch() http.HandlerFunc {
 }
 
 // UserUpdate updates the user with the given id.
-func (s *Frontend) UserUpdate() http.HandlerFunc {
+func (s *API) UserUpdate() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var updateUser user.UpdateUser
 		id := chi.URLParam(r, "id")

@@ -32,7 +32,7 @@ var (
 )
 
 // Login takes a user credentials and authenticates it.
-func (s *Frontend) Login() http.HandlerFunc {
+func (s *API) Login() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var user auth.User
 		ctx := r.Context()
@@ -93,7 +93,7 @@ func (s *Frontend) Login() http.HandlerFunc {
 }
 
 // Logout logs the user out from the session and removes cookies.
-func (s *Frontend) Logout() http.HandlerFunc {
+func (s *API) Logout() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 		sID, err := r.Cookie("SID")
@@ -118,7 +118,7 @@ func (s *Frontend) Logout() http.HandlerFunc {
 }
 
 // LoginGoogle redirects the user to the google oauth2.
-func (s *Frontend) LoginGoogle() http.HandlerFunc {
+func (s *API) LoginGoogle() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		url := googleOauthConfig.AuthCodeURL(googleStateString)
 
@@ -127,7 +127,7 @@ func (s *Frontend) LoginGoogle() http.HandlerFunc {
 }
 
 // OAUTH2Google executes the oauth2 login with Google.
-func (s *Frontend) OAUTH2Google() http.HandlerFunc {
+func (s *API) OAUTH2Google() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		content, err := userInfoGoogle(r.FormValue("state"), r.FormValue("code"))
 		if err != nil {

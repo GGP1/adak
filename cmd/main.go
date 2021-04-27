@@ -87,8 +87,8 @@ func main() {
 		srv = auth.NewSession(db, GRPCDial(*useraddr))
 	case "shopping":
 		srv = cart.NewService(db)
-	case "frontend":
-		srv = rest.NewFrontend(
+	case "api":
+		srv = rest.NewAPI(
 			conf,
 			GRPCDial(*accountaddr),
 			GRPCDial(*productaddr),
@@ -104,7 +104,7 @@ func main() {
 	}
 
 	if err := srv.Run(*port); err != nil {
-		log.Fatal().Err(errors.Wrap(err, "failed running frontend server"))
+		log.Fatal().Err(errors.Wrapf(err, "failed running %s server", os.Args[1]))
 	}
 }
 

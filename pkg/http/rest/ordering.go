@@ -39,7 +39,7 @@ type date struct {
 }
 
 // OrderingDelete deletes an order.
-func (s *Frontend) OrderingDelete() http.HandlerFunc {
+func (s *API) OrderingDelete() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
 		ctx := r.Context()
@@ -55,7 +55,7 @@ func (s *Frontend) OrderingDelete() http.HandlerFunc {
 }
 
 // OrderingGet finds all the stored orders.
-func (s *Frontend) OrderingGet() http.HandlerFunc {
+func (s *API) OrderingGet() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
@@ -70,7 +70,7 @@ func (s *Frontend) OrderingGet() http.HandlerFunc {
 }
 
 // OrderingGetByID retrieves all the orders from the user.
-func (s *Frontend) OrderingGetByID() http.HandlerFunc {
+func (s *API) OrderingGetByID() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
 		ctx := r.Context()
@@ -86,7 +86,7 @@ func (s *Frontend) OrderingGetByID() http.HandlerFunc {
 }
 
 // OrderingGetByUserID retrieves all the orders from the user.
-func (s *Frontend) OrderingGetByUserID() http.HandlerFunc {
+func (s *API) OrderingGetByUserID() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
 		uID, _ := r.Cookie("UID")
@@ -108,7 +108,7 @@ func (s *Frontend) OrderingGetByUserID() http.HandlerFunc {
 }
 
 // OrderingNew creates a new order and the payment intent.
-func (s *Frontend) OrderingNew() http.HandlerFunc {
+func (s *API) OrderingNew() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var oParams OrderParams
 		cID, _ := r.Cookie("CID")

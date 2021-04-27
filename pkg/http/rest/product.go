@@ -13,7 +13,7 @@ import (
 )
 
 // ProductCreate creates a new product and saves it.
-func (s *Frontend) ProductCreate() http.HandlerFunc {
+func (s *API) ProductCreate() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var p product.Product
 		ctx := r.Context()
@@ -40,7 +40,7 @@ func (s *Frontend) ProductCreate() http.HandlerFunc {
 }
 
 // ProductDelete removes a product.
-func (s *Frontend) ProductDelete() http.HandlerFunc {
+func (s *API) ProductDelete() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
 		ctx := r.Context()
@@ -56,7 +56,7 @@ func (s *Frontend) ProductDelete() http.HandlerFunc {
 }
 
 // ProductGet lists all the products.
-func (s *Frontend) ProductGet() http.HandlerFunc {
+func (s *API) ProductGet() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
@@ -71,7 +71,7 @@ func (s *Frontend) ProductGet() http.HandlerFunc {
 }
 
 // ProductGetByID lists the product with the id requested.
-func (s *Frontend) ProductGetByID() http.HandlerFunc {
+func (s *API) ProductGetByID() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
 		ctx := r.Context()
@@ -87,7 +87,7 @@ func (s *Frontend) ProductGetByID() http.HandlerFunc {
 }
 
 // ProductSearch looks for the products with the given value.
-func (s *Frontend) ProductSearch() http.HandlerFunc {
+func (s *API) ProductSearch() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		query := chi.URLParam(r, "query")
 		ctx := r.Context()
@@ -108,7 +108,7 @@ func (s *Frontend) ProductSearch() http.HandlerFunc {
 }
 
 // ProductUpdate updates the product with the given id.
-func (s *Frontend) ProductUpdate() http.HandlerFunc {
+func (s *API) ProductUpdate() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var p product.Product
 		id := chi.URLParam(r, "id")

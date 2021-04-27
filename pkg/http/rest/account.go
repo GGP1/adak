@@ -15,7 +15,7 @@ type changeEmail struct {
 }
 
 // AccountChangeEmail changes the user email to the specified one.
-func (s *Frontend) AccountChangeEmail() http.HandlerFunc {
+func (s *API) AccountChangeEmail() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		token := chi.URLParam(r, "token")
 		email := chi.URLParam(r, "email")

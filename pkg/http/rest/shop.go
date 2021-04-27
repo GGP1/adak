@@ -13,7 +13,7 @@ import (
 )
 
 // ShopCreate creates a new shop and saves it.
-func (s *Frontend) ShopCreate() http.HandlerFunc {
+func (s *API) ShopCreate() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var sp shop.Shop
 		ctx := r.Context()
@@ -40,7 +40,7 @@ func (s *Frontend) ShopCreate() http.HandlerFunc {
 }
 
 // ShopDelete removes a shop.
-func (s *Frontend) ShopDelete() http.HandlerFunc {
+func (s *API) ShopDelete() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
 		ctx := r.Context()
@@ -56,7 +56,7 @@ func (s *Frontend) ShopDelete() http.HandlerFunc {
 }
 
 // ShopGet lists all the shops.
-func (s *Frontend) ShopGet() http.HandlerFunc {
+func (s *API) ShopGet() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
@@ -71,7 +71,7 @@ func (s *Frontend) ShopGet() http.HandlerFunc {
 }
 
 // ShopGetByID lists the shop with the id requested.
-func (s *Frontend) ShopGetByID() http.HandlerFunc {
+func (s *API) ShopGetByID() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
 		ctx := r.Context()
@@ -87,7 +87,7 @@ func (s *Frontend) ShopGetByID() http.HandlerFunc {
 }
 
 // ShopSearch looks for the products with the given value.
-func (s *Frontend) ShopSearch() http.HandlerFunc {
+func (s *API) ShopSearch() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		query := chi.URLParam(r, "query")
 		ctx := r.Context()
@@ -108,7 +108,7 @@ func (s *Frontend) ShopSearch() http.HandlerFunc {
 }
 
 // ShopUpdate updates the shop with the given id.
-func (s *Frontend) ShopUpdate() http.HandlerFunc {
+func (s *API) ShopUpdate() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var sp shop.Shop
 		id := chi.URLParam(r, "id")

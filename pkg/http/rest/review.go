@@ -14,7 +14,7 @@ import (
 )
 
 // ReviewCreate creates a new review and saves it.
-func (s *Frontend) ReviewCreate() http.HandlerFunc {
+func (s *API) ReviewCreate() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		uID, _ := r.Cookie("UID")
 		ctx := r.Context()
@@ -54,7 +54,7 @@ func (s *Frontend) ReviewCreate() http.HandlerFunc {
 }
 
 // ReviewDelete removes a review.
-func (s *Frontend) ReviewDelete() http.HandlerFunc {
+func (s *API) ReviewDelete() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
 		ctx := r.Context()
@@ -70,7 +70,7 @@ func (s *Frontend) ReviewDelete() http.HandlerFunc {
 }
 
 // ReviewGet lists all the reviews.
-func (s *Frontend) ReviewGet() http.HandlerFunc {
+func (s *API) ReviewGet() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
@@ -85,7 +85,7 @@ func (s *Frontend) ReviewGet() http.HandlerFunc {
 }
 
 // ReviewGetByID lists the review with the id requested.
-func (s *Frontend) ReviewGetByID() http.HandlerFunc {
+func (s *API) ReviewGetByID() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
 		ctx := r.Context()
