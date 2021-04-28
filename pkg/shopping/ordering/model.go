@@ -15,20 +15,20 @@ const (
 
 // Order represents a user purchase request.
 type Order struct {
-	ID           string         `json:"id"`
-	UserID       string         `json:"user_id" db:"user_id"`
-	Currency     string         `json:"currency"`
-	Address      string         `json:"address"`
-	City         string         `json:"city"`
-	State        string         `json:"state"`
-	ZipCode      string         `json:"zip_code" db:"zip_code"`
-	Country      string         `json:"country"`
-	Status       status         `json:"status"`
-	OrderedAt    time.Time      `json:"ordered_at" db:"ordered_at"`
-	DeliveryDate time.Time      `json:"delivery_date" db:"delivery_date"`
-	CartID       string         `json:"cart_id" db:"cart_id"`
-	Cart         OrderCart      `json:"cart"`
-	Products     []OrderProduct `json:"products"`
+	ID           string         `json:"id,omitempty"`
+	UserID       string         `json:"user_id,omitempty" db:"user_id"`
+	Currency     string         `json:"currency,omitempty"`
+	Address      string         `json:"address,omitempty"`
+	City         string         `json:"city,omitempty"`
+	State        string         `json:"state,omitempty"`
+	ZipCode      string         `json:"zip_code,omitempty" db:"zip_code"`
+	Country      string         `json:"country,omitempty"`
+	Status       status         `json:"status,omitempty"`
+	OrderedAt    time.Time      `json:"ordered_at,omitempty" db:"ordered_at"`
+	DeliveryDate time.Time      `json:"delivery_date,omitempty" db:"delivery_date"`
+	CartID       string         `json:"cart_id,omitempty" db:"cart_id"`
+	Cart         OrderCart      `json:"cart,omitempty"`
+	Products     []OrderProduct `json:"products,omitempty"`
 }
 
 // OrderCart represents the cart ordered by the user.
@@ -36,13 +36,13 @@ type Order struct {
 // Amounts to be provided in a currency’s smallest unit.
 // 100 = 1 USD.
 type OrderCart struct {
-	OrderID  string `json:"order_id" db:"order_id"`
-	Counter  int    `json:"counter"`
-	Weight   int64  `json:"weight"`
-	Discount int64  `json:"discount"`
-	Taxes    int64  `json:"taxes"`
-	Subtotal int64  `json:"subtotal"`
-	Total    int64  `json:"total"`
+	OrderID  string `json:"order_id,omitempty" db:"order_id"`
+	Counter  int    `json:"counter,omitempty"`
+	Weight   int64  `json:"weight,omitempty"`
+	Discount int64  `json:"discount,omitempty"`
+	Taxes    int64  `json:"taxes,omitempty"`
+	Subtotal int64  `json:"subtotal,omitempty"`
+	Total    int64  `json:"total,omitempty"`
 }
 
 // OrderProduct represents a product placed into the cart ordered by the user.
@@ -50,16 +50,16 @@ type OrderCart struct {
 // Amounts to be provided in a currency’s smallest unit.
 // 100 = 1 USD.
 type OrderProduct struct {
-	ProductID   string `json:"product_id" db:"product_id"`
-	OrderID     string `json:"order_id" db:"order_id"`
-	Quantity    int    `json:"quantity"`
-	Brand       string `json:"brand"`
-	Category    string `json:"category"`
-	Type        string `json:"type"`
+	ProductID   string `json:"product_id,omitempty" db:"product_id"`
+	OrderID     string `json:"order_id,omitempty" db:"order_id"`
+	Quantity    int    `json:"quantity,omitempty"`
+	Brand       string `json:"brand,omitempty"`
+	Category    string `json:"category,omitempty"`
+	Type        string `json:"type,omitempty"`
 	Description string `json:"description,omitempty"`
-	Weight      int64  `json:"weight"`
-	Discount    int64  `json:"discount"`
-	Taxes       int64  `json:"taxes"`
-	Subtotal    int64  `json:"subtotal"`
-	Total       int64  `json:"total"`
+	Weight      int64  `json:"weight,omitempty"`
+	Discount    int64  `json:"discount,omitempty"`
+	Taxes       int64  `json:"taxes,omitempty"`
+	Subtotal    int64  `json:"subtotal,omitempty"`
+	Total       int64  `json:"total,omitempty"`
 }
