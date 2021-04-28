@@ -59,7 +59,7 @@ func LogFormatter(next http.Handler) http.Handler {
 		statusColor := statusCodeColor(status)
 		methodColor := methodColor(method)
 
-		log := fmt.Sprintf("%v [ADAK] | %s %3d %s | %-10v | %s %-7s %s | %#v",
+		log := fmt.Sprintf("%v | %s %3d %s | %-10v | %s %-7s %s | %#v",
 			timestamp,
 			statusColor, status, reset,
 			latency,

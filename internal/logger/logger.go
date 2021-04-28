@@ -4,6 +4,8 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"runtime"
+	"strings"
 	"time"
 )
 
@@ -28,11 +30,9 @@ type Level uint8
 
 // Logger contains the logging options.
 type Logger struct {
-	Out           io.Writer
-	Prefix        string
+	out           io.Writer
 	Level         Level
-	Time          string
-	ShowTimestamp bool
+	showTimestamp bool
 
 	disable bool
 }
@@ -40,9 +40,8 @@ type Logger struct {
 // New creates a new logger.
 func New() *Logger {
 	return &Logger{
-		Out:           os.Stderr,
-		Prefix:        "[ADAK]",
-		ShowTimestamp: true,
+		out:           os.Stderr,
+		showTimestamp: true,
 	}
 }
 
@@ -51,10 +50,9 @@ func (l *Logger) log(level Level, message string) {
 		return
 	}
 
-	if l.ShowTimestamp {
-		l.Time = time.Now().Format("15:04:05 02/01/2006") + " "
-	} else {
-		l.Time = ""
+	timestamp := ""
+	if l.showTimestamp {
+		timestamp = time.Now().Format("15:04:05 02/01/2006") + " - "
 	}
 
 	var lvl string
@@ -69,9 +67,13 @@ func (l *Logger) log(level Level, message string) {
 		lvl = "FATAL"
 	}
 
-	log := fmt.Sprintf("%s%s - %s: %s", l.Time, l.Prefix, lvl, message)
+	_, file, line, _ := runtime.Caller(2)
+	split := strings.Split(file, "/")
+	join := strings.Join(split[4:], "/")
 
-	fmt.Fprintln(l.Out, log)
+	log := fmt.Sprintf("%s%s#%d - %s: %s", timestamp, join, line, lvl, message)
+
+	fmt.Fprintln(l.out, log)
 }
 
 // Disable turns off the logger.
@@ -119,4 +121,14 @@ func (l *Logger) Fatal(args ...interface{}) {
 func (l *Logger) Fatalf(format string, args ...interface{}) {
 	l.log(Fatal, fmt.Sprintf(format, args...))
 	os.Exit(1)
+}
+
+// SetOut sets the writers where the information will be logged.
+func (l *Logger) SetOut(w ...io.Writer) {
+	l.out = io.MultiWriter(w...)
+}
+
+// ShowTimestamp determines where the timestamp will be logged or not.
+func (l *Logger) ShowTimestamp(show bool) {
+	l.showTimestamp = show
 }
