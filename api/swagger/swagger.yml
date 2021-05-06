@@ -1,11 +1,11 @@
-openapi: 3.0.1
+openapi: 3.0.0
 info:
+  version: 1.0.0
   title: Adak
-  description: Adak e-commerce API.
+  description: E-commerce backend server
   license:
     name: MIT
     url: https://opensource.org/licenses/MIT
-  version: 1.0.0
 
 components:
   securitySchemes:
@@ -85,11 +85,20 @@ components:
     Error:
       type: object
       properties:
+        error:
+          type: string
         status:
           type: integer
           format: int64
-        error:
+          
+    JSONText:
+      type: object
+      properties:
+        message:
           type: string
+        status:
+          type: integer
+          format: int64
     
     # Ordering
     Order:
@@ -382,8 +391,6 @@ components:
           type: string
         email:
           type: string
-        password:
-          type: string
         orders:
           type: array
           items:
@@ -417,11 +424,35 @@ paths:
                   type: string
       responses:
         '200':
-          description: Successful login
+          description: logged in
           content: 
-            text/html:
+            application/json:
               schema:
-                type: string
+                $ref: '#/components/schemas/JSONText'
+        '401':
+          description: 
+            please verify your email before logging in
+            invalid {field}
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /login/basic:
+    get:
+      summary: Basic Authentication
+      parameters:
+        - in: header
+          name: Authentication
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: logged in
+          content: 
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONText'
         '401':
           description: 
             please verify your email before logging in
@@ -437,11 +468,11 @@ paths:
         - googleOAuth2: [user_info]
       responses:
         '200':
-          description: Successful login
+          description: logged in
           content:
-            text/html:
+            application/json:
               schema:
-                type: string
+                $ref: '#/components/schemas/JSONText'
         '400':
           description: Bad request
           content:
@@ -459,11 +490,11 @@ paths:
       summary: Logs out users.
       responses:
         '200':
-          description: You are now logged out.
+          description: logged out
           content: 
-            text/html:
+            application/json:
               schema:
-                type: string
+                $ref: '#/components/schemas/JSONText'
         '400':
           description: you cannot log out without a session
           content:
@@ -551,85 +582,39 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-  /cart/brand/{brand}:
+  /cart/filter/{field}/{args}:
     get:
-      summary: Get cart products by brand.
+      summary: Filter cart products.
       parameters:
-        - name: brand
+        - name: field
           in: path
           required: true
-          description: The brand of the products.
+          description: Field used to filter.
           schema:
             type: string
+        - name: args
+          in: path
+          required: true
+          description: Filter parameters.
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/CartProduct'
       responses:
         '200':
-          description: Cart product objects.
+          description: Cart products objects.
           content:
             application/json:
               schema:
                 type: array
                 items:
                   $ref: '#/components/schemas/CartProduct'
-        '404':
-          description: no products found
+        '400':
+          description: a maximum of two arguments is accepted
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-  /cart/category/{category}:
-    get:
-      summary: Get cart products by category.
-      parameters:
-        - name: category
-          in: path
-          required: true
-          description: The category of the products.
-          schema:
-            type: string
-      responses:
-        '200':
-          description: Cart product objects.
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/CartProduct'
-        '404':
-          description: no products found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-  /cart/discount/{min}/{max}:
-    get:
-      summary: Filter cart products by discount.
-      parameters:
-        - name: min
-          in: path
-          required: true
-          description: The minimum percentage of discount.
-          schema:
-            type: integer
-            format: int64
-            minimum: 1
-        - name: max
-          in: path
-          required: true
-          description: The maximum percentage of discount.
-          schema:
-            type: integer
-            format: int64
-            minimum: 1
-      responses:
-        '200':
-          description: Cart product objects.
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/CartProduct'
         '404':
           description: no products found
           content:
@@ -693,11 +678,11 @@ paths:
             minimum: 1
       responses:
         '200':
-          description: Successfully removed the product from the cart.
+          description: Product {id} deleted from cart {cartID}.
           content:
-            text/html:
+            application/json:
               schema:
-                type: string
+                $ref: '#/components/schemas/JSONText'
         '500':
           description: 
             couldn't find the cart
@@ -714,11 +699,11 @@ paths:
       summary: Reset cart values to default.
       responses:
         '200':
-          description: Cart reseted.
+          description: Cart {id} reseted.
           content: 
-            text/html:
+            application/json:
               schema:
-                type: string
+                $ref: '#/components/schemas/JSONText'
         '500':
           description:
             couldn't delete the cart products
@@ -740,136 +725,6 @@ paths:
                 format: int64
         '404':
           description: couldn't find the cart
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-  /cart/taxes/{min}/{max}:
-    get:
-      summary: Filter cart products by taxes.
-      parameters:
-        - name: min
-          in: path
-          required: true
-          description: The minimum percentage of taxes.
-          schema:
-            type: integer
-            format: int64
-            minimum: 1
-        - name: max
-          in: path
-          required: true
-          description: The maximum percentage of taxes.
-          schema:
-            type: integer
-            format: int64
-            minimum: 1
-      responses:
-        '200':
-          description: Product objects.
-          content: 
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: ''
-        '404':
-          description: no products found
-          content: 
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-  /cart/total/{min}/{max}:
-    get:
-      summary: Filter cart products by total.
-      parameters:
-        - name: min
-          in: path
-          required: true
-          description: The minimum total.
-          schema:
-            type: integer
-            format: int64
-            minimum: 1
-        - name: max
-          in: path
-          required: true
-          description: The maximum total.
-          schema:
-            type: integer
-            format: int64
-            minimum: 1
-      responses:
-        '200':
-          description: Product objects.
-          content: 
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: ''
-        '404':
-          description: no products found
-          content: 
-            application/json:
-              schema:
-                type: object
-  /cart/type/{type}:
-    get:
-      summary: Get cart products by type.
-      parameters:
-        - name: type
-          in: path
-          required: true
-          description: The type of the products.
-          schema:
-            type: string
-      responses:
-        '200':
-          description: Product objects.
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/CartProduct'
-        '404':
-          description: no products found
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-  /cart/weight/{min}/{max}:
-    get:
-      summary: Filter cart products by weight.
-      parameters:
-        - name: min
-          in: path
-          required: true
-          description: The minimum weight.
-          schema:
-            type: integer
-            format: int64
-            minimum: 1
-        - name: max
-          in: path
-          required: true
-          description: The maximum weight.
-          schema:
-            type: integer
-            format: int64
-            minimum: 1
-      responses:
-        '200':
-          description: Product objects.
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/CartProduct'
-        '404':
-          description: no products found
           content:
             application/json:
               schema:
@@ -919,11 +774,11 @@ paths:
             type: string
       responses:
         '200':
-          description: The order has been deleted successfully.
+          description: The id of the order deleted.
           content: 
-            text/html:
+            application/json:
               schema:
-                type: string
+                $ref: '#/components/schemas/JSONText'
         '500':
           description:
             couldn't delete the order
@@ -1005,9 +860,9 @@ paths:
         '201':
           description: Thanks for your purchase! Your products will be delivered on {date}.
           content: 
-            text/html:
+            application/json:
               schema:
-                type: string
+                $ref: '#/components/schemas/JSONText'
         '400':
           description: past dates are not valid
           content:
@@ -1111,11 +966,11 @@ paths:
             type: string
       responses:
         '200':
-          description: Product deleted successfully.
+          description: The id of the product deleted.
           content: 
-            text/html:
+            application/json:
               schema:
-                type: string
+                $ref: '#/components/schemas/JSONText'
         '500':
           description: couldn't delete the product
           content:
@@ -1294,11 +1149,11 @@ paths:
             type: string
       responses:
         '200':
-          description: Review deleted successfully.
+          description: The id of the review deleted.
           content: 
-            text/html:
+            application/json:
               schema:
-                type: string
+                $ref: '#/components/schemas/JSONText'
         '500':
           description: couldn't delete the review
           content:
@@ -1437,11 +1292,11 @@ paths:
             type: string
       responses:
         '200':
-          description: Shop deleted successfully.
+          description: The id of the shop deleted.
           content: 
-            text/html:
+            application/json:
               schema:
-                type: string
+                $ref: '#/components/schemas/JSONText'
         '500':
           description:
             couldn't delete the shop
@@ -1666,11 +1521,13 @@ paths:
                     type: string
       responses:
         '201':
-          description: Your account was successfully created. Please validate your email to start using Adak.
+          description: The user created.
           content:
-              text/html:
-                schema:
-                  type: string
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
         '500':
           description: 
             could not generate the jwt token
@@ -1692,11 +1549,11 @@ paths:
             type: string
       responses:
         '200':
-          description: User deleted successfully.
+          description: The id of the user deleted.
           content: 
-            text/html:
+            application/json:
               schema:
-                type: string
+                $ref: '#/components/schemas/JSONText'
         '401':
           description: it is not allowed to perform this action on third party accounts
           content:
@@ -1766,11 +1623,11 @@ paths:
                     type: string
       responses:
         '200':
-          description: User updated successfully.
+          description: The id of the user updated.
           content: 
-            text/html:
+            application/json:
               schema:
-                type: string
+                $ref: '#/components/schemas/JSONText'
         '401':
           description: it is not allowed to perform this action on third party accounts
           content:
@@ -1848,11 +1705,11 @@ paths:
                   type: string
       responses:
         '200':
-          description: We sent you an email to confirm that it is you.
+          description: Verification email sent.
           content:
-              text/html:
-                schema:
-                  type: string
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JSONText'
         '400':
           description: email is already taken
           content:
@@ -1883,11 +1740,11 @@ paths:
                   type: string
       responses:
         '200':
-          description: Password changed successfully.
+          description: Successfully changed password.
           content: 
-            text/html:
+            application/json:
               schema:
-                type: string
+                $ref: '#/components/schemas/JSONText'
         '500':
           description: 
             invalid email
@@ -1910,11 +1767,11 @@ paths:
             type: string
       responses:
         '200':
-          description: You have successfully validated your email!
+          description: Validated {email}.
           content: 
-            text/html:
+            application/json:
               schema:
-                type: string
+                $ref: '#/components/schemas/JSONText'
         '404':
           description: couldn't find the email
           content:
@@ -1954,11 +1811,11 @@ paths:
             type: string
       responses:
         '200':
-          description: You have successfully changed your email!
+          description: Email changed to {email}.
           content: 
-            text/html:
+            application/json:
               schema:
-                type: string
+                $ref: '#/components/schemas/JSONText'
         '500':
           description: 
             invalid email
