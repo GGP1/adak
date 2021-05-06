@@ -2,8 +2,8 @@ package stripe
 
 import (
 	"github.com/pkg/errors"
-	stripe "github.com/stripe/stripe-go"
-	"github.com/stripe/stripe-go/refund"
+	stripe "github.com/stripe/stripe-go/v72"
+	"github.com/stripe/stripe-go/v72/refund"
 )
 
 // CreateRefund will refund a charge that has previously been created but not yet

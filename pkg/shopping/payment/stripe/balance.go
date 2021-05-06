@@ -3,9 +3,9 @@ package stripe
 import (
 	"github.com/pkg/errors"
 
-	stripe "github.com/stripe/stripe-go"
-	"github.com/stripe/stripe-go/balance"
-	"github.com/stripe/stripe-go/balancetransaction"
+	stripe "github.com/stripe/stripe-go/v72"
+	"github.com/stripe/stripe-go/v72/balance"
+	"github.com/stripe/stripe-go/v72/balancetransaction"
 )
 
 // GetBalance retrieves the current account balance,
