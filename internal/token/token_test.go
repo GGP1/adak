@@ -34,9 +34,18 @@ func TestCheckPermits(t *testing.T) {
 		Path:  "/",
 	})
 
-	err = token.CheckPermits(r, id)
-	assert.NoError(t, err, "Failed checking permits")
+	t.Run("Success", func(t *testing.T) {
+		err = token.CheckPermits(r, id)
+		assert.NoError(t, err, "Failed checking permits")
+	})
 
-	err = token.CheckPermits(r, id+"fail")
-	assert.Error(t, err)
+	t.Run("Permission denied", func(t *testing.T) {
+		err := token.CheckPermits(r, id+"fail")
+		assert.Error(t, err)
+	})
+
+	t.Run("ID too long", func(t *testing.T) {
+		err := token.CheckPermits(r, "9 }NkbKPLja;As[0<|d4nMG!5l3>x$+Qp")
+		assert.Error(t, err)
+	})
 }
