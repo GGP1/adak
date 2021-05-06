@@ -30,7 +30,7 @@ func Connect(ctx context.Context, c config.Postgres) (*sqlx.DB, error) {
 		return nil, errors.Wrap(err, "couldn't create the tables")
 	}
 
-	logger.Log.Infof("Connected to postgres on %s", net.JoinHostPort(c.Host, c.Port))
+	logger.Infof("Connected to postgres on %s", net.JoinHostPort(c.Host, c.Port))
 	return db, nil
 }
 
@@ -68,7 +68,7 @@ CREATE TABLE IF NOT EXISTS locations
     zip_code text NOT NULL,
     city text NOT NULL,
     address text NOT NULL,
-    FOREIGN KEY (shop_id) REFERENCES shops (id) ON DELETE CASCADE ON UPDATE CASCADE
+    FOREIGN KEY (shop_id) REFERENCES shops (id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS products
@@ -88,7 +88,7 @@ CREATE TABLE IF NOT EXISTS products
     created_at timestamp with time zone DEFAULT NOW(),
     updated_at timestamp with time zone,
     CONSTRAINT products_pkey PRIMARY KEY (id),
-    FOREIGN KEY (shop_id) REFERENCES shops (id) ON DELETE CASCADE ON UPDATE CASCADE
+    FOREIGN KEY (shop_id) REFERENCES shops (id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS reviews
@@ -100,11 +100,10 @@ CREATE TABLE IF NOT EXISTS reviews
     product_id text,
     shop_id text,
     created_at timestamp with time zone DEFAULT NOW(),
-    updated_at timestamp with time zone,
     CONSTRAINT reviews_pkey PRIMARY KEY (id),
-    FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE ON UPDATE CASCADE,
-    FOREIGN KEY (product_id) REFERENCES products (id) ON DELETE CASCADE ON UPDATE CASCADE,
-    FOREIGN KEY (shop_id) REFERENCES shops (id) ON DELETE CASCADE ON UPDATE CASCADE
+    FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE,
+    FOREIGN KEY (product_id) REFERENCES products (id) ON DELETE CASCADE,
+    FOREIGN KEY (shop_id) REFERENCES shops (id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS carts
@@ -134,7 +133,7 @@ CREATE TABLE IF NOT EXISTS cart_products
     subtotal integer,
     total integer,
     CONSTRAINT cart_products_pkey PRIMARY KEY (id),
-    FOREIGN KEY (cart_id) REFERENCES carts (id) ON DELETE CASCADE ON UPDATE CASCADE
+    FOREIGN KEY (cart_id) REFERENCES carts (id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS hits
@@ -157,15 +156,15 @@ CREATE TABLE IF NOT EXISTS orders
     currency text,
     address text,
     city text,
-    state integer,
+    state text,
     zip_code text,
     country text,
-    status text,
+    status integer,
     ordered_at timestamp with time zone,
     delivery_date timestamp with time zone,
     cart_id text,
     CONSTRAINT orders_pkey PRIMARY KEY (id),
-    FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE ON UPDATE CASCADE
+    FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS order_carts
@@ -177,13 +176,13 @@ CREATE TABLE IF NOT EXISTS order_carts
     taxes integer,
     subtotal integer,
     total integer,
-    FOREIGN KEY (order_id) REFERENCES orders (id) ON DELETE CASCADE ON UPDATE CASCADE
+    FOREIGN KEY (order_id) REFERENCES orders (id) ON DELETE CASCADE
 );
 
 CREATE TABLE IF NOT EXISTS order_products
 (
-    product_id text NOT NULL,
     order_id text NOT NULL,
+    product_id text NOT NULL,
     quantity integer,
     brand text,
     category text,
@@ -193,6 +192,7 @@ CREATE TABLE IF NOT EXISTS order_products
     discount integer,
     taxes integer,
     subtotal integer,
-    total integer
+    total integer,
+    FOREIGN KEY (order_id) REFERENCES orders (id) ON DELETE CASCADE
 );
 `
