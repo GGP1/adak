@@ -1,17 +1,17 @@
-// Package auth provides user authentication and authorization support.
 package auth
 
 import (
 	"context"
 	"crypto/rand"
-	"fmt"
 	"net/http"
-	"sync"
 	"time"
 
+	"github.com/GGP1/adak/internal/config"
 	"github.com/GGP1/adak/internal/cookie"
+	"github.com/GGP1/adak/internal/logger"
 	"github.com/GGP1/adak/pkg/tracking"
 
+	"github.com/go-redis/redis/v8"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 	"golang.org/x/crypto/bcrypt"
@@ -19,196 +19,153 @@ import (
 
 // Session provides auth operations.
 type Session interface {
-	AlreadyLoggedIn(w http.ResponseWriter, r *http.Request) bool
-	Clean()
+	AlreadyLoggedIn(ctx context.Context, r *http.Request) bool
 	Login(ctx context.Context, w http.ResponseWriter, r *http.Request, email, password string) error
 	LoginOAuth(ctx context.Context, w http.ResponseWriter, r *http.Request, email string) error
-	Logout(w http.ResponseWriter, r *http.Request)
-}
-
-type login struct {
-	// time to wait until next attempt
-	delay time.Time
-	// cumulative number of attempts
-	attempts int64
+	Logout(ctx context.Context, w http.ResponseWriter, r *http.Request) error
 }
 
 type session struct {
-	sync.RWMutex
-
-	DB *sqlx.DB
-
-	dev bool
-	// user sessions store consisting of map[sessionID]lastSeen
-	store map[string]time.Time
-	// frustrated login attempts
-	loginFails map[string]login
-	// last time the session was cleaned
-	cleaned time.Time
-	// session length in seconds
-	length int
+	db   *sqlx.DB
+	dev  bool
+	rdb  *redis.Client
+	conf config.Session
 }
 
 // NewSession creates a new session with the necessary dependencies.
-func NewSession(db *sqlx.DB, dev bool) Session {
+func NewSession(db *sqlx.DB, rdb *redis.Client, config config.Session, development bool) Session {
 	return &session{
-		DB:         db,
-		dev:        dev,
-		store:      make(map[string]time.Time),
-		cleaned:    time.Now(),
-		length:     0,
-		loginFails: make(map[string]login),
+		db:   db,
+		dev:  development,
+		rdb:  rdb,
+		conf: config,
 	}
 }
 
-// AlreadyLoggedIn checks if the user has an active session or not.
-func (s *session) AlreadyLoggedIn(w http.ResponseWriter, r *http.Request) bool {
-	cookie, err := cookie.Get(r, "SID")
+// AlreadyLoggedIn returns if the user is logged in or not.
+func (s *session) AlreadyLoggedIn(ctx context.Context, r *http.Request) bool {
+	sID, err := cookie.GetValue(r, "SID")
 	if err != nil {
 		return false
 	}
 
-	s.Lock()
-	_, ok := s.store[cookie.Value]
-	if ok {
-		s.store[cookie.Value] = time.Now()
+	value, err := s.rdb.Get(ctx, sID).Result()
+	if err != nil {
+		return false
 	}
-	s.Unlock()
 
-	// Refresh cookie max age
-	cookie.MaxAge = s.length
-
-	return ok
+	return value == sID[len(sID)-16:]
 }
 
-// Clean deletes all the sessions that have expired.
-// TODO: Use a cron to run it.
-func (s *session) Clean() {
-	s.Lock()
-	for key, value := range s.store {
-		if time.Now().Sub(value) > (time.Hour * 168) {
-			delete(s.store, key)
-		}
-	}
-	s.cleaned = time.Now()
-	s.Unlock()
-}
-
-// Login authenticates users.
+// Login attempts to log a user in.
 func (s *session) Login(ctx context.Context, w http.ResponseWriter, r *http.Request, email, password string) error {
+	// There is no chance of collision with the rate limiter as it uses the prefix "rate:"
 	ip := tracking.GetUserIP(r)
 
-	s.RLock()
-	delayTime := s.loginFails[ip].delay
-	if !delayTime.IsZero() && delayTime.Sub(time.Now()) > 0 {
-		return errors.Errorf("please wait %v before trying again", delayTime.Sub(time.Now()))
+	if s.conf.Delay != 0 {
+		ttl := s.rdb.TTL(ctx, ip).Val()
+		if ttl > 0 {
+			return errors.Errorf("please wait %v before trying again", ttl)
+		}
 	}
-	s.RUnlock()
+
+	query := "SELECT id, cart_id, username, email, password, verified_email FROM users WHERE email=$1"
+	row := s.db.QueryRowContext(ctx, query, email)
 
 	var user User
-	query := `SELECT id, cart_id, username, email, password, verified_email FROM users WHERE email=$1`
-
-	// Check if the email exists and if it is verified
-	if err := s.DB.GetContext(ctx, &user, query, email); err != nil {
-		s.addDelay(ip)
+	err := row.Scan(&user.ID, &user.CartID, &user.Username,
+		&user.Email, &user.Password, &user.VerifiedEmail)
+	if err != nil {
+		logger.Debug(err)
+		if err := s.addDelay(ctx, ip); err != nil {
+			return errors.Wrap(err, "adding delay")
+		}
 		return errors.New("invalid email or password")
 	}
 
-	if !user.VerfiedEmail && !s.dev {
-		return errors.New("please verify your email to log in")
+	if !user.VerifiedEmail && !s.dev {
+		return errors.New("please verify your email before logging in")
 	}
 
 	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
-		s.addDelay(ip)
+		logger.Debug(err)
+		if err := s.addDelay(ctx, ip); err != nil {
+			return errors.Wrap(err, "adding delay")
+		}
 		return errors.New("invalid email or password")
 	}
 
-	sID, err := sessionID(user.ID, user.Username)
-	if err != nil {
-		return err
-	}
-
-	s.Lock()
-	s.store[sID] = time.Now()
-	delete(s.loginFails, ip)
-	s.Unlock()
-
-	// -SID- session id
-	if err := cookie.Set(w, "SID", sID, "/", s.length); err != nil {
-		return err
-	}
-	// -UID- user id, used to deny users from making requests to other accounts
-	if err := cookie.Set(w, "UID", user.ID, "/", s.length); err != nil {
-		return err
-	}
-	// -CID- cart id, used to identify which cart belongs to each user
-	return cookie.Set(w, "CID", user.CartID, "/", s.length)
+	return s.storeSession(ctx, w, user.ID, user.CartID)
 }
 
-// Login authenticates users using OAuth2.
+// LoginOAuth authenticates users using OAuth2.
 func (s *session) LoginOAuth(ctx context.Context, w http.ResponseWriter, r *http.Request, email string) error {
+	query := "SELECT id, cart_id, username, email, password, verified_email FROM users WHERE email=$1"
+	row := s.db.QueryRowContext(ctx, query, email)
+
 	var user User
-	query := `SELECT id, cart_id, username, email, password, verified_email FROM users WHERE email=$1`
-
-	// Check if the email exists and if it is verified
-	if err := s.DB.GetContext(ctx, &user, query, email); err != nil {
-		return errors.New("please register before logging in")
-	}
-
-	sID, err := sessionID(user.ID, user.Username)
+	err := row.Scan(&user.ID, &user.CartID, &user.Username,
+		&user.Email, &user.Password, &user.VerifiedEmail)
 	if err != nil {
-		return err
+		logger.Debug(err)
+		return errors.New("invalid email or password")
 	}
 
-	s.Lock()
-	s.store[sID] = time.Now()
-	s.Unlock()
+	if !user.VerifiedEmail && !s.dev {
+		return errors.New("please verify your email before logging in")
+	}
 
-	// -SID- session id
-	if err := cookie.Set(w, "SID", sID, "/", s.length); err != nil {
-		return err
-	}
-	// -UID- user id, used to deny users from making requests to other accounts
-	if err := cookie.Set(w, "UID", user.ID, "/", s.length); err != nil {
-		return err
-	}
-	// -CID- cart id, used to identify which cart belongs to each user
-	return cookie.Set(w, "CID", user.CartID, "/", s.length)
+	return s.storeSession(ctx, w, user.ID, user.CartID)
 }
 
 // Logout removes the user session and its cookies.
-func (s *session) Logout(w http.ResponseWriter, r *http.Request) {
-	// The cookie is already validated
-	sessionID, _ := cookie.GetValue(r, "SID")
-
+func (s *session) Logout(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+	// The error is already checked by AlreadyLoggedIn
+	sID, _ := cookie.GetValue(r, "SID")
+	if err := s.rdb.Del(ctx, sID).Err(); err != nil {
+		return errors.Wrap(err, "deleting the session")
+	}
 	cookie.Delete(w, "SID")
 	cookie.Delete(w, "UID")
 	cookie.Delete(w, "CID")
+	return nil
+}
 
-	s.Lock()
-	delete(s.store, sessionID)
-	s.Unlock()
-
-	if time.Now().Sub(s.cleaned) > (time.Minute * 30) {
-		go s.Clean()
+func (s *session) addDelay(ctx context.Context, key string) error {
+	if s.conf.Delay == 0 {
+		return nil
 	}
+	// Cannot use pipeline as "v" is needed to set the ttl
+	// To make it incremental two values should be stored, attempts and timestamp
+	v := s.rdb.Incr(ctx, key).Val()
+	if v > s.conf.Attempts {
+		return s.rdb.Expire(ctx, key, time.Duration(s.conf.Delay)*time.Minute).Err()
+	}
+	return nil
 }
 
-// addDelay increments the time that the user will have to wait after failing.
-func (s *session) addDelay(ip string) {
-	s.Lock()
-	login := s.loginFails[ip]
-	login.attempts++
-	login.delay = time.Now().Add(time.Second * time.Duration(login.attempts*2))
-	s.Unlock()
-}
-
-func sessionID(userID, username string) (string, error) {
-	salt := make([]byte, 8)
+// storeSession saves the user key and sets the cookies used to authentication.
+func (s *session) storeSession(ctx context.Context, w http.ResponseWriter, userID, cartID string) error {
+	// The salt that will be used to identify the user's session
+	salt := make([]byte, 16)
 	if _, err := rand.Read(salt); err != nil {
-		return "", errors.Wrap(err, "generating salt")
+		return errors.Wrap(err, "generating salt")
 	}
 
-	sessionID := fmt.Sprintf("%s:%s:%s", userID, username, string(salt))
-	return sessionID, nil
+	sID := userID + ":" + string(salt)
+
+	// Store the salt as the value
+	if err := s.rdb.Set(ctx, sID, salt, 0).Err(); err != nil {
+		return errors.Wrap(err, "saving session")
+	}
+	// -SID- session id
+	if err := cookie.Set(w, "SID", sID, "/", s.conf.Length); err != nil {
+		return err
+	}
+	// -UID- user id, used to deny users from making requests to other accounts
+	if err := cookie.Set(w, "UID", userID, "/", s.conf.Length); err != nil {
+		return err
+	}
+	// -CID- cart id, used to identify which cart belongs to each user
+	return cookie.Set(w, "CID", cartID, "/", s.conf.Length)
 }
