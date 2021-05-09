@@ -13,10 +13,7 @@ import (
 func Delete(w http.ResponseWriter, name string) {
 	http.SetCookie(w, &http.Cookie{
 		Name:     name,
-		Value:    "0",
-		Path:     "/",
-		Domain:   "localhost",
-		Secure:   false,
+		Value:    "",
 		HttpOnly: true,
 		MaxAge:   -1,
 	})
