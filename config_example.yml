@@ -1,22 +1,45 @@
-admin: 
-  emails:
+admins:
     - email1@provider.com
     - email2@provider.com
     - email3@provider.com
+
 development: true
+
+email:
+  host: smtp.gmail.com
+  port: 587
+  sender: mail@provider.com
+  password: password
+
+google:
+  client:
+    id: test.apps.googleusercontent.com
+    secret: google_client_secret
+
+memcached:
+  servers:
+    - memcached:11211
+
 postgres:
   host: postgres
-  port: "5432"
+  port: 5432
   name: postgres
   username: user
   password: password
   sslmode: disable
-memcached:
-  servers:
-    - memcached:11211
+
+ratelimiter:
+  enabled: true
+  rate: 6 # 1 request is refilled per (minute/rate) seconds.
+
+redis:
+  host: redis
+  port: 6379
+  password: password
+
 server:
   host: "127.0.0.1"
-  port: "5000"
+  port: 4000
   tls:
     keyfile: path/to/keyfile
     certfile: path/to/certfile
@@ -24,18 +47,16 @@ server:
     read: 5s
     write: 5s
     shutdown: 5s
-email:
-  host: smtp.gmail.com
-  port: "587"
-  sender: mail@provider.com
-  password: password
+
+session:
+  attempts: 0 # Attempts before delay is added.
+  delay: 0 # Failure delay after 5 attempts in minutes (0 means no delay).
+  length: 0 # Seconds (0 means no expiration).
+
 stripe:
   secretkey: sk_sample_secret
   logger:
     level: 1
+    
 token:
   secretkey: token_secret_key
-google:
-  client:
-    id: test.apps.googleusercontent.com
-    secret: google_client_secret

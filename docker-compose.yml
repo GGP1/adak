@@ -9,18 +9,14 @@ services:
     ports:
       - 4000:4000
     volumes: # Mount private files
-      - ./config.yml:/config.yml
-      - ./cmd/server/certs:/certs/
+      - ./hide/config.yml:/config.yml
+      - ./hide/certs:/certs/
     networks:
       - storage
     depends_on:
       - postgres
       - memcached
-
-  adak-api:
-    image: gastonpalomeque/adak-api
-    ports:
-      - 8080:8080
+      - redis
   
   postgres:
     image: postgres:13.2-alpine
@@ -29,21 +25,33 @@ services:
       POSTGRES_PASSWORD: adak
     ports:
       - 5432:5432
-    volumes: 
-      - ./postgres-data:/var/lib/postgresql/data
+    # volumes: 
+    #   - ./hide/postgres-data:/var/lib/postgresql/data
+    # Make sure that ./hide/postgres-data/pg_hba.conf contains the following line to connect to postgres:
+    # host    all             all             0.0.0.0/0               trust
     networks:
       - storage
 
   memcached:
     image: memcached:1.6.9-alpine
-    restart: on-failure:5
     ports:
       - 11211:11211
     networks:
       - storage
-    
-volumes:
-  postgres-data:
+  
+  redis:
+    image: redis:6.2.1-alpine
+    ports:
+      - 6379:6379
+    # volumes:
+      # - ./hide/redis.conf:/usr/local/etc/redis/redis.conf:ro
+      #   - ./hide/redis-data:/data
+    networks:
+      - storage
+
+# volumes:
+#   postgres-data:
+#   redis-data
 
 networks:
   storage:
