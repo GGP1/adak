@@ -1,7 +1,5 @@
 .env
 TODO.txt
 
-postgres-data
-
-api/swagger/index.html
-cmd/server/certs
+# Private files
+hide

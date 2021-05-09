@@ -2,8 +2,8 @@ package stripe
 
 import (
 	"github.com/pkg/errors"
-	stripe "github.com/stripe/stripe-go"
-	"github.com/stripe/stripe-go/payout"
+	stripe "github.com/stripe/stripe-go/v72"
+	"github.com/stripe/stripe-go/v72/payout"
 )
 
 // CancelPayout cancels a payout. Funds will be refunded to the available balance.

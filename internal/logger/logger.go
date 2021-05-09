@@ -4,119 +4,145 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"runtime"
+	"strings"
 	"time"
 )
 
 var (
 	// Log is the logger used to display all the information
-	Log = New()
+	logger = New(true, true, os.Stderr)
 )
 
 const (
-	// Info designates informational messages that highlight the progress of the application at coarse-grained level.
-	Info Level = iota
-	// Debug designates fine-grained informational events useful to debug an application.
-	Debug
-	// Error designates error events.
-	Error
-	// Fatal shows an error and exits.
-	Fatal
+	// info designates informational messages that highlight the progress of the application at coarse-grained level.
+	info level = iota
+	// debug designates fine-grained informational events useful to debug an application.
+	debug
+	// err designates err events.
+	err
+	// fatal shows an error and exits.
+	fatal
 )
 
-// Level represents the logging level used.
-type Level uint8
+// level represents the logging level used.
+type level uint8
 
 // Logger contains the logging options.
 type Logger struct {
-	Out           io.Writer
-	Prefix        string
-	Level         Level
-	Time          string
-	ShowTimestamp bool
-
-	disable bool
+	development   bool
+	disable       bool
+	out           io.Writer
+	showTimestamp bool
 }
 
 // New creates a new logger.
-func New() *Logger {
+func New(development, showTimestamp bool, out ...io.Writer) *Logger {
 	return &Logger{
-		Out:           os.Stderr,
-		Prefix:        "[ADAK]",
-		ShowTimestamp: true,
+		development:   development,
+		showTimestamp: showTimestamp,
+		out:           io.MultiWriter(out...),
 	}
 }
 
-func (l *Logger) log(level Level, message string) {
-	if l.disable {
+func (l *Logger) log(level level, message string) {
+	if l.disable || (level == debug && !l.development) {
 		return
-	}
-
-	if l.ShowTimestamp {
-		l.Time = time.Now().Format("15:04:05 02/01/2006") + " "
-	} else {
-		l.Time = ""
 	}
 
 	var lvl string
 	switch level {
-	case Info:
+	case info:
 		lvl = "INFO"
-	case Debug:
+	case debug:
 		lvl = "DEBUG"
-	case Error:
+	case err:
 		lvl = "ERROR"
-	case Fatal:
+	case fatal:
 		lvl = "FATAL"
 	}
 
-	log := fmt.Sprintf("%s%s - %s: %s", l.Time, l.Prefix, lvl, message)
+	timestamp := ""
+	if l.showTimestamp {
+		timestamp = time.Now().Format("15:04:05 02/01/2006") + " - "
+	}
 
-	fmt.Fprintln(l.Out, log)
+	_, file, line, _ := runtime.Caller(2)
+	split := strings.Split(file, "/")
+	join := strings.Join(split[4:], "/")
+
+	log := fmt.Sprintf("%s%s#%d - %s: %s", timestamp, join, line, lvl, message)
+
+	fmt.Fprintln(l.out, log)
+}
+
+// AddOut adds n writers.
+func AddOut(out ...io.Writer) {
+	if len(out) == 0 {
+		return
+	}
+	out = append(out, logger.out)
+	logger.out = io.MultiWriter(out...)
 }
 
 // Disable turns off the logger.
-func (l *Logger) Disable() {
-	l.disable = true
+func Disable() {
+	logger.disable = true
 }
 
 // Info provides useful information about the server.
-func (l *Logger) Info(args ...interface{}) {
-	l.log(Info, fmt.Sprint(args...))
+func Info(args ...interface{}) {
+	logger.log(info, fmt.Sprint(args...))
 }
 
 // Infof is like Info but takes a formatted message.
-func (l *Logger) Infof(format string, args ...interface{}) {
-	l.log(Info, fmt.Sprintf(format, args...))
+func Infof(format string, args ...interface{}) {
+	logger.log(info, fmt.Sprintf(format, args...))
 }
 
 // Debug provides useful information for debugging.
-func (l *Logger) Debug(args ...interface{}) {
-	l.log(Debug, fmt.Sprint(args...))
+func Debug(args ...interface{}) {
+	logger.log(debug, fmt.Sprint(args...))
 }
 
 // Debugf is like Debug but takes a formatted message.
-func (l *Logger) Debugf(format string, args ...interface{}) {
-	l.log(Debug, fmt.Sprintf(format, args...))
+func Debugf(format string, args ...interface{}) {
+	logger.log(debug, fmt.Sprintf(format, args...))
 }
 
 // Error reports the application errors.
-func (l *Logger) Error(args ...interface{}) {
-	l.log(Error, fmt.Sprint(args...))
+func Error(args ...interface{}) {
+	logger.log(err, fmt.Sprint(args...))
 }
 
 // Errorf is like Error but takes a formatted message.
-func (l *Logger) Errorf(format string, args ...interface{}) {
-	l.log(Error, fmt.Sprintf(format, args...))
+func Errorf(format string, args ...interface{}) {
+	logger.log(err, fmt.Sprintf(format, args...))
 }
 
 // Fatal reports the application errors and exists.
-func (l *Logger) Fatal(args ...interface{}) {
-	l.log(Fatal, fmt.Sprint(args...))
+func Fatal(args ...interface{}) {
+	logger.log(fatal, fmt.Sprint(args...))
 	os.Exit(1)
 }
 
 // Fatalf is like Fatal but takes a formatted message.
-func (l *Logger) Fatalf(format string, args ...interface{}) {
-	l.log(Fatal, fmt.Sprintf(format, args...))
+func Fatalf(format string, args ...interface{}) {
+	logger.log(fatal, fmt.Sprintf(format, args...))
 	os.Exit(1)
+}
+
+// SetDevelopment enables/disables the development mode.
+func SetDevelopment(dev bool) {
+	logger.development = dev
+}
+
+// SetOut sets the writers where the information will be logged.
+func SetOut(w ...io.Writer) {
+	logger.out = io.MultiWriter(w...)
+}
+
+// ShowTimestamp determines where the timestamp will be logged or not.
+func ShowTimestamp(show bool) {
+	logger.showTimestamp = show
 }

@@ -8,51 +8,42 @@ import (
 )
 
 func TestLogger(t *testing.T) {
-	logger := New()
-
-	testCases := []struct {
+	cases := []struct {
 		desc     string
-		level    Level
-		prefix   string
+		level    level
 		message  string
 		expected string
 	}{
 		{
 			desc:     "INFO",
-			level:    Info,
-			prefix:   "[TEST]",
+			level:    info,
 			message:  "test info",
-			expected: "[TEST] - INFO: test info\n",
+			expected: "testing/testing.go#1194 - INFO: test info\n",
 		},
 		{
 			desc:     "DEBUG",
-			level:    Debug,
-			prefix:   "[ADAK]",
+			level:    debug,
 			message:  "test debug",
-			expected: "[ADAK] - DEBUG: test debug\n",
+			expected: "testing/testing.go#1194 - DEBUG: test debug\n",
 		},
 		{
 			desc:     "ERROR",
-			level:    Error,
-			prefix:   "[ADAK]",
+			level:    err,
 			message:  "test error",
-			expected: "[ADAK] - ERROR: test error\n",
+			expected: "testing/testing.go#1194 - ERROR: test error\n",
 		},
 		{
 			desc:     "FATAL",
-			level:    Fatal,
-			prefix:   "[MONOLITHIC]",
+			level:    fatal,
 			message:  "test fatal",
-			expected: "[MONOLITHIC] - FATAL: test fatal\n",
+			expected: "testing/testing.go#1194 - FATAL: test fatal\n",
 		},
 	}
 
-	for _, tc := range testCases {
+	for _, tc := range cases {
 		t.Run(tc.desc, func(t *testing.T) {
 			var buf bytes.Buffer
-			logger.Prefix = tc.prefix
-			logger.ShowTimestamp = false
-			logger.Out = &buf
+			logger := New(true, false, &buf)
 
 			logger.log(tc.level, tc.message)
 

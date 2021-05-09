@@ -3,6 +3,8 @@ package rest
 import (
 	"net/http"
 
+	"github.com/GGP1/adak/internal/config"
+	"github.com/GGP1/adak/internal/email"
 	"github.com/GGP1/adak/pkg/auth"
 	"github.com/GGP1/adak/pkg/http/rest/middleware"
 	"github.com/GGP1/adak/pkg/product"
@@ -14,95 +16,102 @@ import (
 	"github.com/GGP1/adak/pkg/tracking"
 	"github.com/GGP1/adak/pkg/user"
 	"github.com/GGP1/adak/pkg/user/account"
+	"github.com/bradfitz/gomemcache/memcache"
+	"github.com/go-redis/redis/v8"
 
-	"github.com/go-chi/chi"
-	lru "github.com/hashicorp/golang-lru"
+	"github.com/go-chi/chi/v5"
 	"github.com/jmoiron/sqlx"
 )
 
 // NewRouter initializes services, creates and returns a mux router
-func NewRouter(db *sqlx.DB, cache *lru.Cache) http.Handler {
-	r := chi.NewRouter()
+func NewRouter(config config.Config, db *sqlx.DB, mc *memcache.Client, rdb *redis.Client) http.Handler {
+	router := chi.NewRouter()
 
 	// Services
 	accountService := account.NewService(db)
-	cartService := cart.NewService(db)
+	cartService := cart.NewService(db, mc)
 	orderingService := ordering.NewService(db)
-	productService := product.NewService(db)
-	reviewService := review.NewService(db)
-	shopService := shop.NewService(db)
-	userService := user.NewService(db)
+	productService := product.NewService(db, mc)
+	reviewService := review.NewService(db, mc)
+	shopService := shop.NewService(db, mc)
+	userService := user.NewService(db, mc)
 	// -- Auth session --
-	session := auth.NewSession(db)
+	session := auth.NewSession(db, rdb, config.Session, config.Development)
 	// -- Tracking --
 	trackingService := tracking.NewService(db)
+	// -- Email --
+	emailer := email.New()
 
 	// Authentication middleware
 	mAuth := middleware.Auth{
 		DB:          db,
-		Cache:       cache,
 		UserService: userService,
+		Session:     session,
 	}
 	adminsOnly := mAuth.AdminsOnly
 	requireLogin := mAuth.RequireLogin
 
 	// Middlewares
-	r.Use(middleware.Cors, middleware.Secure, middleware.LimitRate, middleware.Recover,
+	router.Use(middleware.Cors, middleware.Secure, middleware.Recover,
 		middleware.LogFormatter, middleware.GZIPCompress)
 
+	// Rate limiter middleware
+	// Must be after the other middlewares otherwise they won't have effect
+	// when rate limiting
+	if config.RateLimiter.Enabled {
+		rateLimiter := middleware.NewRateLimiter(config.RateLimiter, rdb)
+		router.Use(rateLimiter.Limit)
+	}
+
 	// Auth
-	r.Post("/login", auth.Login(session))
-	r.With(requireLogin).Get("/logout", auth.Logout(session))
-	r.Get("/login/google", auth.LoginGoogle(session))
-	r.Get("/login/oauth2/google", auth.OAuth2Google(session))
+	router.Post("/login", auth.Login(session))
+	router.Get("/login/basic", auth.BasicAuth(session))
+	router.With(requireLogin).Get("/logout", auth.Logout(session))
+	router.Get("/login/google", auth.LoginGoogle(session))
+	router.Get("/login/oauth2/google", auth.OAuth2Google(session))
 
 	// Cart
 	cart := cart.Handler{
 		Service: cartService,
 		DB:      db,
-		Cache:   cache,
+		Cache:   mc,
 	}
-	r.Route("/cart", func(r chi.Router) {
+	router.Route("/cart", func(r chi.Router) {
 		r.Use(requireLogin)
 
 		r.Get("/", cart.Get())
-		r.Post("/add/{quantity}", cart.Add())
-		r.Get("/brand/{brand}", cart.FilterByBrand())
-		r.Get("/category/{category}", cart.FilterByCategory())
-		r.Get("/discount/{min}/{max}", cart.FilterByDiscount())
+		r.Post("/add", cart.Add())
+		r.Get("/filter/{field}/{args}", cart.FilterBy())
 		r.Get("/checkout", cart.Checkout())
 		r.Get("/products", cart.Products())
 		r.Delete("/remove/{id}/{quantity}", cart.Remove())
 		r.Get("/reset", cart.Reset())
 		r.Get("/size", cart.Size())
-		r.Get("/taxes/{min}/{max}", cart.FilterByTaxes())
-		r.Get("/total/{min}/{max}", cart.FilterByTotal())
-		r.Get("/type/{type}", cart.FilterByType())
-		r.Get("/weight/{min}/{max}", cart.FilterByWeight())
 	})
 
 	// Home
-	r.Get("/", Home(trackingService))
+	router.Get("/", Home(trackingService))
 
 	// Ordering
 	order := ordering.Handler{
-		Service:     orderingService,
-		CartService: cartService,
-		DB:          db,
-		Cache:       cache,
+		Development:     config.Development,
+		OrderingService: orderingService,
+		CartService:     cartService,
+		DB:              db,
+		Cache:           mc,
 	}
-	r.With(adminsOnly).Get("/orders", order.Get())
-	r.With(adminsOnly).Delete("/order/{id}", order.Delete())
-	r.With(adminsOnly).Get("/order/{id}", order.GetByID())
-	r.With(requireLogin).Get("/order/user/{id}", order.GetByUserID())
-	r.With(requireLogin).Post("/order/new", order.New())
+	router.With(adminsOnly).Get("/orders", order.Get())
+	router.With(adminsOnly).Delete("/order/{id}", order.Delete())
+	router.With(adminsOnly).Get("/order/{id}", order.GetByID())
+	router.With(requireLogin).Get("/order/user/{id}", order.GetByUserID())
+	router.With(requireLogin).Post("/order/new", order.New())
 
 	// Product
 	product := product.Handler{
 		Service: productService,
-		Cache:   cache,
+		Cache:   mc,
 	}
-	r.Route("/products", func(r chi.Router) {
+	router.Route("/products", func(r chi.Router) {
 		r.Get("/", product.Get())
 		r.Get("/{id}", product.GetByID())
 		r.With(adminsOnly).Put("/{id}", product.Update())
@@ -114,9 +123,9 @@ func NewRouter(db *sqlx.DB, cache *lru.Cache) http.Handler {
 	// Review
 	review := review.Handler{
 		Service: reviewService,
-		Cache:   cache,
+		Cache:   mc,
 	}
-	r.Route("/reviews", func(r chi.Router) {
+	router.Route("/reviews", func(r chi.Router) {
 		r.Get("/", review.Get())
 		r.Get("/{id}", review.GetByID())
 		r.With(adminsOnly).Delete("/{id}", review.Delete())
@@ -126,9 +135,9 @@ func NewRouter(db *sqlx.DB, cache *lru.Cache) http.Handler {
 	// Shop
 	shop := shop.Handler{
 		Service: shopService,
-		Cache:   cache,
+		Cache:   mc,
 	}
-	r.Route("/shops", func(r chi.Router) {
+	router.Route("/shops", func(r chi.Router) {
 		r.Get("/", shop.Get())
 		r.Get("/{id}", shop.GetByID())
 		r.With(adminsOnly).Delete("/{id}", shop.Delete())
@@ -139,7 +148,7 @@ func NewRouter(db *sqlx.DB, cache *lru.Cache) http.Handler {
 
 	// Stripe
 	stripe := stripe.Handler{}
-	r.Route("/stripe", func(r chi.Router) {
+	router.Route("/stripe", func(r chi.Router) {
 		r.Use(adminsOnly)
 
 		r.Get("/balance", stripe.GetBalance())
@@ -151,7 +160,7 @@ func NewRouter(db *sqlx.DB, cache *lru.Cache) http.Handler {
 
 	// Tracking
 	tracker := tracking.Handler{Service: trackingService}
-	r.Route("/tracker", func(r chi.Router) {
+	router.Route("/tracker", func(r chi.Router) {
 		r.Use(adminsOnly)
 
 		r.Get("/", tracker.GetHits())
@@ -162,33 +171,35 @@ func NewRouter(db *sqlx.DB, cache *lru.Cache) http.Handler {
 
 	// User
 	user := user.Handler{
-		Service:     userService,
+		Development: config.Development,
+		UserService: userService,
 		CartService: cartService,
-		Cache:       cache,
+		Emailer:     emailer,
+		Cache:       mc,
 	}
-	r.Route("/users", func(r chi.Router) {
+	router.Route("/users", func(r chi.Router) {
 		r.Get("/", user.Get())
 		r.Get("/{id}", user.GetByID())
-		r.With(requireLogin).Delete("/{id}", user.Delete(db, session))
+		r.With(requireLogin).Delete("/{id}", user.Delete(session))
 		r.With(requireLogin).Put("/{id}", user.Update())
 		r.Get("/email/{email}", user.GetByEmail())
 		r.Get("/username/{username}", user.GetByUsername())
-		r.Get("/{id}/qrcode", user.QRCode())
 		r.Post("/create", user.Create())
 		r.Get("/search/{query}", user.Search())
 	})
 
 	// Account
 	account := account.Handler{
-		Service:     accountService,
-		UserService: userService,
+		AccountService: accountService,
+		UserService:    userService,
+		Emailer:        emailer,
 	}
-	r.With(requireLogin).Post("/settings/email", account.SendChangeConfirmation())
-	r.With(requireLogin).Post("/settings/password", account.ChangePassword())
-	r.Get("/verification/{email}/{token}", account.SendEmailValidation(userService))
-	r.Get("/verification/{token}/{email}/{id}", account.ChangeEmail())
+	router.With(requireLogin).Post("/settings/email", account.SendChangeConfirmation())
+	router.With(requireLogin).Post("/settings/password", account.ChangePassword())
+	router.Get("/verification/{email}/{token}", account.SendEmailValidation(userService))
+	router.Get("/verification/{token}/{email}/{id}", account.ChangeEmail())
 
-	http.Handle("/", r)
+	http.Handle("/", router)
 
-	return r
+	return router
 }

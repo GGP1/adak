@@ -2,46 +2,57 @@ package product
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
+	"strings"
+	"time"
 
 	"github.com/GGP1/adak/internal/response"
 	"github.com/GGP1/adak/internal/sanitize"
+	"github.com/GGP1/adak/internal/token"
+	"github.com/GGP1/adak/internal/validate"
+	"github.com/pkg/errors"
+	"gopkg.in/guregu/null.v4/zero"
 
-	"github.com/go-chi/chi"
-	validator "github.com/go-playground/validator/v10"
-	lru "github.com/hashicorp/golang-lru"
+	"github.com/bradfitz/gomemcache/memcache"
+	"github.com/go-chi/chi/v5"
 )
 
 // Handler handles product endpoints.
 type Handler struct {
 	Service Service
-	Cache   *lru.Cache
+	Cache   *memcache.Client
 }
 
 // Create creates a new product and saves it.
 func (h *Handler) Create() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var product Product
 		ctx := r.Context()
 
-		if err := json.NewDecoder(r.Body).Decode(&product); err != nil {
+		var p Product
+		if err := json.NewDecoder(r.Body).Decode(&p); err != nil {
 			response.Error(w, http.StatusBadRequest, err)
 			return
 		}
 		defer r.Body.Close()
 
-		if err := validator.New().StructCtx(ctx, product); err != nil {
-			response.Error(w, http.StatusBadRequest, err.(validator.ValidationErrors))
+		if err := validate.Struct(ctx, p); err != nil {
+			response.Error(w, http.StatusBadRequest, err)
 			return
 		}
 
-		if err := h.Service.Create(ctx, &product); err != nil {
+		p.ID = zero.StringFrom(token.RandString(27))
+		p.CreatedAt = zero.TimeFrom(time.Now())
+		// percentages -> numeric values
+		p.Taxes.Int64 = ((p.Subtotal.Int64 / 100) * p.Taxes.Int64)
+		p.Discount.Int64 = ((p.Subtotal.Int64 / 100) * p.Discount.Int64)
+		p.Total.Int64 = p.Subtotal.Int64 + p.Taxes.Int64 - p.Discount.Int64
+
+		if err := h.Service.Create(ctx, p); err != nil {
 			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
 
-		response.JSON(w, http.StatusCreated, product)
+		response.JSON(w, http.StatusCreated, p)
 	}
 }
 
@@ -56,7 +67,7 @@ func (h *Handler) Delete() http.HandlerFunc {
 			return
 		}
 
-		response.JSONText(w, http.StatusOK, fmt.Sprintf("product %q deleted", id))
+		response.JSONText(w, http.StatusOK, id)
 	}
 }
 
@@ -81,9 +92,9 @@ func (h *Handler) GetByID() http.HandlerFunc {
 		id := chi.URLParam(r, "id")
 		ctx := r.Context()
 
-		item, _ := h.Cache.Get(id)
-		if pr, ok := item.(Product); ok {
-			response.JSON(w, http.StatusOK, pr)
+		item, err := h.Cache.Get(id)
+		if err == nil {
+			response.EncodedJSON(w, item.Value)
 			return
 		}
 
@@ -93,8 +104,7 @@ func (h *Handler) GetByID() http.HandlerFunc {
 			return
 		}
 
-		h.Cache.Add(id, product)
-		response.JSON(w, http.StatusOK, product)
+		response.JSONAndCache(h.Cache, w, id, product)
 	}
 }
 
@@ -104,8 +114,9 @@ func (h *Handler) Search() http.HandlerFunc {
 		query := chi.URLParam(r, "query")
 		ctx := r.Context()
 
-		if err := sanitize.Normalize(&query); err != nil {
-			response.Error(w, http.StatusBadRequest, err)
+		query = sanitize.Normalize(query)
+		if strings.ContainsAny(query, ";-\\|@#~€¬<>_()[]}{¡^'") {
+			response.Error(w, http.StatusBadRequest, errors.Errorf("query contains invalid characters"))
 			return
 		}
 
@@ -122,17 +133,17 @@ func (h *Handler) Search() http.HandlerFunc {
 // Update updates the product with the given id.
 func (h *Handler) Update() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var product Product
 		id := chi.URLParam(r, "id")
 		ctx := r.Context()
 
+		var product UpdateProduct
 		if err := json.NewDecoder(r.Body).Decode(&product); err != nil {
 			response.Error(w, http.StatusBadRequest, err)
 			return
 		}
 		defer r.Body.Close()
 
-		if err := h.Service.Update(ctx, &product, id); err != nil {
+		if err := h.Service.Update(ctx, id, product); err != nil {
 			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}

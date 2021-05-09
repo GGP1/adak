@@ -1,34 +1,34 @@
 package ordering
 
-import "time"
+import "gopkg.in/guregu/null.v4/zero"
 
-type status int
+type status int64
 
 // Order statuses
 const (
-	pending status = iota
-	paid
-	shipping
-	shipped
-	failed
+	Pending status = iota
+	Paid
+	Shipping
+	Shipped
+	Failed
 )
 
 // Order represents a user purchase request.
 type Order struct {
-	ID           string         `json:"id"`
-	UserID       string         `json:"user_id" db:"user_id"`
-	Currency     string         `json:"currency"`
-	Address      string         `json:"address"`
-	City         string         `json:"city"`
-	State        string         `json:"state"`
-	ZipCode      string         `json:"zip_code" db:"zip_code"`
-	Country      string         `json:"country"`
-	Status       status         `json:"status"`
-	OrderedAt    time.Time      `json:"ordered_at" db:"ordered_at"`
-	DeliveryDate time.Time      `json:"delivery_date" db:"delivery_date"`
-	CartID       string         `json:"cart_id" db:"cart_id"`
-	Cart         OrderCart      `json:"cart"`
-	Products     []OrderProduct `json:"products"`
+	ID           zero.String    `json:"id,omitempty"`
+	UserID       zero.String    `json:"user_id,omitempty" db:"user_id"`
+	Currency     zero.String    `json:"currency,omitempty"`
+	Address      zero.String    `json:"address,omitempty"`
+	City         zero.String    `json:"city,omitempty"`
+	State        zero.String    `json:"state,omitempty"`
+	ZipCode      zero.String    `json:"zip_code,omitempty" db:"zip_code"`
+	Country      zero.String    `json:"country,omitempty"`
+	Status       zero.Int       `json:"status,omitempty"`
+	OrderedAt    zero.Time      `json:"ordered_at,omitempty" db:"ordered_at"`
+	DeliveryDate zero.Time      `json:"delivery_date,omitempty" db:"delivery_date"`
+	CartID       zero.String    `json:"cart_id,omitempty" db:"cart_id"`
+	Cart         OrderCart      `json:"cart,omitempty"`
+	Products     []OrderProduct `json:"products,omitempty"`
 }
 
 // OrderCart represents the cart ordered by the user.
@@ -36,13 +36,13 @@ type Order struct {
 // Amounts to be provided in a currency’s smallest unit.
 // 100 = 1 USD.
 type OrderCart struct {
-	OrderID  string `json:"order_id" db:"order_id"`
-	Counter  int    `json:"counter"`
-	Weight   int64  `json:"weight"`
-	Discount int64  `json:"discount"`
-	Taxes    int64  `json:"taxes"`
-	Subtotal int64  `json:"subtotal"`
-	Total    int64  `json:"total"`
+	OrderID  zero.String `json:"order_id,omitempty" db:"order_id"`
+	Counter  zero.Int    `json:"counter,omitempty"`
+	Weight   zero.Int    `json:"weight,omitempty"`
+	Discount zero.Int    `json:"discount,omitempty"`
+	Taxes    zero.Int    `json:"taxes,omitempty"`
+	Subtotal zero.Int    `json:"subtotal,omitempty"`
+	Total    zero.Int    `json:"total,omitempty"`
 }
 
 // OrderProduct represents a product placed into the cart ordered by the user.
@@ -50,16 +50,16 @@ type OrderCart struct {
 // Amounts to be provided in a currency’s smallest unit.
 // 100 = 1 USD.
 type OrderProduct struct {
-	ProductID   string `json:"product_id" db:"product_id"`
-	OrderID     string `json:"order_id" db:"order_id"`
-	Quantity    int    `json:"quantity"`
-	Brand       string `json:"brand"`
-	Category    string `json:"category"`
-	Type        string `json:"type"`
-	Description string `json:"description,omitempty"`
-	Weight      int64  `json:"weight"`
-	Discount    int64  `json:"discount"`
-	Taxes       int64  `json:"taxes"`
-	Subtotal    int64  `json:"subtotal"`
-	Total       int64  `json:"total"`
+	ProductID   zero.String `json:"product_id,omitempty" db:"product_id"`
+	OrderID     zero.String `json:"order_id,omitempty" db:"order_id"`
+	Quantity    zero.Int    `json:"quantity,omitempty"`
+	Brand       zero.String `json:"brand,omitempty"`
+	Category    zero.String `json:"category,omitempty"`
+	Type        zero.String `json:"type,omitempty"`
+	Description zero.String `json:"description,omitempty"`
+	Weight      zero.Int    `json:"weight,omitempty"`
+	Discount    zero.Int    `json:"discount,omitempty"`
+	Taxes       zero.Int    `json:"taxes,omitempty"`
+	Subtotal    zero.Int    `json:"subtotal,omitempty"`
+	Total       zero.Int    `json:"total,omitempty"`
 }

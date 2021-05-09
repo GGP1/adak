@@ -1,36 +1,57 @@
 version: "3.8"  
 services:
-  db:
-    image: postgres:13.1-alpine
-    environment:
-      POSTGRES_DB: postgres
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-    ports:
-      - 5432:5432
-    volumes: 
-      - ./postgres-data:/var/lib/postgresql/data
-
-  adak:
+  
+  server:
     build: .
-    restart: always
-    environment: # Check all the environment variables in .env_example, as they are required
-      SV_HOST: 0.0.0.0 # Do not bind to 127.0.0.1 as Docker can't reach the app inside the container.
-      SV_PORT: 4000
-      POSTGRES_HOST: db
-      POSTGRES_PORT: 5432
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: postgres
-      POSTGRES_DB: postgres
+    restart: on-failure:10
+    environment:
+      ADAK_CONFIG: /config.yml
     ports:
       - 4000:4000
+    volumes: # Mount private files
+      - ./hide/config.yml:/config.yml
+      - ./hide/certs:/certs/
+    networks:
+      - storage
     depends_on:
-      - db
-
-  adak-api:
-    image: gastonpalomeque/adak-api
+      - postgres
+      - memcached
+      - redis
+  
+  postgres:
+    image: postgres:13.2-alpine
+    environment:
+      POSTGRES_USER: adak
+      POSTGRES_PASSWORD: adak
     ports:
-      - 8080:8080
-    
-volumes:
-  postgres-data:
+      - 5432:5432
+    # volumes: 
+    #   - ./hide/postgres-data:/var/lib/postgresql/data
+    # Make sure that ./hide/postgres-data/pg_hba.conf contains the following line to connect to postgres:
+    # host    all             all             0.0.0.0/0               trust
+    networks:
+      - storage
+
+  memcached:
+    image: memcached:1.6.9-alpine
+    ports:
+      - 11211:11211
+    networks:
+      - storage
+  
+  redis:
+    image: redis:6.2.1-alpine
+    ports:
+      - 6379:6379
+    # volumes:
+      # - ./hide/redis.conf:/usr/local/etc/redis/redis.conf:ro
+      #   - ./hide/redis-data:/data
+    networks:
+      - storage
+
+# volumes:
+#   postgres-data:
+#   redis-data
+
+networks:
+  storage:

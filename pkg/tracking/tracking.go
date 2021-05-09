@@ -38,7 +38,7 @@ type Hitter struct {
 func NewService(db *sqlx.DB) Tracker {
 	salt := make([]byte, 8)
 	if _, err := rand.Read(salt); err != nil {
-		logger.Log.Errorf("failed reading salt: %v", err)
+		logger.Fatalf("failed reading salt: %v", err)
 	}
 
 	return &Hitter{
@@ -62,7 +62,7 @@ func (h *Hitter) Get(ctx context.Context) ([]Hit, error) {
 	var hits []Hit
 
 	if err := h.DB.SelectContext(ctx, &hits, "SELECT * FROM hits"); err != nil {
-		logger.Log.Errorf("failed listing hits: %v", err)
+		logger.Debugf("failed listing hits: %v", err)
 		return nil, errors.Wrap(err, "couldn't find the hits")
 	}
 
@@ -85,7 +85,7 @@ func (h *Hitter) Hit(ctx context.Context, r *http.Request) error {
 		_, err = h.DB.ExecContext(ctx, q, hit.ID, hit.Footprint, hit.Path, hit.URL,
 			hit.Language, hit.UserAgent, hit.Referer, hit.Date)
 		if err != nil {
-			logger.Log.Errorf("failed creating hit: %v", err)
+			logger.Debugf("failed creating hit: %v", err)
 			return errors.Wrap(err, "couldn't save the hit")
 		}
 	}

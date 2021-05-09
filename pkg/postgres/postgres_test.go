@@ -3,33 +3,31 @@ package postgres_test
 import (
 	"context"
 	"testing"
-	"time"
 
 	"github.com/GGP1/adak/internal/config"
+	"github.com/GGP1/adak/internal/test"
 	"github.com/GGP1/adak/pkg/postgres"
-	"github.com/stretchr/testify/assert"
 
 	_ "github.com/lib/pq"
+	"github.com/stretchr/testify/assert"
 )
 
-func TestPostgres(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
-	defer cancel()
+func TestConnect(t *testing.T) {
+	env := []string{"POSTGRES_USER=postgres", "POSTGRES_PASSWORD=postgres", "listen_addresses = '*'"}
+	pool, resource := test.NewResource(t, "postgres", "13.2-alpine", env)
 
-	c, err := config.New()
+	err := pool.Retry(func() error {
+		db, err := postgres.Connect(context.Background(), config.Postgres{
+			Username: "postgres",
+			Host:     "localhost",
+			Port:     resource.GetPort("5432/tcp"),
+			Name:     "postgres",
+			Password: "postgres",
+			SSLMode:  "disable",
+		})
+		assert.NoError(t, err)
+
+		return db.Close()
+	})
 	assert.NoError(t, err)
-
-	db, err := postgres.Connect(ctx, &c.Database)
-	assert.NoError(t, err)
-	defer db.Close()
-
-	assert.NoError(t, db.Ping())
-}
-
-func TestPostgresErrors(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
-	defer cancel()
-
-	_, err := postgres.Connect(ctx, &config.Database{})
-	assert.Error(t, err)
 }

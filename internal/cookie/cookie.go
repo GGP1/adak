@@ -13,10 +13,7 @@ import (
 func Delete(w http.ResponseWriter, name string) {
 	http.SetCookie(w, &http.Cookie{
 		Name:     name,
-		Value:    "0",
-		Path:     "/",
-		Domain:   "localhost",
-		Secure:   false,
+		Value:    "",
 		HttpOnly: true,
 		MaxAge:   -1,
 	})
@@ -48,7 +45,7 @@ func Get(r *http.Request, name string) (*http.Cookie, error) {
 func GetValue(r *http.Request, name string) (string, error) {
 	cookie, err := Get(r, name)
 	if err != nil {
-		return "", nil
+		return "", err
 	}
 
 	return cookie.Value, nil

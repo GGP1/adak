@@ -2,29 +2,31 @@ package user
 
 import (
 	"encoding/json"
-	"fmt"
-	"image"
 	"net/http"
+	"strings"
+	"time"
 
 	"github.com/GGP1/adak/internal/cookie"
 	"github.com/GGP1/adak/internal/email"
 	"github.com/GGP1/adak/internal/response"
 	"github.com/GGP1/adak/internal/sanitize"
 	"github.com/GGP1/adak/internal/token"
+	"github.com/GGP1/adak/internal/validate"
 	"github.com/GGP1/adak/pkg/auth"
 	"github.com/GGP1/adak/pkg/shopping/cart"
+	"github.com/pkg/errors"
 
-	"github.com/go-chi/chi"
-	validator "github.com/go-playground/validator/v10"
-	lru "github.com/hashicorp/golang-lru"
-	"github.com/jmoiron/sqlx"
+	"github.com/bradfitz/gomemcache/memcache"
+	"github.com/go-chi/chi/v5"
 )
 
 // Handler handles user endpoints.
 type Handler struct {
-	Service     Service
+	Development bool
+	UserService Service
 	CartService cart.Service
-	Cache       *lru.Cache
+	Emailer     email.Emailer
+	Cache       *memcache.Client
 }
 
 // Create creates a new user and saves it.
@@ -39,33 +41,43 @@ func (h *Handler) Create() http.HandlerFunc {
 		}
 		defer r.Body.Close()
 
-		if err := validator.New().StructCtx(ctx, user); err != nil {
-			response.Error(w, http.StatusBadRequest, err.(validator.ValidationErrors))
-			return
-		}
-
-		if err := sanitize.Normalize(&user.Username, &user.Email); err != nil {
+		if err := validate.Struct(ctx, user); err != nil {
 			response.Error(w, http.StatusBadRequest, err)
 			return
 		}
 
-		confirmationCode := token.RandString(20)
-		if err := email.SendValidation(ctx, user.Username, user.Email, confirmationCode); err != nil {
+		if !h.Development {
+			confirmationCode := token.RandString(20)
+			if err := h.Emailer.SendValidation(ctx, user.Username, user.Email, confirmationCode); err != nil {
+				response.Error(w, http.StatusInternalServerError, err)
+				return
+			}
+		}
+
+		// Set fields here for testing purposes and normalize inputs
+		user.ID = token.RandString(32)
+		user.CartID = token.RandString(31)
+		user.Username = sanitize.Normalize(user.Username)
+		user.Email = sanitize.Normalize(user.Email)
+		user.CreatedAt = time.Now()
+
+		if err := h.UserService.Create(ctx, user); err != nil {
+			response.Error(w, http.StatusBadRequest, err)
+			return
+		}
+
+		if err := h.CartService.Create(ctx, user.CartID); err != nil {
 			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
 
-		if err := h.Service.Create(ctx, &user); err != nil {
-			response.Error(w, http.StatusBadRequest, err)
-			return
-		}
-
-		response.JSONText(w, http.StatusCreated, "account created, please verify your email")
+		user.Password = "" // Do not return password
+		response.JSON(w, http.StatusCreated, user)
 	}
 }
 
 // Delete removes a user.
-func (h *Handler) Delete(db *sqlx.DB, s auth.Session) http.HandlerFunc {
+func (h *Handler) Delete(s auth.Session) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, "id")
 		ctx := r.Context()
@@ -85,13 +97,17 @@ func (h *Handler) Delete(db *sqlx.DB, s auth.Session) http.HandlerFunc {
 			return
 		}
 
-		if err := h.Service.Delete(ctx, id); err != nil {
+		if err := h.UserService.Delete(ctx, id); err != nil {
 			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
 
-		s.Logout(w, r)
-		response.JSONText(w, http.StatusOK, fmt.Sprintf("user %q deleted", id))
+		if err := s.Logout(ctx, w, r); err != nil {
+			response.Error(w, http.StatusInternalServerError, err)
+			return
+		}
+
+		response.JSONText(w, http.StatusOK, id)
 	}
 }
 
@@ -100,7 +116,7 @@ func (h *Handler) Get() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
-		users, err := h.Service.Get(ctx)
+		users, err := h.UserService.Get(ctx)
 		if err != nil {
 			response.Error(w, http.StatusNotFound, err)
 			return
@@ -116,20 +132,19 @@ func (h *Handler) GetByID() http.HandlerFunc {
 		id := chi.URLParam(r, "id")
 		ctx := r.Context()
 
-		item, _ := h.Cache.Get(id)
-		if us, ok := item.(User); ok {
-			response.JSON(w, http.StatusOK, us)
+		item, err := h.Cache.Get(id)
+		if err == nil {
+			response.EncodedJSON(w, item.Value)
 			return
 		}
 
-		user, err := h.Service.GetByID(ctx, id)
+		user, err := h.UserService.GetByID(ctx, id)
 		if err != nil {
 			response.Error(w, http.StatusNotFound, err)
 			return
 		}
 
-		h.Cache.Add(id, user)
-		response.JSON(w, http.StatusOK, user)
+		response.JSONAndCache(h.Cache, w, id, user)
 	}
 }
 
@@ -139,7 +154,7 @@ func (h *Handler) GetByEmail() http.HandlerFunc {
 		email := chi.URLParam(r, "email")
 		ctx := r.Context()
 
-		user, err := h.Service.GetByEmail(ctx, email)
+		user, err := h.UserService.GetByEmail(ctx, email)
 		if err != nil {
 			response.Error(w, http.StatusNotFound, err)
 			return
@@ -155,7 +170,7 @@ func (h *Handler) GetByUsername() http.HandlerFunc {
 		username := chi.URLParam(r, "username")
 		ctx := r.Context()
 
-		user, err := h.Service.GetByUsername(ctx, username)
+		user, err := h.UserService.GetByUsername(ctx, username)
 		if err != nil {
 			response.Error(w, http.StatusNotFound, err)
 			return
@@ -165,52 +180,21 @@ func (h *Handler) GetByUsername() http.HandlerFunc {
 	}
 }
 
-// QRCode shows the user id in a qrcode format.
-func (h *Handler) QRCode() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		var user ListUser
-		id := chi.URLParam(r, "id")
-		ctx := r.Context()
-
-		// Distinguish from the other ids of the same user
-		cacheKey := fmt.Sprintf("%s-qr", id)
-		item, _ := h.Cache.Get(cacheKey)
-		if img, ok := item.(image.Image); ok {
-			response.PNG(w, http.StatusOK, img)
-			return
-		}
-
-		user, err := h.Service.GetByID(ctx, id)
-		if err != nil {
-			response.Error(w, http.StatusNotFound, err)
-			return
-		}
-
-		img, err := user.QRCode()
-		if err != nil {
-			response.Error(w, http.StatusInternalServerError, err)
-			return
-		}
-
-		h.Cache.Add(cacheKey, img)
-		response.PNG(w, http.StatusOK, img)
-	}
-}
-
 // Search looks for the products with the given value.
 func (h *Handler) Search() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		query := chi.URLParam(r, "query")
 		ctx := r.Context()
 
-		if err := sanitize.Normalize(&query); err != nil {
-			response.Error(w, http.StatusBadRequest, err)
+		query = sanitize.Normalize(query)
+		if strings.ContainsAny(query, ";-\\|@#~€¬<>_()[]}{¡^'") {
+			response.Error(w, http.StatusBadRequest, errors.New("query contains invalid characters"))
 			return
 		}
 
-		users, err := h.Service.Search(ctx, query)
+		users, err := h.UserService.Search(ctx, query)
 		if err != nil {
-			response.Error(w, http.StatusNotFound, err)
+			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
 
@@ -236,16 +220,16 @@ func (h *Handler) Update() http.HandlerFunc {
 		}
 		defer r.Body.Close()
 
-		if err := validator.New().StructCtx(ctx, user); err != nil {
-			response.Error(w, http.StatusBadRequest, err.(validator.ValidationErrors))
+		if err := validate.Struct(ctx, user); err != nil {
+			response.Error(w, http.StatusBadRequest, err)
 			return
 		}
 
-		if err := h.Service.Update(ctx, &user, id); err != nil {
+		if err := h.UserService.Update(ctx, user, id); err != nil {
 			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
 
-		response.JSONText(w, http.StatusOK, fmt.Sprintf("user %q updated", id))
+		response.JSONText(w, http.StatusOK, id)
 	}
 }

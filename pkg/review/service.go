@@ -4,42 +4,38 @@ import (
 	"context"
 	"time"
 
-	"github.com/GGP1/adak/internal/logger"
-	"github.com/GGP1/adak/internal/token"
-
+	"github.com/bradfitz/gomemcache/memcache"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
+	"gopkg.in/guregu/null.v4/zero"
 )
 
 // Service provides review operations.
 type Service interface {
-	Create(ctx context.Context, r *Review, userID string) error
+	Create(ctx context.Context, r Review) error
 	Delete(ctx context.Context, id string) error
-	Get(ctx context.Context) ([]*Review, error)
+	Get(ctx context.Context) ([]Review, error)
 	GetByID(ctx context.Context, id string) (Review, error)
 }
 
 type service struct {
-	DB *sqlx.DB
+	db *sqlx.DB
+	mc *memcache.Client
 }
 
 // NewService returns a new review service.
-func NewService(db *sqlx.DB) Service {
-	return &service{db}
+func NewService(db *sqlx.DB, mc *memcache.Client) Service {
+	return &service{db, mc}
 }
 
 // Create a review.
-func (s *service) Create(ctx context.Context, r *Review, userID string) error {
+func (s *service) Create(ctx context.Context, r Review) error {
 	q := `INSERT INTO reviews
-	(id, stars, comment, user_id, product_id, shop_id, created_at, updated_at)
-	VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`
-
-	id := token.RandString(30)
-	r.CreatedAt = time.Now()
-
-	_, err := s.DB.ExecContext(ctx, q, id, r.Stars, r.Comment, userID, r.ProductID, r.ShopID, r.CreatedAt, r.UpdatedAt)
+	(id, stars, comment, user_id, product_id, shop_id, created_at)
+	VALUES ($1, $2, $3, $4, $5, $6, $7)`
+	_, err := s.db.ExecContext(ctx, q, r.ID, r.Stars, r.Comment, r.UserID, r.ProductID,
+		r.ShopID, zero.TimeFrom(time.Now()))
 	if err != nil {
-		logger.Log.Errorf("failed creating review: %v", err)
 		return errors.Wrap(err, "couldn't create the review")
 	}
 
@@ -48,21 +44,23 @@ func (s *service) Create(ctx context.Context, r *Review, userID string) error {
 
 // Delete permanently deletes a review from the database.
 func (s *service) Delete(ctx context.Context, id string) error {
-	_, err := s.DB.ExecContext(ctx, "DELETE FROM reviews WHERE id=$1", id)
+	_, err := s.db.ExecContext(ctx, "DELETE FROM reviews WHERE id=$1", id)
 	if err != nil {
-		logger.Log.Errorf("failed deleting review: %v", err)
 		return errors.Wrap(err, "couldn't delete the review")
+	}
+
+	if err := s.mc.Delete(id); err != nil && err != memcache.ErrCacheMiss {
+		return errors.Wrap(err, "deleting review from cache")
 	}
 
 	return nil
 }
 
 // Get returns a list with all the reviews stored in the database.
-func (s *service) Get(ctx context.Context) ([]*Review, error) {
-	var reviews []*Review
+func (s *service) Get(ctx context.Context) ([]Review, error) {
+	var reviews []Review
 
-	if err := s.DB.SelectContext(ctx, &reviews, "SELECT * FROM reviews"); err != nil {
-		logger.Log.Errorf("failed listing reviews: %v", err)
+	if err := s.db.SelectContext(ctx, &reviews, "SELECT * FROM reviews"); err != nil {
 		return nil, errors.Wrap(err, "couldn't find the reviews")
 	}
 
@@ -73,8 +71,13 @@ func (s *service) Get(ctx context.Context) ([]*Review, error) {
 func (s *service) GetByID(ctx context.Context, id string) (Review, error) {
 	var review Review
 
-	if err := s.DB.GetContext(ctx, &review, "SELECT * FROM reviews WHERE id=$1", id); err != nil {
-		return Review{}, errors.Wrap(err, "couldn't find the review")
+	row := s.db.QueryRowContext(ctx, "SELECT * FROM reviews WHERE id=$1", id)
+	err := row.Scan(
+		&review.ID, &review.Stars, &review.Comment, &review.UserID,
+		&review.ShopID, &review.ProductID, &review.CreatedAt,
+	)
+	if err != nil {
+		return Review{}, errors.Wrap(err, "couldn't scan review")
 	}
 
 	return review, nil

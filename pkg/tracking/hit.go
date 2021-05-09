@@ -23,11 +23,11 @@ type Hit struct {
 	Date      time.Time `json:"date"`
 }
 
-// String returns a string of the hit struct.
+// String returns the string representation of a hit.
 func (hit *Hit) String() (string, error) {
 	out, err := json.Marshal(hit)
 	if err != nil {
-		logger.Log.Errorf("failed formatting hit to json: %v", err)
+		logger.Debugf("failed formatting hit to json: %v", err)
 		return "", errors.New("couldn't marshal the hit")
 	}
 

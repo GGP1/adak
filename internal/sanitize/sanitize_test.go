@@ -1,41 +1,34 @@
 package sanitize
 
 import (
+	"strconv"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
 )
 
 func TestNormalize(t *testing.T) {
-	testCases := []struct {
-		desc        string
-		input       string
-		mustBeEqual bool
+	cases := []struct {
+		in       string
+		expected string
 	}{
-		{
-			desc:        "Do not normalize",
-			input:       "test",
-			mustBeEqual: true,
-		},
-		{
-			desc:        "Normalize",
-			input:       "tëst",
-			mustBeEqual: false,
-		},
+		{in: "Dança", expected: "Danca"},
+		{in: "Çomer", expected: "Comer"},
+		{in: "úser", expected: "user"},
+		{in: "ïd", expected: "id"},
+		{in: "nÀmệ", expected: "nAme"},
 	}
 
-	for _, tc := range testCases {
-		t.Run(tc.desc, func(t *testing.T) {
-			// Create a copy to compare
-			copy := tc.input
-			err := Normalize(&tc.input)
-			assert.NoError(t, err)
-
-			if tc.mustBeEqual {
-				assert.Equal(t, copy, tc.input)
-			} else {
-				assert.NotEqual(t, copy, tc.input)
-			}
+	for i, tc := range cases {
+		t.Run(strconv.Itoa(i), func(t *testing.T) {
+			got := Normalize(tc.in)
+			assert.Equal(t, tc.expected, got)
 		})
+	}
+}
+
+func BenchmarkNormalize(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		Normalize("BénçhmẬrkstrïng") // Maybe it requires a little more research to estimate a good average input
 	}
 }

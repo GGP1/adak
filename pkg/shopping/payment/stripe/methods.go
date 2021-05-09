@@ -2,8 +2,8 @@ package stripe
 
 import (
 	"github.com/pkg/errors"
-	stripe "github.com/stripe/stripe-go"
-	"github.com/stripe/stripe-go/paymentmethod"
+	stripe "github.com/stripe/stripe-go/v72"
+	"github.com/stripe/stripe-go/v72/paymentmethod"
 )
 
 // AttachMethod attaches a PaymentMethod object to a Customer.

@@ -1,18 +1,14 @@
 package response
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
-	"image"
-	"image/png"
 	"io"
 	"net/http"
-	"strconv"
 
-	"github.com/GGP1/adak/internal/logger"
+	"github.com/GGP1/adak/internal/bufferpool"
 
-	"github.com/pkg/errors"
+	"github.com/bradfitz/gomemcache/memcache"
 )
 
 type msgResponse struct {
@@ -23,6 +19,18 @@ type msgResponse struct {
 type errResponse struct {
 	Status int    `json:"status"`
 	Err    string `json:"error"`
+}
+
+// EncodedJSON writes a response from a buffer with json encoded content.
+//
+// The status is predefined as 200 (OK).
+func EncodedJSON(w http.ResponseWriter, buf []byte) {
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	w.WriteHeader(http.StatusOK)
+
+	if _, err := w.Write(buf); err != nil {
+		Error(w, http.StatusInternalServerError, err)
+	}
 }
 
 // Error is the function used to send error resposes.
@@ -47,21 +55,44 @@ func HTMLText(w http.ResponseWriter, status int, text string) {
 
 // JSON is the function used to send JSON responses.
 func JSON(w http.ResponseWriter, status int, v interface{}) {
-	var buf bytes.Buffer
+	buf := bufferpool.Get()
+	defer bufferpool.Put(buf)
 
-	if err := json.NewEncoder(&buf).Encode(v); err != nil {
-		logger.Log.Fatalf("failed writing json: %v", err)
+	if err := json.NewEncoder(buf).Encode(v); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
 	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
-	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.WriteHeader(status)
 
-	if _, err := io.Copy(w, &buf); err != nil {
-		logger.Log.Fatalf("failed writing to response writer: %v", err)
+	if _, err := io.Copy(w, buf); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+}
+
+// JSONAndCache works just like JSON but saves the encoding of v to the cache before writing the response.
+//
+// The status should always be 200 (OK).
+func JSONAndCache(mc *memcache.Client, w http.ResponseWriter, key string, v interface{}) {
+	buf := bufferpool.Get()
+	defer bufferpool.Put(buf)
+
+	if err := json.NewEncoder(buf).Encode(v); err != nil {
+		Error(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	if err := mc.Set(&memcache.Item{Key: key, Value: buf.Bytes()}); err != nil {
+		Error(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/json; charset=UTF-8")
+	w.WriteHeader(http.StatusOK)
+
+	if _, err := w.Write(buf.Bytes()); err != nil {
+		Error(w, http.StatusInternalServerError, err)
 	}
 }
 
@@ -73,22 +104,4 @@ func JSONText(w http.ResponseWriter, status int, message string) {
 	}
 
 	JSON(w, status, res)
-}
-
-// PNG is used to respond with a png image.
-func PNG(w http.ResponseWriter, status int, img image.Image) {
-	var buf bytes.Buffer
-
-	if err := png.Encode(&buf, img); err != nil {
-		Error(w, http.StatusInternalServerError, errors.New("couldn't encode the PNG image"))
-		return
-	}
-
-	w.Header().Set("Content-Type", "image/png")
-	w.Header().Set("Content-Length", strconv.Itoa(buf.Len()))
-	w.WriteHeader(status)
-
-	if _, err := io.Copy(w, &buf); err != nil {
-		Error(w, http.StatusInternalServerError, errors.Wrap(err, "couldn't write to response writer"))
-	}
 }

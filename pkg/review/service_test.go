@@ -1,113 +1,124 @@
-package review
+package review_test
 
 import (
 	"context"
 	"testing"
-	"time"
 
-	"github.com/GGP1/adak/internal/config"
-	"github.com/GGP1/adak/pkg/postgres"
+	"github.com/GGP1/adak/internal/logger"
+	"github.com/GGP1/adak/internal/test"
+	"github.com/GGP1/adak/pkg/product"
+	"github.com/GGP1/adak/pkg/review"
+	"github.com/GGP1/adak/pkg/shop"
+	"github.com/GGP1/adak/pkg/user"
 
-	_ "github.com/lib/pq"
-	"github.com/pkg/errors"
+	"github.com/bradfitz/gomemcache/memcache"
+	"github.com/jmoiron/sqlx"
+	"github.com/stretchr/testify/assert"
+	"gopkg.in/guregu/null.v4/zero"
 )
 
-var r = Review{
-	ID:        "test",
-	Stars:     5,
-	Comment:   "Testing is awesome",
-	UserID:    "test",
-	ProductID: "test",
-	ShopID:    "test",
+var r = review.Review{
+	ID:        zero.StringFrom("test"),
+	Stars:     zero.IntFrom(5),
+	Comment:   zero.StringFrom("testing"),
+	UserID:    zero.StringFrom("1"),
+	ShopID:    zero.StringFrom("5"),
+	ProductID: zero.StringFrom("3"),
 }
 
-var invalidR = Review{
-	ID:        "invalid",
-	Stars:     0,
-	Comment:   "",
-	UserID:    "non-existent",
-	ProductID: "non-existent",
-	ShopID:    "non-existent",
+// TestMain failed when creating the review service.
+func NewReviewService(t *testing.T) (context.Context, review.Service) {
+	t.Helper()
+	logger.Disable()
+	ctx, cancel := context.WithCancel(context.Background())
+
+	db := test.StartPostgres(t)
+	mc := test.StartMemcached(t)
+	service := review.NewService(db, mc)
+	createRelations(ctx, t, db, mc)
+
+	t.Cleanup(func() {
+		cancel()
+	})
+
+	return ctx, service
 }
 
-func NewTestService() (Service, func() error, error) {
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*3)
-	defer cancel()
+func TestReviewService(t *testing.T) {
+	ctx, s := NewReviewService(t)
 
-	conf, err := config.New()
-	if err != nil {
-		return nil, nil, errors.Wrap(err, "Failed creating a new configuration")
-	}
-
-	db, err := postgres.Connect(ctx, &conf.Database)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	service := NewService(db)
-	return service, db.Close, nil
+	t.Run("Create", create(ctx, s))
+	t.Run("Get", get(ctx, s))
+	t.Run("Get by id", getByID(ctx, s))
+	t.Run("Delete", delete(ctx, s))
 }
 
-func TestService(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.TODO(), time.Second*3)
-	defer cancel()
+func create(ctx context.Context, s review.Service) func(t *testing.T) {
+	return func(t *testing.T) {
+		assert.NoError(t, s.Create(ctx, r))
 
-	s, close, err := NewTestService()
-	if err != nil {
-		t.Error(err)
-	}
-	defer close()
+		review, err := s.GetByID(ctx, r.ID.String)
+		assert.NoError(t, err)
 
-	if err := s.Create(ctx, &r, r.UserID); err != nil {
-		t.Fatalf("Failed creating a review: %v", err)
-	}
-
-	if err := s.Delete(ctx, r.ID); err != nil {
-		t.Fatalf("Failed deleting the review: %v", err)
-	}
-
-	if err := s.Create(ctx, &r, r.UserID); err != nil {
-		t.Fatalf("Failed creating a review: %v", err)
-	}
-
-	got, err := s.GetByID(ctx, r.ID)
-	if err != nil {
-		t.Errorf("Review not found: %v", err)
-	}
-
-	if got.ID != r.ID {
-		t.Errorf("Expected a review with the id %q, got %q", r.ID, got.ID)
-	}
-
-	reviews, err := s.Get(ctx)
-	if err != nil {
-		t.Errorf("Get() failed: %v", err)
-	}
-
-	if len(reviews) == 0 {
-		t.Errorf("Expected atleast one review, got %d", len(reviews))
+		assert.Equal(t, r.Comment, review.Comment)
 	}
 }
 
-func TestInvalidService(t *testing.T) {
-	ctx, cancel := context.WithTimeout(context.TODO(), time.Second*3)
-	defer cancel()
+func delete(ctx context.Context, s review.Service) func(t *testing.T) {
+	return func(t *testing.T) {
+		assert.NoError(t, s.Delete(ctx, r.ID.String))
 
-	s, close, err := NewTestService()
-	if err != nil {
-		t.Error(err)
+		_, err := s.GetByID(ctx, r.ID.String)
+		assert.Error(t, err)
 	}
-	defer close()
+}
 
-	if err := s.Create(ctx, &invalidR, invalidR.UserID); err == nil {
-		t.Fatalf("Expected Create() to fail but it didn't: %v", err)
+func get(ctx context.Context, s review.Service) func(t *testing.T) {
+	return func(t *testing.T) {
+		reviews, err := s.Get(ctx)
+		assert.NoError(t, err)
+		assert.Equal(t, r.ShopID, reviews[0].ShopID)
 	}
+}
 
-	if err := s.Delete(ctx, invalidR.ID); err == nil {
-		t.Errorf("Expected Delete() to fail but it didn't: %v", err)
+func getByID(ctx context.Context, s review.Service) func(t *testing.T) {
+	return func(t *testing.T) {
+		review, err := s.GetByID(ctx, r.ID.String)
+		assert.NoError(t, err)
+		assert.Equal(t, r.ID, review.ID)
 	}
+}
 
-	if _, err := s.GetByID(ctx, invalidR.ID); err == nil {
-		t.Errorf("Expected GetByID() to fail but it didn't: %v", err)
-	}
+func createRelations(ctx context.Context, t *testing.T, db *sqlx.DB, mc *memcache.Client) {
+	t.Helper()
+	userService := user.NewService(db, mc)
+	err := userService.Create(ctx, user.AddUser{
+		ID:       "1",
+		CartID:   "test",
+		Email:    "test",
+		Username: "test",
+		Password: "test",
+	})
+	assert.NoError(t, err)
+
+	shopService := shop.NewService(db, mc)
+	err = shopService.Create(ctx, shop.Shop{
+		ID:   "5",
+		Name: "test",
+	})
+	assert.NoError(t, err)
+
+	productService := product.NewService(db, mc)
+	err = productService.Create(ctx, product.Product{
+		ID:       zero.StringFrom("3"),
+		ShopID:   zero.StringFrom("5"),
+		Stock:    zero.IntFrom(1),
+		Brand:    zero.StringFrom("test"),
+		Category: zero.StringFrom("test"),
+		Type:     zero.StringFrom("test"),
+		Weight:   zero.IntFrom(1),
+		Subtotal: zero.IntFrom(1),
+		Total:    zero.IntFrom(1),
+	})
+	assert.NoError(t, err)
 }

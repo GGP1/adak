@@ -5,6 +5,7 @@ import (
 
 	"github.com/GGP1/adak/pkg/product"
 	"github.com/GGP1/adak/pkg/review"
+	"gopkg.in/guregu/null.v4/zero"
 )
 
 // Shop represents a market with its name and location.
@@ -16,7 +17,12 @@ type Shop struct {
 	Reviews   []review.Review   `json:"reviews,omitempty"`
 	Products  []product.Product `json:"products"`
 	CreatedAt time.Time         `json:"created_at" db:"created_at"`
-	UpdatedAt time.Time         `json:"updated_at" db:"updated_at"`
+	UpdatedAt zero.Time         `json:"updated_at" db:"updated_at"`
+}
+
+// UpdateShop is the structure used to update shops.
+type UpdateShop struct {
+	Name string `json:"name" validate:"required"`
 }
 
 // Location of the shop.

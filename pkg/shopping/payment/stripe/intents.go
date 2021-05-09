@@ -2,8 +2,8 @@ package stripe
 
 import (
 	"github.com/pkg/errors"
-	stripe "github.com/stripe/stripe-go"
-	"github.com/stripe/stripe-go/paymentintent"
+	"github.com/stripe/stripe-go/v72"
+	"github.com/stripe/stripe-go/v72/paymentintent"
 )
 
 // CancelIntent cancels the purchase.
@@ -39,11 +39,7 @@ func ConfirmIntent(intentID string, source *stripe.Source) error {
 		return errors.Errorf("stripe: paymentIntent already has a status of %s", pi.Status)
 	}
 
-	params := &stripe.PaymentIntentConfirmParams{
-		Source: stripe.String(source.ID),
-	}
-
-	_, err = paymentintent.Confirm(pi.ID, params)
+	_, err = paymentintent.Confirm(pi.ID, &stripe.PaymentIntentConfirmParams{})
 	if err != nil {
 		return errors.Wrap(err, "stripe: PaymentIntent")
 	}

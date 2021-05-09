@@ -42,7 +42,7 @@ func (s *service) ChangeEmail(ctx context.Context, id, newEmail, token string) e
 
 	_, err := s.DB.ExecContext(ctx, "UPDATE users set email=$2 WHERE id=$1", id, newEmail)
 	if err != nil {
-		logger.Log.Errorf("failed updating the user's email: %v", err)
+		logger.Errorf("failed updating the user's email: %v", err)
 		return errors.Wrap(err, "couldn't change the email")
 	}
 
@@ -67,14 +67,14 @@ func (s *service) ChangePassword(ctx context.Context, id, oldPass, newPass strin
 
 	newPassHash, err := bcrypt.GenerateFromPassword([]byte(newPass), bcrypt.DefaultCost)
 	if err != nil {
-		logger.Log.Errorf("failed generating user's password hash: %v", err)
+		logger.Errorf("failed generating user's password hash: %v", err)
 		return errors.Wrap(err, "couldn't generate the password hash")
 	}
 	user.Password = string(newPassHash)
 
 	_, err = s.DB.ExecContext(ctx, "UPDATE users SET password=$2 WHERE id=$1", user.ID, user.Password)
 	if err != nil {
-		logger.Log.Errorf("failed updating user's password: %v", err)
+		logger.Errorf("failed updating user's password: %v", err)
 		return errors.Wrap(err, "couldn't change the password")
 	}
 
@@ -87,7 +87,7 @@ func (s *service) ValidateUserEmail(ctx context.Context, id, confirmationCode st
 
 	_, err := s.DB.ExecContext(ctx, q, id, verified, confirmationCode)
 	if err != nil {
-		logger.Log.Errorf("failed validating the user: %v", err)
+		logger.Errorf("failed validating the user: %v", err)
 		return errors.Wrap(err, "couldn't validate the user")
 	}
 

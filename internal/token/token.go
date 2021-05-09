@@ -28,6 +28,10 @@ func RandString(length int) string {
 // CheckPermits cheks if the user is trying to perform and action on his own
 // account (return nil) or not (return error).
 func CheckPermits(r *http.Request, paramID string) error {
+	if len(paramID) > 32 {
+		return errors.New("invalid id")
+	}
+
 	userID, err := cookie.GetValue(r, "UID")
 	if err != nil {
 		return err
