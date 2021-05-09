@@ -11,15 +11,15 @@ import (
 	"github.com/GGP1/adak/internal/token"
 	"github.com/GGP1/adak/pkg/user"
 
-	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/v5"
 	"github.com/pkg/errors"
 )
 
 // Handler handles account endpoints.
 type Handler struct {
-	Service     Service
-	UserService user.Service
-	Emailer     email.Emailer
+	AccountService Service
+	UserService    user.Service
+	Emailer        email.Emailer
 }
 
 type changeEmail struct {
@@ -35,7 +35,7 @@ func (h *Handler) ChangeEmail() http.HandlerFunc {
 
 		ctx := r.Context()
 
-		if err := h.Service.ChangeEmail(ctx, id, email, token); err != nil {
+		if err := h.AccountService.ChangeEmail(ctx, id, email, token); err != nil {
 			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
@@ -67,7 +67,7 @@ func (h *Handler) ChangePassword() http.HandlerFunc {
 		}
 		defer r.Body.Close()
 
-		if err := h.Service.ChangePassword(ctx, userID, changePass.OldPassword, changePass.NewPassword); err != nil {
+		if err := h.AccountService.ChangePassword(ctx, userID, changePass.OldPassword, changePass.NewPassword); err != nil {
 			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
@@ -129,7 +129,7 @@ func (h *Handler) SendEmailValidation(u user.Service) http.HandlerFunc {
 			return
 		}
 
-		if err := h.Service.ValidateUserEmail(ctx, usr.ID, token, true); err != nil {
+		if err := h.AccountService.ValidateUserEmail(ctx, usr.ID, token, true); err != nil {
 			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}

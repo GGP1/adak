@@ -2,60 +2,54 @@ package shop
 
 import (
 	"context"
-	"strings"
 	"time"
 
-	"github.com/GGP1/adak/internal/logger"
-	"github.com/GGP1/adak/internal/token"
 	"github.com/GGP1/adak/pkg/product"
 	"github.com/GGP1/adak/pkg/review"
+	"gopkg.in/guregu/null.v4/zero"
 
+	"github.com/bradfitz/gomemcache/memcache"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
 )
 
 // Service provides shop operations.
 type Service interface {
-	Create(ctx context.Context, shop *Shop) error
+	Create(ctx context.Context, shop Shop) error
 	Delete(ctx context.Context, id string) error
 	Get(ctx context.Context) ([]Shop, error)
 	GetByID(ctx context.Context, id string) (Shop, error)
-	Search(ctx context.Context, search string) ([]Shop, error)
-	Update(ctx context.Context, shop *Shop, id string) error
+	Search(ctx context.Context, query string) ([]Shop, error)
+	Update(ctx context.Context, id string, shop UpdateShop) error
 }
 
 type service struct {
 	db *sqlx.DB
+	mc *memcache.Client
 }
 
 // NewService returns a new shop service.
-func NewService(db *sqlx.DB) Service {
-	return &service{db}
+func NewService(db *sqlx.DB, mc *memcache.Client) Service {
+	return &service{db, mc}
 }
 
 // Create a shop.
-func (s *service) Create(ctx context.Context, shop *Shop) error {
+func (s *service) Create(ctx context.Context, shop Shop) error {
 	sQuery := `INSERT INTO shops
-	(id, name, created_at, updated_at)
-	VALUES ($1, $2, $3, $4)`
+	(id, name, created_at)
+	VALUES ($1, $2, $3)`
+
+	_, err := s.db.ExecContext(ctx, sQuery, shop.ID, shop.Name, time.Now())
+	if err != nil {
+		return errors.Wrap(err, "couldn't create the shop")
+	}
 
 	lQuery := `INSERT INTO locations
 	(shop_id, country, state, zip_code, city, address)
 	VALUES ($1, $2, $3, $4, $5, $6)`
-
-	id := token.RandString(30)
-	shop.CreatedAt = time.Now()
-
-	_, err := s.db.ExecContext(ctx, sQuery, id, shop.Name, shop.CreatedAt, shop.UpdatedAt)
-	if err != nil {
-		logger.Log.Errorf("failed creating a shop: %v", err)
-		return errors.Wrap(err, "couldn't create the shop")
-	}
-
-	_, err = s.db.ExecContext(ctx, lQuery, id, shop.Location.Country, shop.Location.State,
+	_, err = s.db.ExecContext(ctx, lQuery, shop.ID, shop.Location.Country, shop.Location.State,
 		shop.Location.ZipCode, shop.Location.City, shop.Location.Address)
 	if err != nil {
-		logger.Log.Errorf("failed creating the location: %v", err)
 		return errors.Wrap(err, "couldn't create the location")
 	}
 
@@ -66,8 +60,11 @@ func (s *service) Create(ctx context.Context, shop *Shop) error {
 func (s *service) Delete(ctx context.Context, id string) error {
 	_, err := s.db.ExecContext(ctx, "DELETE FROM shops WHERE id=$1", id)
 	if err != nil {
-		logger.Log.Errorf("failed deleting shop: %v", err)
-		return errors.Wrap(err, "couldn't delete the shop")
+		return errors.Wrap(err, "deleting shop from database")
+	}
+
+	if err := s.mc.Delete(id); err != nil && err != memcache.ErrCacheMiss {
+		return errors.Wrap(err, "deleting shop from cache")
 	}
 
 	return nil
@@ -78,134 +75,79 @@ func (s *service) Get(ctx context.Context) ([]Shop, error) {
 	var shops []Shop
 
 	if err := s.db.SelectContext(ctx, &shops, "SELECT * FROM shops"); err != nil {
-		logger.Log.Errorf("failed listing shops: %v", err)
 		return nil, errors.Wrap(err, "couldn't find the shops")
 	}
 
-	list, err := s.getRelationships(ctx, shops)
-	if err != nil {
-		return nil, err
-	}
-
-	return list, nil
+	return shops, nil
 }
 
 // GetByID retrieves the shop requested from the database.
 func (s *service) GetByID(ctx context.Context, id string) (Shop, error) {
-	var (
-		shop     Shop
-		location Location
-		reviews  []review.Review
-		products []product.Product
-	)
+	q := `SELECT s.*, l.*, r.*, p.* 
+	FROM shops s
+	LEFT JOIN locations l ON s.id=l.shop_id
+	LEFT JOIN reviews r ON s.id=r.shop_id
+	LEFT JOIN products p ON s.id=p.shop_id
+	WHERE s.id=$1`
 
-	if err := s.db.GetContext(ctx, &shop, "SELECT * FROM shops WHERE id=$1", id); err != nil {
-		logger.Log.Errorf("failed listing shops: %v", err)
-		return Shop{}, errors.Wrap(err, "couldn't find the shop")
+	rows, err := s.db.QueryContext(ctx, q, id)
+	if err != nil {
+		return Shop{}, errors.Wrap(err, "fetching shop")
 	}
+	defer rows.Close()
 
-	if err := s.db.GetContext(ctx, &location, "SELECT * FROM locations WHERE shop_id=$1", id); err != nil {
-		logger.Log.Errorf("failed listing shop's locations: %v", err)
-		return Shop{}, errors.Wrap(err, "couldn't find the location")
+	var shop Shop
+	for rows.Next() {
+		l := Location{}
+		r := review.Review{}
+		p := product.Product{}
+		err := rows.Scan(
+			&shop.ID, &shop.Name, &shop.CreatedAt, &shop.UpdatedAt,
+			&l.ShopID, &l.Country, &l.State, &l.ZipCode, &l.City, &l.Address,
+			&r.ID, &r.Stars, &r.Comment, &r.UserID, &r.ProductID, &r.ShopID, &r.CreatedAt,
+			&p.ID, &p.ShopID, &p.Stock, &p.Brand, &p.Category, &p.Type, &p.Description, &p.Weight,
+			&p.Discount, &p.Taxes, &p.Subtotal, &p.Total, &p.CreatedAt, &p.UpdatedAt,
+		)
+		if err != nil {
+			return Shop{}, errors.Wrap(err, "couldn't scan shop")
+		}
+
+		shop.Location = l
+		shop.Reviews = append(shop.Reviews, r)
+		shop.Products = append(shop.Products, p)
 	}
-
-	if err := s.db.SelectContext(ctx, &reviews, "SELECT * FROM reviews WHERE shop_id=$1", id); err != nil {
-		logger.Log.Errorf("failed listing shop's reviews: %v", err)
-		return Shop{}, errors.Wrap(err, "couldn't find the reviews")
-	}
-
-	if err := s.db.SelectContext(ctx, &products, "SELECT * FROM products WHERE shop_id=$1", id); err != nil {
-		logger.Log.Errorf("failed listing shop's products: %v", err)
-		return Shop{}, errors.Wrap(err, "couldn't find the products")
-	}
-
-	shop.Location = location
-	shop.Reviews = reviews
-	shop.Products = products
 
 	return shop, nil
 }
 
 // Search looks for the shops that contain the value specified. (Only text fields)
-func (s *service) Search(ctx context.Context, search string) ([]Shop, error) {
-	if strings.ContainsAny(search, ";-\\|@#~€¬<>_()[]}{¡^'") {
-		return nil, errors.New("invalid search")
-	}
+func (s *service) Search(ctx context.Context, query string) ([]Shop, error) {
+	var shops []Shop
+	q := "SELECT * FROM shops WHERE to_tsvector(id || ' ' || name) @@ plainto_tsquery($1)"
 
-	shops := []Shop{}
-	q := `SELECT * FROM shops WHERE
-	to_tsvector(id || ' ' || name) @@ plainto_tsquery($1)`
-
-	if err := s.db.SelectContext(ctx, &shops, q, search); err != nil {
-		logger.Log.Errorf("failed listing shops: %v", err)
+	if err := s.db.SelectContext(ctx, &shops, q, query); err != nil {
 		return nil, errors.Wrap(err, "couldn't find shops")
 	}
 
-	list, err := s.getRelationships(ctx, shops)
-	if err != nil {
-		return nil, err
-	}
-
-	return list, nil
+	return shops, nil
 }
 
 // Update updates shop fields.
-func (s *service) Update(ctx context.Context, shop *Shop, id string) error {
-	q := `UPDATE shops SET name=$2, country=$3, city=$4, address=$5
-	WHERE id=$1`
-
-	_, err := s.db.ExecContext(ctx, q, id, shop.Name, shop.Location.Country,
-		shop.Location.City, shop.Location.Address)
+func (s *service) Update(ctx context.Context, id string, shop UpdateShop) error {
+	q := "UPDATE shops SET name=$2, updated_at=$3 WHERE id=$1"
+	_, err := s.db.ExecContext(ctx, q, id, shop.Name, zero.TimeFrom(time.Now()))
 	if err != nil {
-		logger.Log.Errorf("failed updating shop: %v", err)
 		return errors.Wrap(err, "couldn't update the shop")
+	}
+
+	if err := s.mc.Delete(id); err != nil && err != memcache.ErrCacheMiss {
+		return errors.Wrap(err, "couldn't delete shop from cache")
 	}
 
 	return nil
 }
 
-func (s *service) getRelationships(ctx context.Context, shops []Shop) ([]Shop, error) {
-	ch, errCh := make(chan Shop), make(chan error, 1)
-
-	for _, shop := range shops {
-		go func(shop Shop) {
-			var (
-				location Location
-				reviews  []review.Review
-				products []product.Product
-			)
-
-			if err := s.db.GetContext(ctx, &location, "SELECT * FROM locations WHERE shop_id=$1", shop.ID); err != nil {
-				logger.Log.Errorf("failed listing shop's locations: %v", err)
-				errCh <- errors.Wrap(err, "couldn't find the location")
-			}
-
-			if err := s.db.Select(&reviews, "SELECT * FROM reviews WHERE shop_id=$1", shop.ID); err != nil {
-				logger.Log.Errorf("failed listing shop's reviews: %v", err)
-				errCh <- errors.Wrap(err, "couldn't find the reviews")
-			}
-
-			if err := s.db.Select(&products, "SELECT * FROM products WHERE shop_id=$1", shop.ID); err != nil {
-				logger.Log.Errorf("failed listing shop's products: %v", err)
-				errCh <- errors.Wrap(err, "couldn't find the products")
-			}
-
-			shop.Location = location
-			shop.Products = products
-			shop.Reviews = reviews
-
-			ch <- shop
-		}(shop)
-	}
-
-	list := make([]Shop, len(shops))
-	for i := range shops {
-		select {
-		case shop := <-ch:
-			list[i] = shop
-		case err := <-errCh:
-			return nil, err
-		}
-	}
-	return list, nil
+// TODO: finish and add to Service interface
+func (s *service) UpdateLocation(ctx context.Context, shopID string, location Location) error {
+	return nil
 }

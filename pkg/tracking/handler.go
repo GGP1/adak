@@ -6,7 +6,7 @@ import (
 
 	"github.com/GGP1/adak/internal/response"
 
-	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/v5"
 )
 
 // Handler handles tracking endpoints.

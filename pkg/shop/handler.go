@@ -2,15 +2,17 @@ package shop
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/GGP1/adak/internal/response"
 	"github.com/GGP1/adak/internal/sanitize"
-	"github.com/bradfitz/gomemcache/memcache"
+	"github.com/GGP1/adak/internal/token"
+	"github.com/GGP1/adak/internal/validate"
+	"github.com/pkg/errors"
 
-	"github.com/go-chi/chi"
-	validator "github.com/go-playground/validator/v10"
+	"github.com/bradfitz/gomemcache/memcache"
+	"github.com/go-chi/chi/v5"
 )
 
 // Handler handles shop endpoints.
@@ -22,20 +24,21 @@ type Handler struct {
 // Create creates a new shop and saves it.
 func (h *Handler) Create() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var shop *Shop
 		ctx := r.Context()
 
+		var shop Shop
 		if err := json.NewDecoder(r.Body).Decode(&shop); err != nil {
 			response.Error(w, http.StatusBadRequest, err)
 			return
 		}
 		defer r.Body.Close()
 
-		if err := validator.New().StructCtx(ctx, shop); err != nil {
-			response.Error(w, http.StatusBadRequest, err.(validator.ValidationErrors))
+		if err := validate.Struct(ctx, shop); err != nil {
+			response.Error(w, http.StatusBadRequest, err)
 			return
 		}
 
+		shop.ID = token.RandString(29)
 		if err := h.Service.Create(ctx, shop); err != nil {
 			response.Error(w, http.StatusInternalServerError, err)
 			return
@@ -56,7 +59,7 @@ func (h *Handler) Delete() http.HandlerFunc {
 			return
 		}
 
-		response.JSONText(w, http.StatusOK, fmt.Sprintf("shop %q deleted", id))
+		response.JSONText(w, http.StatusOK, id)
 	}
 }
 
@@ -104,6 +107,10 @@ func (h *Handler) Search() http.HandlerFunc {
 		ctx := r.Context()
 
 		query = sanitize.Normalize(query)
+		if strings.ContainsAny(query, ";-\\|@#~€¬<>_()[]}{¡^'") {
+			response.Error(w, http.StatusBadRequest, errors.Errorf("query contains invalid characters"))
+			return
+		}
 
 		shops, err := h.Service.Search(ctx, query)
 		if err != nil {
@@ -118,21 +125,21 @@ func (h *Handler) Search() http.HandlerFunc {
 // Update updates the shop with the given id.
 func (h *Handler) Update() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var shop *Shop
 		id := chi.URLParam(r, "id")
 		ctx := r.Context()
 
+		var shop UpdateShop
 		if err := json.NewDecoder(r.Body).Decode(&shop); err != nil {
 			response.Error(w, http.StatusBadRequest, err)
 			return
 		}
 		defer r.Body.Close()
 
-		if err := h.Service.Update(ctx, shop, id); err != nil {
+		if err := h.Service.Update(ctx, id, shop); err != nil {
 			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
 
-		response.JSONText(w, http.StatusOK, fmt.Sprintf("shop %q updated", id))
+		response.JSONText(w, http.StatusOK, id)
 	}
 }

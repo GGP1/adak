@@ -8,8 +8,8 @@ import (
 	"github.com/GGP1/adak/internal/response"
 	"github.com/GGP1/adak/internal/sanitize"
 	"github.com/GGP1/adak/internal/token"
+	"github.com/GGP1/adak/internal/validate"
 
-	validator "github.com/go-playground/validator/v10"
 	"github.com/pkg/errors"
 	"golang.org/x/oauth2"
 	"golang.org/x/oauth2/google"
@@ -32,25 +32,50 @@ type oauthRes struct {
 	Picture       string `json:"picture"`
 }
 
+// BasicAuth provides basic authentication.
+func BasicAuth(s Session) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+
+		if s.AlreadyLoggedIn(ctx, r) {
+			http.Redirect(w, r, "/", http.StatusSeeOther)
+			return
+		}
+
+		username, password, ok := r.BasicAuth()
+		if !ok {
+			response.Error(w, http.StatusBadRequest, errors.New("Authorization header not found"))
+			return
+		}
+
+		if err := s.Login(ctx, w, r, username, password); err != nil {
+			response.Error(w, http.StatusForbidden, err)
+			return
+		}
+
+		response.JSONText(w, http.StatusOK, "logged in")
+	}
+}
+
 // Login takes a user credentials and authenticates it.
 func Login(s Session) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if s.AlreadyLoggedIn(w, r) {
+		ctx := r.Context()
+
+		if s.AlreadyLoggedIn(ctx, r) {
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			return
 		}
 
 		var auth UserAuth
-		ctx := r.Context()
-
 		if err := json.NewDecoder(r.Body).Decode(&auth); err != nil {
 			response.Error(w, http.StatusBadRequest, err)
 			return
 		}
 		defer r.Body.Close()
 
-		if err := validator.New().StructCtx(ctx, auth); err != nil {
-			response.Error(w, http.StatusBadRequest, err.(validator.ValidationErrors))
+		if err := validate.Struct(ctx, auth); err != nil {
+			response.Error(w, http.StatusBadRequest, err)
 			return
 		}
 
@@ -70,7 +95,10 @@ func Login(s Session) http.HandlerFunc {
 func Logout(s Session) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Logout user from the session and delete cookies
-		s.Logout(w, r)
+		if err := s.Logout(r.Context(), w, r); err != nil {
+			response.Error(w, http.StatusInternalServerError, err)
+			return
+		}
 
 		response.JSONText(w, http.StatusOK, "logged out")
 	}
@@ -79,7 +107,7 @@ func Logout(s Session) http.HandlerFunc {
 // LoginGoogle redirects the user to the google oauth2.
 func LoginGoogle(s Session) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if s.AlreadyLoggedIn(w, r) {
+		if s.AlreadyLoggedIn(r.Context(), r) {
 			http.Redirect(w, r, "/", http.StatusSeeOther)
 			return
 		}
@@ -103,12 +131,12 @@ func OAuth2Google(s Session) http.HandlerFunc {
 			response.Error(w, http.StatusBadRequest, err)
 			return
 		}
-		defer res.Body.Close()
 
 		if err := json.NewDecoder(res.Body).Decode(&oauth); err != nil {
 			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
+		defer res.Body.Close()
 
 		if err := s.LoginOAuth(ctx, w, r, oauth.Email); err != nil {
 			response.Error(w, http.StatusForbidden, err)

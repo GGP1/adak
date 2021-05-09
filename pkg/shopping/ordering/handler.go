@@ -1,23 +1,22 @@
 package ordering
 
 import (
+	"context"
 	"encoding/json"
-	"errors"
-	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/GGP1/adak/internal/cookie"
 	"github.com/GGP1/adak/internal/response"
 	"github.com/GGP1/adak/internal/sanitize"
 	"github.com/GGP1/adak/internal/token"
+	"github.com/GGP1/adak/internal/validate"
 	"github.com/GGP1/adak/pkg/shopping/cart"
 	"github.com/GGP1/adak/pkg/shopping/payment/stripe"
-	"github.com/bradfitz/gomemcache/memcache"
 
-	"github.com/go-chi/chi"
-	validator "github.com/go-playground/validator/v10"
+	"github.com/bradfitz/gomemcache/memcache"
+	"github.com/go-chi/chi/v5"
 	"github.com/jmoiron/sqlx"
+	"gopkg.in/guregu/null.v4/zero"
 )
 
 // OrderParams holds the parameters for creating a order.
@@ -28,11 +27,12 @@ type OrderParams struct {
 	Country  string      `json:"country" validate:"required"`
 	State    string      `json:"state" validate:"required"`
 	ZipCode  string      `json:"zip_code" validate:"required"`
-	Date     date        `json:"date" validate:"required"`
+	Date     Date        `json:"date" validate:"required"`
 	Card     stripe.Card `json:"card" validate:"required"`
 }
 
-type date struct {
+// Date of the order.
+type Date struct {
 	Year    int `json:"year" validate:"required,min=2021,max=2150"`
 	Month   int `json:"month" validate:"required,min=1,max=12"`
 	Day     int `json:"day" validate:"required,min=1,max=31"`
@@ -42,10 +42,11 @@ type date struct {
 
 // Handler handles ordering endpoints.
 type Handler struct {
-	Service     Service
-	CartService cart.Service
-	DB          *sqlx.DB
-	Cache       *memcache.Client
+	Development     bool
+	OrderingService Service
+	CartService     cart.Service
+	DB              *sqlx.DB
+	Cache           *memcache.Client
 }
 
 // Delete deletes an order.
@@ -54,12 +55,12 @@ func (h *Handler) Delete() http.HandlerFunc {
 		id := chi.URLParam(r, "id")
 		ctx := r.Context()
 
-		if err := h.Service.Delete(ctx, id); err != nil {
+		if err := h.OrderingService.Delete(ctx, id); err != nil {
 			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
 
-		response.JSONText(w, http.StatusOK, fmt.Sprintf("order %q deleted", id))
+		response.JSONText(w, http.StatusOK, id)
 	}
 }
 
@@ -68,7 +69,7 @@ func (h *Handler) Get() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
-		orders, err := h.Service.Get(ctx)
+		orders, err := h.OrderingService.Get(ctx)
 		if err != nil {
 			response.Error(w, http.StatusNotFound, err)
 			return
@@ -84,7 +85,7 @@ func (h *Handler) GetByID() http.HandlerFunc {
 		id := chi.URLParam(r, "id")
 		ctx := r.Context()
 
-		order, err := h.Service.GetByID(ctx, id)
+		order, err := h.OrderingService.GetByID(ctx, id)
 		if err != nil {
 			response.Error(w, http.StatusNotFound, err)
 			return
@@ -105,28 +106,26 @@ func (h *Handler) GetByUserID() http.HandlerFunc {
 			return
 		}
 
-		// Distinguish from the other ids of the same user
-		cacheKey := fmt.Sprintf("%s-ods", id)
-		item, err := h.Cache.Get(cacheKey)
+		// Every service has ids of different length, they will never match
+		item, err := h.Cache.Get(id)
 		if err == nil {
 			response.EncodedJSON(w, item.Value)
 			return
 		}
 
-		orders, err := h.Service.GetByUserID(ctx, id)
+		orders, err := h.OrderingService.GetByUserID(ctx, id)
 		if err != nil {
 			response.Error(w, http.StatusNotFound, err)
 			return
 		}
 
-		response.JSONAndCache(h.Cache, w, cacheKey, orders)
+		response.JSONAndCache(h.Cache, w, id, orders)
 	}
 }
 
 // New creates a new order and the payment intent.
 func (h *Handler) New() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var oParams OrderParams
 		ctx := r.Context()
 		cartID, err := cookie.GetValue(r, "CID")
 		if err != nil {
@@ -139,48 +138,58 @@ func (h *Handler) New() http.HandlerFunc {
 			return
 		}
 
-		if err := json.NewDecoder(r.Body).Decode(&oParams); err != nil {
+		var orderParams OrderParams
+		if err := json.NewDecoder(r.Body).Decode(&orderParams); err != nil {
 			response.Error(w, http.StatusBadRequest, err)
 		}
 		defer r.Body.Close()
 
-		if err := validator.New().StructCtx(ctx, oParams); err != nil {
-			response.Error(w, http.StatusBadRequest, err.(validator.ValidationErrors))
-			return
-		}
-		oParams.Address = sanitize.Normalize(oParams.Address)
-		oParams.City = sanitize.Normalize(oParams.City)
-		oParams.Country = sanitize.Normalize(oParams.Country)
-		oParams.Currency = sanitize.Normalize(oParams.Currency)
-		oParams.State = sanitize.Normalize(oParams.State)
-		oParams.ZipCode = sanitize.Normalize(oParams.ZipCode)
-
-		// Format date
-		deliveryDate := time.Date(oParams.Date.Year, time.Month(oParams.Date.Month), oParams.Date.Day, oParams.Date.Hour, oParams.Date.Minutes, 0, 0, time.Local)
-		if deliveryDate.Sub(time.Now()) < 0 {
-			response.Error(w, http.StatusBadRequest, errors.New("past dates are not valid"))
+		if err := validateOrderParams(ctx, &orderParams); err != nil {
+			response.Error(w, http.StatusBadRequest, err)
 			return
 		}
 
-		// Create order passing userID, order params, delivery date and the user cart
-		order, err := h.Service.New(ctx, userID, cartID, oParams, deliveryDate, h.CartService)
+		id := token.RandString(30)
+		order, err := h.OrderingService.New(ctx, id, userID, cartID, orderParams, h.CartService)
 		if err != nil {
 			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
 
-		// Create payment intent and update the order status
-		_, err = stripe.CreateIntent(order.ID, order.CartID, order.Currency, order.Cart.Total, oParams.Card)
-		if err != nil {
+		if !h.Development {
+			// Create payment intent and update the order status
+			_, err = stripe.CreateIntent(order.ID.String, order.CartID.String,
+				order.Currency.String, order.Cart.Total.Int64, orderParams.Card)
+			if err != nil {
+				response.Error(w, http.StatusInternalServerError, err)
+				return
+			}
+		}
+
+		if err := h.OrderingService.UpdateStatus(ctx, order.ID.String, zero.IntFrom(int64(Paid))); err != nil {
 			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
 
-		if err := h.Service.UpdateStatus(ctx, order.ID, paid); err != nil {
+		if err := h.CartService.Reset(ctx, cartID); err != nil {
 			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
 
-		response.JSONText(w, http.StatusCreated, fmt.Sprintf("order %q created", order.ID))
+		response.JSON(w, http.StatusCreated, order)
 	}
+}
+
+func validateOrderParams(ctx context.Context, oParams *OrderParams) error {
+	if err := validate.Struct(ctx, oParams); err != nil {
+		return err
+	}
+	oParams.Address = sanitize.Normalize(oParams.Address)
+	oParams.City = sanitize.Normalize(oParams.City)
+	oParams.Country = sanitize.Normalize(oParams.Country)
+	oParams.Currency = sanitize.Normalize(oParams.Currency)
+	oParams.State = sanitize.Normalize(oParams.State)
+	oParams.ZipCode = sanitize.Normalize(oParams.ZipCode)
+
+	return nil
 }

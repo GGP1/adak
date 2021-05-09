@@ -2,15 +2,16 @@ package review
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
 
 	"github.com/GGP1/adak/internal/cookie"
 	"github.com/GGP1/adak/internal/response"
-	"github.com/bradfitz/gomemcache/memcache"
+	"github.com/GGP1/adak/internal/token"
+	"github.com/GGP1/adak/internal/validate"
 
-	"github.com/go-chi/chi"
-	validator "github.com/go-playground/validator/v10"
+	"github.com/bradfitz/gomemcache/memcache"
+	"github.com/go-chi/chi/v5"
+	"gopkg.in/guregu/null.v4/zero"
 )
 
 // Handler handles reviews endpoints.
@@ -22,7 +23,6 @@ type Handler struct {
 // Create creates a new review and saves it.
 func (h *Handler) Create() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var review Review
 		ctx := r.Context()
 
 		userID, err := cookie.GetValue(r, "UID")
@@ -31,18 +31,25 @@ func (h *Handler) Create() http.HandlerFunc {
 			return
 		}
 
+		if err := token.CheckPermits(r, userID); err != nil {
+			response.Error(w, http.StatusUnauthorized, err)
+			return
+		}
+
+		var review Review
 		if err := json.NewDecoder(r.Body).Decode(&review); err != nil {
 			response.Error(w, http.StatusBadRequest, err)
 			return
 		}
 		defer r.Body.Close()
 
-		if err := validator.New().StructCtx(ctx, review); err != nil {
-			response.Error(w, http.StatusBadRequest, err.(validator.ValidationErrors))
+		if err := validate.Struct(ctx, review); err != nil {
+			response.Error(w, http.StatusBadRequest, err)
 			return
 		}
 
-		if err := h.Service.Create(ctx, &review, userID); err != nil {
+		review.ID = zero.StringFrom(token.RandString(28))
+		if err := h.Service.Create(ctx, review); err != nil {
 			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
@@ -62,7 +69,7 @@ func (h *Handler) Delete() http.HandlerFunc {
 			return
 		}
 
-		response.JSONText(w, http.StatusOK, fmt.Sprintf("review %q deleted", id))
+		response.JSONText(w, http.StatusOK, id)
 	}
 }
 

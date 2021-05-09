@@ -9,11 +9,11 @@ import (
 	"github.com/GGP1/adak/internal/cookie"
 	"github.com/GGP1/adak/internal/response"
 	"github.com/GGP1/adak/internal/sanitize"
+	"github.com/GGP1/adak/internal/validate"
 
 	"github.com/bradfitz/gomemcache/memcache"
-	"github.com/go-chi/chi"
+	"github.com/go-chi/chi/v5"
 	"github.com/jmoiron/sqlx"
-	"github.com/pkg/errors"
 )
 
 // Handler manages cart endpoints.
@@ -26,8 +26,6 @@ type Handler struct {
 // Add appends a product to the cart.
 func (h *Handler) Add() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var product Product
-		q := chi.URLParam(r, "quantity")
 		ctx := r.Context()
 
 		cartID, err := cookie.GetValue(r, "CID")
@@ -36,30 +34,24 @@ func (h *Handler) Add() http.HandlerFunc {
 			return
 		}
 
-		quantity, err := strconv.Atoi(q)
-		if err != nil {
-			response.Error(w, http.StatusInternalServerError, err)
-			return
-		}
-
-		if quantity == 0 {
-			response.Error(w, http.StatusBadRequest, errors.New("please insert a valid quantity"))
-			return
-		}
-
+		var product Product
 		if err := json.NewDecoder(r.Body).Decode(&product); err != nil {
 			response.Error(w, http.StatusBadRequest, err)
 			return
 		}
 		defer r.Body.Close()
 
-		cart, err := h.Service.Add(ctx, cartID, &product, quantity)
-		if err != nil {
+		if err := validate.Struct(ctx, product); err != nil {
+			response.Error(w, http.StatusBadRequest, err)
+			return
+		}
+
+		if err := h.Service.Add(ctx, cartID, &product); err != nil {
 			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
 
-		response.JSON(w, http.StatusCreated, cart)
+		response.JSON(w, http.StatusCreated, product)
 	}
 }
 
@@ -83,8 +75,8 @@ func (h *Handler) Checkout() http.HandlerFunc {
 	}
 }
 
-// FilterByBrand returns the products filtered by brand.
-func (h *Handler) FilterByBrand() http.HandlerFunc {
+// FilterBy returns the products filtered by the field provided.
+func (h *Handler) FilterBy() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		cartID, err := cookie.GetValue(r, "CID")
 		if err != nil {
@@ -93,226 +85,10 @@ func (h *Handler) FilterByBrand() http.HandlerFunc {
 		}
 
 		ctx := r.Context()
-		brand := chi.URLParam(r, "brand")
-		brand = sanitize.Normalize(brand)
+		field := sanitize.Normalize(chi.URLParam(r, "field"))
+		args := sanitize.Normalize(chi.URLParam(r, "args"))
 
-		products, err := h.Service.FilterByBrand(ctx, cartID, brand)
-		if err != nil {
-			response.Error(w, http.StatusNotFound, err)
-			return
-		}
-
-		response.JSON(w, http.StatusOK, products)
-	}
-}
-
-// FilterByCategory returns the products filtered by category.
-func (h *Handler) FilterByCategory() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		cartID, err := cookie.GetValue(r, "CID")
-		if err != nil {
-			response.Error(w, http.StatusForbidden, err)
-			return
-		}
-
-		ctx := r.Context()
-		category := chi.URLParam(r, "category")
-		category = sanitize.Normalize(category)
-
-		products, err := h.Service.FilterByCategory(ctx, cartID, category)
-		if err != nil {
-			response.Error(w, http.StatusNotFound, err)
-			return
-		}
-
-		response.JSON(w, http.StatusOK, products)
-	}
-}
-
-// FilterByDiscount returns the products filtered by discount.
-func (h *Handler) FilterByDiscount() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		cartID, err := cookie.GetValue(r, "CID")
-		if err != nil {
-			response.Error(w, http.StatusForbidden, err)
-			return
-		}
-
-		ctx := r.Context()
-		min := chi.URLParam(r, "min")
-		max := chi.URLParam(r, "max")
-
-		minDiscount, err := strconv.ParseFloat(min, 64)
-		if err != nil {
-			response.Error(w, http.StatusBadRequest, err)
-			return
-		}
-		maxDiscount, err := strconv.ParseFloat(max, 64)
-		if err != nil {
-			response.Error(w, http.StatusBadRequest, err)
-			return
-		}
-
-		products, err := h.Service.FilterByDiscount(ctx, cartID, minDiscount, maxDiscount)
-		if err != nil {
-			response.Error(w, http.StatusNotFound, err)
-			return
-		}
-
-		response.JSON(w, http.StatusOK, products)
-	}
-}
-
-// FilterBySubtotal returns the products filtered by subtotal.
-func (h *Handler) FilterBySubtotal() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		cartID, err := cookie.GetValue(r, "CID")
-		if err != nil {
-			response.Error(w, http.StatusForbidden, err)
-			return
-		}
-
-		ctx := r.Context()
-		min := chi.URLParam(r, "min")
-		max := chi.URLParam(r, "max")
-
-		minSubtotal, err := strconv.ParseFloat(min, 64)
-		if err != nil {
-			response.Error(w, http.StatusBadRequest, err)
-			return
-		}
-		maxSubtotal, err := strconv.ParseFloat(max, 64)
-		if err != nil {
-			response.Error(w, http.StatusBadRequest, err)
-			return
-		}
-
-		products, err := h.Service.FilterBySubtotal(ctx, cartID, minSubtotal, maxSubtotal)
-		if err != nil {
-			response.Error(w, http.StatusNotFound, err)
-			return
-		}
-
-		response.JSON(w, http.StatusOK, products)
-	}
-}
-
-// FilterByTaxes returns the products filtered by taxes.
-func (h *Handler) FilterByTaxes() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		cartID, err := cookie.GetValue(r, "CID")
-		if err != nil {
-			response.Error(w, http.StatusForbidden, err)
-			return
-		}
-
-		ctx := r.Context()
-		min := chi.URLParam(r, "min")
-		max := chi.URLParam(r, "max")
-
-		minTaxes, err := strconv.ParseFloat(min, 64)
-		if err != nil {
-			response.Error(w, http.StatusBadRequest, err)
-			return
-		}
-		maxTaxes, err := strconv.ParseFloat(max, 64)
-		if err != nil {
-			response.Error(w, http.StatusBadRequest, err)
-			return
-		}
-
-		products, err := h.Service.FilterByTaxes(ctx, cartID, minTaxes, maxTaxes)
-		if err != nil {
-			response.Error(w, http.StatusNotFound, err)
-			return
-		}
-
-		response.JSON(w, http.StatusOK, products)
-	}
-}
-
-// FilterByTotal returns the products filtered by total.
-func (h *Handler) FilterByTotal() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		cartID, err := cookie.GetValue(r, "CID")
-		if err != nil {
-			response.Error(w, http.StatusForbidden, err)
-			return
-		}
-
-		ctx := r.Context()
-		min := chi.URLParam(r, "min")
-		max := chi.URLParam(r, "max")
-
-		minTotal, err := strconv.ParseFloat(min, 64)
-		if err != nil {
-			response.Error(w, http.StatusBadRequest, err)
-			return
-		}
-		maxTotal, err := strconv.ParseFloat(max, 64)
-		if err != nil {
-			response.Error(w, http.StatusBadRequest, err)
-			return
-		}
-
-		products, err := h.Service.FilterByTotal(ctx, cartID, minTotal, maxTotal)
-		if err != nil {
-			response.Error(w, http.StatusNotFound, err)
-			return
-		}
-
-		response.JSON(w, http.StatusOK, products)
-	}
-}
-
-// FilterByType returns the products filtered by type.
-func (h *Handler) FilterByType() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		cartID, err := cookie.GetValue(r, "CID")
-		if err != nil {
-			response.Error(w, http.StatusForbidden, err)
-			return
-		}
-
-		ctx := r.Context()
-		pType := chi.URLParam(r, "type")
-		pType = sanitize.Normalize(pType)
-
-		products, err := h.Service.FilterByType(ctx, cartID, pType)
-		if err != nil {
-			response.Error(w, http.StatusNotFound, err)
-			return
-		}
-
-		response.JSON(w, http.StatusOK, products)
-	}
-}
-
-// FilterByWeight returns the products filtered by weight.
-func (h *Handler) FilterByWeight() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		cartID, err := cookie.GetValue(r, "CID")
-		if err != nil {
-			response.Error(w, http.StatusForbidden, err)
-			return
-		}
-
-		min := chi.URLParam(r, "min")
-		max := chi.URLParam(r, "max")
-		ctx := r.Context()
-
-		minWeight, err := strconv.ParseFloat(min, 64)
-		if err != nil {
-			response.Error(w, http.StatusBadRequest, err)
-			return
-		}
-		maxWeight, err := strconv.ParseFloat(max, 64)
-		if err != nil {
-			response.Error(w, http.StatusBadRequest, err)
-			return
-		}
-
-		products, err := h.Service.FilterByWeight(ctx, cartID, minWeight, maxWeight)
+		products, err := h.Service.FilterBy(ctx, cartID, field, args)
 		if err != nil {
 			response.Error(w, http.StatusNotFound, err)
 			return
@@ -387,7 +163,7 @@ func (h *Handler) Remove() http.HandlerFunc {
 			return
 		}
 
-		if err := h.Service.Remove(ctx, cartID, id, quantity); err != nil {
+		if err := h.Service.Remove(ctx, cartID, id, int64(quantity)); err != nil {
 			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
