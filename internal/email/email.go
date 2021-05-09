@@ -21,11 +21,11 @@ import (
 
 // Emailer contains emails templates and the sender information.
 type Emailer struct {
-	addr     string
-	host     string
-	name     string
-	username string
-	password string
+	addr       string
+	host       string
+	name       string
+	senderAddr string
+	senderPwd  string
 
 	validation  *template.Template
 	changeEmail *template.Template
@@ -42,32 +42,36 @@ type Items struct {
 
 // New returns a new emailer.
 func New() Emailer {
-	staticFS := viper.Get("static.fs").(embed.FS)
-	validation, err := template.ParseFS(staticFS, "static/templates/validation.html")
-	if err != nil {
-		logger.Log.Fatalf("Failed parsing validation template")
-	}
-	changeEmail, err := template.ParseFS(staticFS, "static/templates/changeEmail.html")
-	if err != nil {
-		logger.Log.Fatalf("Failed parsing change email template")
-	}
 	host := viper.GetString("email.host")
-
-	return Emailer{
-		addr:        net.JoinHostPort(host, viper.GetString("email.port")),
-		host:        host,
-		name:        "Adak",
-		username:    viper.GetString("email.sender"),
-		password:    viper.GetString("email.password"),
-		validation:  validation,
-		changeEmail: changeEmail,
+	emailer := Emailer{
+		addr:       net.JoinHostPort(host, viper.GetString("email.port")),
+		host:       host,
+		name:       "Adak",
+		senderAddr: viper.GetString("email.sender"),
+		senderPwd:  viper.GetString("email.password"),
 	}
+
+	staticFS := viper.Get("static.fs")
+	if staticFS != nil {
+		var err error
+		fs := staticFS.(embed.FS)
+		emailer.validation, err = template.ParseFS(fs, "static/templates/validation.html")
+		if err != nil {
+			logger.Fatalf("Failed parsing validation template")
+		}
+		emailer.changeEmail, err = template.ParseFS(fs, "static/templates/changeEmail.html")
+		if err != nil {
+			logger.Fatalf("Failed parsing change email template")
+		}
+	}
+
+	return emailer
 }
 
 // SendValidation sends a validation email to the user.
 func (e *Emailer) SendValidation(ctx context.Context, username, email, token string) error {
 	// Email content
-	from := mail.Address{Name: e.name, Address: e.username}
+	from := mail.Address{Name: e.name, Address: e.senderAddr}
 	to := mail.Address{Name: username, Address: email}
 	items := Items{
 		Name:  username,
@@ -96,21 +100,21 @@ func (e *Emailer) SendValidation(ctx context.Context, username, email, token str
 	bufferpool.Put(buf)
 
 	// Connect to smtp
-	auth := smtp.PlainAuth("", e.username, e.password, e.host)
+	auth := smtp.PlainAuth("", e.senderAddr, e.senderPwd, e.host)
 
 	if err := smtp.SendMail(e.addr, auth, from.Address, []string{to.Address}, message.Bytes()); err != nil {
-		logger.Log.Errorf("Couldn't send the validation email: %v.\nAddr: %s\nEmail: %s", err, e.addr, to.Address)
+		logger.Debugf("Couldn't send the validation email: %v.\nAddr: %s\nEmail: %s", err, e.addr, to.Address)
 		return errors.Wrap(err, "couldn't send the email")
 	}
 
-	logger.Log.Infof("Successfully sent email to: %s", to.Address)
+	logger.Infof("Successfully sent email to: %s", to.Address)
 	return nil
 }
 
 // SendChangeConfirmation sends a confirmation email to the user.
 func (e *Emailer) SendChangeConfirmation(id, username, email, newEmail, token string) error {
 	// Email content
-	from := mail.Address{Name: e.name, Address: e.username}
+	from := mail.Address{Name: e.name, Address: e.senderAddr}
 	to := mail.Address{Name: username, Address: email}
 	items := Items{
 		ID:       id,
@@ -140,13 +144,13 @@ func (e *Emailer) SendChangeConfirmation(id, username, email, newEmail, token st
 	bufferpool.Put(buf)
 
 	// Connect to smtp
-	auth := smtp.PlainAuth("", e.username, e.password, e.host)
+	auth := smtp.PlainAuth("", e.senderAddr, e.senderPwd, e.host)
 
 	if err := smtp.SendMail(e.addr, auth, from.Address, []string{to.Address}, message.Bytes()); err != nil {
-		logger.Log.Errorf("Couldn't send the change confirmation email: %v.\nAddr: %s\nEmail: %s", err, e.addr, to.Address)
+		logger.Debugf("Couldn't send the change confirmation email: %v.\nAddr: %s\nEmail: %s", err, e.addr, to.Address)
 		return errors.Wrap(err, "couldn't send the email")
 	}
 
-	logger.Log.Infof("Successfully sent email to: %s", to.Address)
+	logger.Infof("Successfully sent email to: %s", to.Address)
 	return nil
 }
