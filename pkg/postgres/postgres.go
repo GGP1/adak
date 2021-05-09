@@ -26,16 +26,26 @@ func Connect(ctx context.Context, c config.Postgres) (*sqlx.DB, error) {
 		return nil, errors.Wrap(err, "couldn't open the database")
 	}
 
-	if _, err := db.ExecContext(ctx, tables); err != nil {
-		return nil, errors.Wrap(err, "couldn't create the tables")
+	if err := CreateTables(ctx, db); err != nil {
+		return nil, err
 	}
 
 	logger.Infof("Connected to postgres on %s", net.JoinHostPort(c.Host, c.Port))
 	return db, nil
 }
 
+// CreateTables creates the database tables. It's implemented in a separate function for
+// testing purposes.
+func CreateTables(ctx context.Context, db *sqlx.DB) error {
+	if _, err := db.ExecContext(ctx, tables); err != nil {
+		return errors.Wrap(err, "couldn't create the tables")
+	}
+
+	return nil
+}
+
 // Order matters
-var tables = `
+const tables = `
 CREATE TABLE IF NOT EXISTS users
 (
     id text NOT NULL,
