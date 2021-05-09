@@ -10,17 +10,18 @@ import (
 
 type mockSession struct{}
 
-func (s *mockSession) AlreadyLoggedIn(w http.ResponseWriter, r *http.Request) bool {
+func (s *mockSession) AlreadyLoggedIn(ctx context.Context, r *http.Request) bool {
 	return false
 }
-func (s *mockSession) Clean() {}
 func (s *mockSession) Login(ctx context.Context, w http.ResponseWriter, r *http.Request, email, password string) error {
 	return nil
 }
 func (s *mockSession) LoginOAuth(ctx context.Context, w http.ResponseWriter, r *http.Request, email string) error {
 	return nil
 }
-func (s *mockSession) Logout(w http.ResponseWriter, r *http.Request) {}
+func (s *mockSession) Logout(ctx context.Context, w http.ResponseWriter, r *http.Request) error {
+	return nil
+}
 
 func TestLoginHandler(t *testing.T) {
 	// Actually I should use the real session instead

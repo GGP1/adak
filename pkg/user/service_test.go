@@ -1,158 +1,146 @@
-package user
+package user_test
 
 import (
 	"context"
 	"testing"
-	"time"
 
-	"github.com/GGP1/adak/internal/config"
 	"github.com/GGP1/adak/internal/logger"
-	"github.com/GGP1/adak/pkg/postgres"
+	"github.com/GGP1/adak/internal/test"
+	"github.com/GGP1/adak/pkg/user"
 
-	_ "github.com/lib/pq"
+	"github.com/spf13/viper"
 	"github.com/stretchr/testify/assert"
 )
 
-var u = &AddUser{
+var u = user.AddUser{
 	ID:       "test",
 	CartID:   "test",
 	Username: "test",
 	Email:    "test@test.com",
 	Password: "testing123",
+	IsAdmin:  true,
 }
 
-var invalidU = &AddUser{
-	ID:       "invalid",
-	CartID:   "non-existent",
-	Username: "non-existent",
-	Email:    "invalid",
-	Password: "inv",
-}
-
-func NewUserService(t *testing.T) (context.Context, Service) {
+// TestMain failed when creating the user service.
+func NewUserService(t *testing.T) (context.Context, user.Service) {
 	t.Helper()
-	logger.Log.Disable()
-	ctx, cancel := context.WithTimeout(context.Background(), time.Second*1)
+	logger.Disable()
+	ctx, cancel := context.WithCancel(context.Background())
 
-	conf, err := config.New()
-	assert.NoError(t, err)
+	db := test.StartPostgres(t)
+	mc := test.StartMemcached(t)
+	service := user.NewService(db, mc)
 
-	conf.Postgres = config.Postgres{
-		Host:     "localhost",
-		Port:     "6000",
-		Username: "test",
-		Password: "test",
-		Name:     "test",
-		SSLMode:  "disable",
-	}
-
-	db, err := postgres.Connect(ctx, conf.Postgres)
-	assert.NoError(t, err)
-
-	service := NewService(db)
+	viper.Set("admins", []string{"test@test.com"})
 
 	t.Cleanup(func() {
 		cancel()
-		db.Close()
 	})
 
 	return ctx, service
 }
 
-func TestCreate(t *testing.T) {
+func TestUserService(t *testing.T) {
 	ctx, s := NewUserService(t)
 
-	assert.NoError(t, s.Create(ctx, u))
+	t.Run("Create", create(ctx, s))
+	t.Run("Get", get(ctx, s))
+	t.Run("Get by id", getByID(ctx, s))
+	t.Run("Get by email", getByEmail(ctx, s))
+	t.Run("Get by username", getByUsername(ctx, s))
+	t.Run("Is admin", isAdmin(ctx, s))
+	t.Run("Update", update(ctx, s))
+	t.Run("Search", search(ctx, s))
+	t.Run("Delete", delete(ctx, s))
 }
 
-func TestDelete(t *testing.T) {
-	ctx, s := NewUserService(t)
+func create(ctx context.Context, s user.Service) func(t *testing.T) {
+	return func(t *testing.T) {
+		assert.NoError(t, s.Create(ctx, u))
 
-	assert.NoError(t, s.Delete(ctx, u.ID))
-}
+		user, err := s.GetByID(ctx, u.ID)
+		assert.NoError(t, err)
 
-func TestGet(t *testing.T) {
-	ctx, s := NewUserService(t)
-
-	_, err := s.Get(ctx)
-	assert.NoError(t, err)
-}
-
-func TestGetByID(t *testing.T) {
-	ctx, s := NewUserService(t)
-
-	user, err := s.GetByID(ctx, u.ID)
-	assert.NoError(t, err)
-
-	assert.Equal(t, u.ID, user.ID)
-}
-
-func TestGetByEmail(t *testing.T) {
-	ctx, s := NewUserService(t)
-
-	user, err := s.GetByEmail(ctx, u.Email)
-	if err != nil {
-		t.Errorf("Failed creating a user: %v", err)
+		assert.Equal(t, u.Username, user.Username)
 	}
-
-	assert.Equal(t, u.Email, user.Email)
 }
 
-func TestGetByUsername(t *testing.T) {
-	ctx, s := NewUserService(t)
+func delete(ctx context.Context, s user.Service) func(t *testing.T) {
+	return func(t *testing.T) {
+		assert.NoError(t, s.Delete(ctx, u.ID))
 
-	user, err := s.GetByUsername(ctx, u.Email)
-	assert.NoError(t, err)
+		user, err := s.GetByID(ctx, u.ID)
+		assert.NoError(t, err)
 
-	assert.Equal(t, u.Username, user.Username)
+		assert.Equal(t, "", user.ID)
+	}
 }
 
-func TestUpdate(t *testing.T) {
-	ctx, s := NewUserService(t)
-
-	username := "newUsername"
-	assert.NoError(t, s.Update(ctx, &UpdateUser{Username: username}, u.ID))
-
-	uptUser, err := s.GetByUsername(ctx, username)
-	assert.NoError(t, err)
-
-	assert.Equal(t, username, uptUser.Username)
+func get(ctx context.Context, s user.Service) func(t *testing.T) {
+	return func(t *testing.T) {
+		users, err := s.Get(ctx)
+		assert.NoError(t, err)
+		assert.Equal(t, u.Email, users[0].Email)
+	}
 }
 
-func TestSearch(t *testing.T) {
-	ctx, s := NewUserService(t)
+func getByID(ctx context.Context, s user.Service) func(t *testing.T) {
+	return func(t *testing.T) {
+		user, err := s.GetByID(ctx, u.ID)
+		assert.NoError(t, err)
+		assert.Equal(t, u.ID, user.ID)
+	}
+}
 
-	users, err := s.Search(ctx, u.ID)
-	assert.NoError(t, err)
+func getByEmail(ctx context.Context, s user.Service) func(t *testing.T) {
+	return func(t *testing.T) {
+		user, err := s.GetByEmail(ctx, u.Email)
+		assert.NoError(t, err)
+		assert.Equal(t, u.Email, user.Email)
+	}
+}
 
-	var found bool
-	for _, us := range users {
-		if us.ID == u.ID {
-			found = true
-			break
+func getByUsername(ctx context.Context, s user.Service) func(t *testing.T) {
+	return func(t *testing.T) {
+		user, err := s.GetByUsername(ctx, u.Username)
+		assert.NoError(t, err)
+
+		assert.Equal(t, u.Username, user.Username)
+	}
+}
+
+func isAdmin(ctx context.Context, s user.Service) func(t *testing.T) {
+	return func(t *testing.T) {
+		isAdmin, err := s.IsAdmin(ctx, u.ID)
+		assert.NoError(t, err)
+		assert.Equal(t, u.IsAdmin, isAdmin)
+	}
+}
+
+func update(ctx context.Context, s user.Service) func(t *testing.T) {
+	return func(t *testing.T) {
+		username := "newUsername"
+		assert.NoError(t, s.Update(ctx, user.UpdateUser{Username: username}, u.ID))
+
+		uptUser, err := s.GetByUsername(ctx, username)
+		assert.NoError(t, err)
+
+		assert.Equal(t, username, uptUser.Username)
+	}
+}
+
+func search(ctx context.Context, s user.Service) func(t *testing.T) {
+	return func(t *testing.T) {
+		users, err := s.Search(ctx, u.ID)
+		assert.NoError(t, err)
+
+		var found bool
+		for _, us := range users {
+			if us.ID == u.ID {
+				found = true
+				break
+			}
 		}
+		assert.Equal(t, true, found)
 	}
-
-	assert.Equal(t, found, true)
-}
-
-func TestInvalidService(t *testing.T) {
-	ctx, s := NewUserService(t)
-
-	assert.Error(t, s.Create(ctx, invalidU))
-	assert.Error(t, s.Delete(ctx, invalidU.ID))
-
-	_, err := s.GetByID(ctx, invalidU.ID)
-	assert.Error(t, err)
-
-	username := "invalidUsername"
-	assert.Error(t, s.Update(ctx, &UpdateUser{Username: username}, u.ID))
-
-	uptUser, err := s.GetByUsername(ctx, username)
-	assert.Error(t, err)
-
-	assert.NotEqual(t, uptUser.Username, username)
-
-	_, err = s.Search(ctx, invalidU.ID)
-	assert.Error(t, err)
 }
