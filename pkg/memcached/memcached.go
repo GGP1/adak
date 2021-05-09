@@ -19,6 +19,6 @@ func Connect(config config.Memcached) (*memcache.Client, error) {
 		return nil, errors.Wrap(err, "ping error")
 	}
 
-	logger.Log.Infof("Connected to memcached on %s", strings.Join(config.Servers, ", "))
+	logger.Infof("Connected to memcached on %s", strings.Join(config.Servers, ", "))
 	return mc, nil
 }
