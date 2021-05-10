@@ -18,6 +18,8 @@ import (
 	"github.com/GGP1/adak/pkg/user/account"
 	"github.com/bradfitz/gomemcache/memcache"
 	"github.com/go-redis/redis/v8"
+	"github.com/prometheus/client_golang/prometheus"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/jmoiron/sqlx"
@@ -35,11 +37,11 @@ func NewRouter(config config.Config, db *sqlx.DB, mc *memcache.Client, rdb *redi
 	reviewService := review.NewService(db, mc)
 	shopService := shop.NewService(db, mc)
 	userService := user.NewService(db, mc)
-	// -- Auth session --
+	// Auth session
 	session := auth.NewSession(db, rdb, config.Session, config.Development)
-	// -- Tracking --
+	// Tracking
 	trackingService := tracking.NewService(db)
-	// -- Email --
+	// Email
 	emailer := email.New()
 
 	// Authentication middleware
@@ -50,14 +52,14 @@ func NewRouter(config config.Config, db *sqlx.DB, mc *memcache.Client, rdb *redi
 	}
 	adminsOnly := mAuth.AdminsOnly
 	requireLogin := mAuth.RequireLogin
+	// Metrics middleware
+	metrics := middleware.NewMetrics()
 
 	// Middlewares
 	router.Use(middleware.Cors, middleware.Secure, middleware.Recover,
-		middleware.LogFormatter, middleware.GZIPCompress)
+		middleware.LogFormatter, middleware.GZIPCompress, metrics.Scrap)
 
-	// Rate limiter middleware
-	// Must be after the other middlewares otherwise they won't have effect
-	// when rate limiting
+	// Must be after the other middlewares otherwise they won't have effect when rate limiting
 	if config.RateLimiter.Enabled {
 		rateLimiter := middleware.NewRateLimiter(config.RateLimiter, rdb)
 		router.Use(rateLimiter.Limit)
@@ -91,6 +93,14 @@ func NewRouter(config config.Config, db *sqlx.DB, mc *memcache.Client, rdb *redi
 
 	// Home
 	router.Get("/", Home(trackingService))
+
+	// Metrics
+	router.Handle("/metrics", promhttp.HandlerFor(prometheus.DefaultGatherer, promhttp.HandlerOpts{
+		Registry: prometheus.DefaultRegisterer,
+		// The response is already compressed by the gzip middleware, avoid double compression
+		DisableCompression: true,
+		EnableOpenMetrics:  true,
+	}))
 
 	// Ordering
 	order := ordering.Handler{

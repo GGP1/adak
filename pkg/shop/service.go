@@ -6,6 +6,7 @@ import (
 
 	"github.com/GGP1/adak/pkg/product"
 	"github.com/GGP1/adak/pkg/review"
+	"github.com/prometheus/client_golang/prometheus"
 	"gopkg.in/guregu/null.v4/zero"
 
 	"github.com/bradfitz/gomemcache/memcache"
@@ -24,21 +25,23 @@ type Service interface {
 }
 
 type service struct {
-	db *sqlx.DB
-	mc *memcache.Client
+	db      *sqlx.DB
+	mc      *memcache.Client
+	metrics metrics
 }
 
 // NewService returns a new shop service.
 func NewService(db *sqlx.DB, mc *memcache.Client) Service {
-	return &service{db, mc}
+	return &service{db, mc, initMetrics()}
 }
 
 // Create a shop.
 func (s *service) Create(ctx context.Context, shop Shop) error {
+	s.metrics.methodCalls.With(prometheus.Labels{"method": "Create"}).Inc()
+
 	sQuery := `INSERT INTO shops
 	(id, name, created_at)
 	VALUES ($1, $2, $3)`
-
 	_, err := s.db.ExecContext(ctx, sQuery, shop.ID, shop.Name, time.Now())
 	if err != nil {
 		return errors.Wrap(err, "couldn't create the shop")
@@ -53,15 +56,18 @@ func (s *service) Create(ctx context.Context, shop Shop) error {
 		return errors.Wrap(err, "couldn't create the location")
 	}
 
+	s.metrics.registeredShops.Inc()
 	return nil
 }
 
 // Delete permanently deletes a shop from the database.
 func (s *service) Delete(ctx context.Context, id string) error {
+	s.metrics.methodCalls.With(prometheus.Labels{"method": "Delete"}).Inc()
 	_, err := s.db.ExecContext(ctx, "DELETE FROM shops WHERE id=$1", id)
 	if err != nil {
 		return errors.Wrap(err, "deleting shop from database")
 	}
+	s.metrics.registeredShops.Dec()
 
 	if err := s.mc.Delete(id); err != nil && err != memcache.ErrCacheMiss {
 		return errors.Wrap(err, "deleting shop from cache")
@@ -72,8 +78,9 @@ func (s *service) Delete(ctx context.Context, id string) error {
 
 // Get returns a list with all the shops stored in the database.
 func (s *service) Get(ctx context.Context) ([]Shop, error) {
-	var shops []Shop
+	s.metrics.methodCalls.With(prometheus.Labels{"method": "Get"}).Inc()
 
+	var shops []Shop
 	if err := s.db.SelectContext(ctx, &shops, "SELECT * FROM shops"); err != nil {
 		return nil, errors.Wrap(err, "couldn't find the shops")
 	}
@@ -83,13 +90,14 @@ func (s *service) Get(ctx context.Context) ([]Shop, error) {
 
 // GetByID retrieves the shop requested from the database.
 func (s *service) GetByID(ctx context.Context, id string) (Shop, error) {
+	s.metrics.methodCalls.With(prometheus.Labels{"method": "GetByID"}).Inc()
+
 	q := `SELECT s.*, l.*, r.*, p.* 
 	FROM shops s
 	LEFT JOIN locations l ON s.id=l.shop_id
 	LEFT JOIN reviews r ON s.id=r.shop_id
 	LEFT JOIN products p ON s.id=p.shop_id
 	WHERE s.id=$1`
-
 	rows, err := s.db.QueryContext(ctx, q, id)
 	if err != nil {
 		return Shop{}, errors.Wrap(err, "fetching shop")
@@ -122,9 +130,10 @@ func (s *service) GetByID(ctx context.Context, id string) (Shop, error) {
 
 // Search looks for the shops that contain the value specified. (Only text fields)
 func (s *service) Search(ctx context.Context, query string) ([]Shop, error) {
+	s.metrics.methodCalls.With(prometheus.Labels{"method": "Search"}).Inc()
+
 	var shops []Shop
 	q := "SELECT * FROM shops WHERE to_tsvector(id || ' ' || name) @@ plainto_tsquery($1)"
-
 	if err := s.db.SelectContext(ctx, &shops, q, query); err != nil {
 		return nil, errors.Wrap(err, "couldn't find shops")
 	}
@@ -134,6 +143,8 @@ func (s *service) Search(ctx context.Context, query string) ([]Shop, error) {
 
 // Update updates shop fields.
 func (s *service) Update(ctx context.Context, id string, shop UpdateShop) error {
+	s.metrics.methodCalls.With(prometheus.Labels{"method": "Update"}).Inc()
+
 	q := "UPDATE shops SET name=$2, updated_at=$3 WHERE id=$1"
 	_, err := s.db.ExecContext(ctx, q, id, shop.Name, zero.TimeFrom(time.Now()))
 	if err != nil {
@@ -149,5 +160,6 @@ func (s *service) Update(ctx context.Context, id string, shop UpdateShop) error 
 
 // TODO: finish and add to Service interface
 func (s *service) UpdateLocation(ctx context.Context, shopID string, location Location) error {
+	s.metrics.methodCalls.With(prometheus.Labels{"method": "UpdateLocation"}).Inc()
 	return nil
 }

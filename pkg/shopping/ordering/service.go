@@ -2,9 +2,11 @@ package ordering
 
 import (
 	"context"
+	"strconv"
 	"time"
 
 	"github.com/GGP1/adak/pkg/shopping/cart"
+	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
@@ -20,21 +22,24 @@ type Service interface {
 	GetByUserID(ctx context.Context, userID string) ([]Order, error)
 	GetCartByID(ctx context.Context, orderID string) (OrderCart, error)
 	GetProductsByID(ctx context.Context, orderID string) ([]OrderProduct, error)
-	UpdateStatus(ctx context.Context, orderID string, status zero.Int) error
+	UpdateStatus(ctx context.Context, orderID string, status status) error
 }
 
 type service struct {
-	db *sqlx.DB
+	db      *sqlx.DB
+	metrics metrics
 }
 
 // NewService returns a new ordering service.
 func NewService(db *sqlx.DB) Service {
-	return &service{db}
+	return &service{db, initMetrics()}
 }
 
 // New creates an order.
 func (s *service) New(ctx context.Context, id, userID, cartID string,
 	oParams OrderParams, cartService cart.Service) (*Order, error) {
+	s.metrics.methodCalls.With(prometheus.Labels{"method": "New"})
+
 	cart, err := cartService.Get(ctx, cartID)
 	if err != nil {
 		return nil, err
@@ -94,11 +99,13 @@ func (s *service) New(ctx context.Context, id, userID, cartID string,
 		},
 	}
 
+	s.metrics.totalOrders.With(prometheus.Labels{"status": strconv.FormatInt(int64(Pending), 10)}).Inc()
 	return &order, nil
 }
 
 // Delete removes an order.
 func (s *service) Delete(ctx context.Context, orderID string) error {
+	s.metrics.methodCalls.With(prometheus.Labels{"method": "Delete"})
 	if _, err := s.db.ExecContext(ctx, "DELETE FROM orders WHERE id=$1", orderID); err != nil {
 		return errors.Wrap(err, "couldn't delete the order")
 	}
@@ -108,8 +115,9 @@ func (s *service) Delete(ctx context.Context, orderID string) error {
 
 // Get retrieves all the orders.
 func (s *service) Get(ctx context.Context) ([]Order, error) {
-	var orders []Order
+	s.metrics.methodCalls.With(prometheus.Labels{"method": "Get"})
 
+	var orders []Order
 	if err := s.db.SelectContext(ctx, &orders, "SELECT * FROM orders"); err != nil {
 		return nil, errors.Wrap(err, "couldn't find the orders")
 	}
@@ -119,12 +127,13 @@ func (s *service) Get(ctx context.Context) ([]Order, error) {
 
 // GetByID returns the order with the id provided.
 func (s *service) GetByID(ctx context.Context, orderID string) (Order, error) {
+	s.metrics.methodCalls.With(prometheus.Labels{"method": "GetByID"})
+
 	q := `SELECT o.*, c.*, p.*
 	FROM orders AS o
 	LEFT JOIN order_carts AS c ON o.id=c.order_id
 	LEFT JOIN order_products AS p ON o.id=p.order_id
 	WHERE o.id=$1`
-
 	rows, err := s.db.QueryContext(ctx, q, orderID)
 	if err != nil {
 		return Order{}, errors.Wrap(err, "fetching orders")
@@ -156,12 +165,13 @@ func (s *service) GetByID(ctx context.Context, orderID string) (Order, error) {
 
 // GetByUserID retrieves orders depending on the user requested.
 func (s *service) GetByUserID(ctx context.Context, userID string) ([]Order, error) {
+	s.metrics.methodCalls.With(prometheus.Labels{"method": "GetByUserID"})
+
 	q := `SELECT o.*, c.*, p.*
 	FROM orders AS o
 	LEFT JOIN order_carts AS c ON o.id=c.order_id
 	LEFT JOIN order_products AS p ON o.id=p.order_id
 	WHERE o.user_id=$1`
-
 	rows, err := s.db.QueryContext(ctx, q, userID)
 	if err != nil {
 		return nil, errors.Wrap(err, "fetching orders")
@@ -195,8 +205,9 @@ func (s *service) GetByUserID(ctx context.Context, userID string) ([]Order, erro
 
 // GetCartByID returns the cart with the order id provided.
 func (s *service) GetCartByID(ctx context.Context, orderID string) (OrderCart, error) {
-	var cart OrderCart
+	s.metrics.methodCalls.With(prometheus.Labels{"method": "GetCardByID"})
 
+	var cart OrderCart
 	if err := s.db.GetContext(ctx, &cart, "SELECT * FROM order_carts WHERE order_id=$1", orderID); err != nil {
 		return OrderCart{}, errors.Wrap(err, "couldn't find the order cart")
 	}
@@ -206,8 +217,9 @@ func (s *service) GetCartByID(ctx context.Context, orderID string) (OrderCart, e
 
 // GetProductsByID returns the products with the order id provided.
 func (s *service) GetProductsByID(ctx context.Context, orderID string) ([]OrderProduct, error) {
-	var products []OrderProduct
+	s.metrics.methodCalls.With(prometheus.Labels{"method": "GetProductsByID"})
 
+	var products []OrderProduct
 	if err := s.db.SelectContext(ctx, &products, "SELECT * FROM order_products WHERE order_id=$1", orderID); err != nil {
 		return nil, errors.Wrap(err, "couldn't find the order products")
 	}
@@ -216,7 +228,9 @@ func (s *service) GetProductsByID(ctx context.Context, orderID string) ([]OrderP
 }
 
 // UpdateStatus updates the order status.
-func (s *service) UpdateStatus(ctx context.Context, orderID string, status zero.Int) error {
+func (s *service) UpdateStatus(ctx context.Context, orderID string, status status) error {
+	s.metrics.methodCalls.With(prometheus.Labels{"method": "UpdateStatus"})
+	s.metrics.totalOrders.With(prometheus.Labels{"status": strconv.FormatInt(int64(status), 10)}).Inc()
 	_, err := s.db.ExecContext(ctx, "UPDATE orders SET status=$2 WHERE id=$1", orderID, status)
 	if err != nil {
 		return errors.Wrap(err, "couldn't update the order status")
