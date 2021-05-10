@@ -16,13 +16,13 @@ import (
 	"github.com/GGP1/adak/pkg/tracking"
 	"github.com/GGP1/adak/pkg/user"
 	"github.com/GGP1/adak/pkg/user/account"
+
 	"github.com/bradfitz/gomemcache/memcache"
+	"github.com/go-chi/chi/v5"
 	"github.com/go-redis/redis/v8"
+	"github.com/jmoiron/sqlx"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
-
-	"github.com/go-chi/chi/v5"
-	"github.com/jmoiron/sqlx"
 )
 
 // NewRouter initializes services, creates and returns a mux router
@@ -37,11 +37,8 @@ func NewRouter(config config.Config, db *sqlx.DB, mc *memcache.Client, rdb *redi
 	reviewService := review.NewService(db, mc)
 	shopService := shop.NewService(db, mc)
 	userService := user.NewService(db, mc)
-	// Auth session
-	session := auth.NewSession(db, rdb, config.Session, config.Development)
-	// Tracking
 	trackingService := tracking.NewService(db)
-	// Email
+	session := auth.NewSession(db, rdb, config.Session, config.Development)
 	emailer := email.New()
 
 	// Authentication middleware
@@ -73,11 +70,7 @@ func NewRouter(config config.Config, db *sqlx.DB, mc *memcache.Client, rdb *redi
 	router.Get("/login/oauth2/google", auth.OAuth2Google(session))
 
 	// Cart
-	cart := cart.Handler{
-		Service: cartService,
-		DB:      db,
-		Cache:   mc,
-	}
+	cart := cart.Handler{Service: cartService, DB: db, Cache: mc}
 	router.Route("/cart", func(r chi.Router) {
 		r.Use(requireLogin)
 
@@ -111,18 +104,15 @@ func NewRouter(config config.Config, db *sqlx.DB, mc *memcache.Client, rdb *redi
 		Cache:           mc,
 	}
 	router.Route("/orders", func(r chi.Router) {
-		router.With(adminsOnly).Get("/", order.Get())
-		router.With(adminsOnly).Delete("/{id}", order.Delete())
-		router.With(adminsOnly).Get("/{id}", order.GetByID())
-		router.With(requireLogin).Get("/user/{id}", order.GetByUserID())
-		router.With(requireLogin).Post("/new", order.New())
+		r.With(adminsOnly).Get("/", order.Get())
+		r.With(adminsOnly).Delete("/{id}", order.Delete())
+		r.With(adminsOnly).Get("/{id}", order.GetByID())
+		r.With(requireLogin).Get("/user/{id}", order.GetByUserID())
+		r.With(requireLogin).Post("/new", order.New())
 	})
 
 	// Product
-	product := product.Handler{
-		Service: productService,
-		Cache:   mc,
-	}
+	product := product.Handler{Service: productService, Cache: mc}
 	router.Route("/products", func(r chi.Router) {
 		r.Get("/", product.Get())
 		r.Get("/{id}", product.GetByID())
@@ -133,10 +123,7 @@ func NewRouter(config config.Config, db *sqlx.DB, mc *memcache.Client, rdb *redi
 	})
 
 	// Review
-	review := review.Handler{
-		Service: reviewService,
-		Cache:   mc,
-	}
+	review := review.Handler{Service: reviewService, Cache: mc}
 	router.Route("/reviews", func(r chi.Router) {
 		r.Get("/", review.Get())
 		r.Get("/{id}", review.GetByID())
@@ -145,10 +132,7 @@ func NewRouter(config config.Config, db *sqlx.DB, mc *memcache.Client, rdb *redi
 	})
 
 	// Shop
-	shop := shop.Handler{
-		Service: shopService,
-		Cache:   mc,
-	}
+	shop := shop.Handler{Service: shopService, Cache: mc}
 	router.Route("/shops", func(r chi.Router) {
 		r.Get("/", shop.Get())
 		r.Get("/{id}", shop.GetByID())
@@ -212,6 +196,5 @@ func NewRouter(config config.Config, db *sqlx.DB, mc *memcache.Client, rdb *redi
 	router.Get("/verification/{token}/{email}/{id}", account.ChangeEmail())
 
 	http.Handle("/", router)
-
 	return router
 }
