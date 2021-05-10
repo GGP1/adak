@@ -183,24 +183,24 @@ var (
 		"google.client.id":     "id",
 		"google.client.secret": "secret",
 		// Memcached
-		"memcached.servers": []string{"localhost:11211"},
+		"memcached.servers": []string{"memcached:11211"},
 		// Postgres
-		"postgres.username": "postgres",
-		"postgres.password": "password",
-		"postgres.host":     "localhost",
+		"postgres.username": "adak",
+		"postgres.password": "adak",
+		"postgres.host":     "postgres",
 		"postgres.port":     "5432",
-		"postgres.name":     "postgres",
+		"postgres.name":     "adak",
 		"postgres.sslmode":  "disable",
 		// Rate limiter
 		"ratelimiter.enabled": true,
 		"ratelimiter.rate":    5, // Per minute
 		// Redis
-		"redis.host":     "localhost",
+		"redis.host":     "redis",
 		"redis.port":     "6379",
-		"redis.password": "redis",
+		"redis.password": "",
 		// Server
-		"server.host":             "localhost",
-		"server.port":             "7070",
+		"server.host":             "0.0.0.0",
+		"server.port":             "4000",
 		"server.tls.keyfile":      "",
 		"server.tls.certfile":     "",
 		"server.timeout.read":     5,
