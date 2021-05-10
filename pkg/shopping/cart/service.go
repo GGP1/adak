@@ -6,6 +6,7 @@ import (
 	"github.com/bradfitz/gomemcache/memcache"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
+	"github.com/prometheus/client_golang/prometheus"
 	"gopkg.in/guregu/null.v4/zero"
 )
 
@@ -34,13 +35,14 @@ type Service interface {
 }
 
 type service struct {
-	db *sqlx.DB
-	mc *memcache.Client
+	db      *sqlx.DB
+	mc      *memcache.Client
+	metrics metrics
 }
 
 // NewService returns a new cart service.
 func NewService(db *sqlx.DB, mc *memcache.Client) Service {
-	return &service{db, mc}
+	return &service{db, mc, initMetrics()}
 }
 
 // New returns a cart with the default values.
@@ -59,6 +61,8 @@ func New(id string) *Cart {
 
 // Add adds a product to the cart.
 func (s *service) Add(ctx context.Context, cartID string, p *Product) error {
+	s.metrics.methodCalls.With(prometheus.Labels{"method": "Add"}).Inc()
+
 	p.CartID = zero.StringFrom(cartID)
 	if p.Total.Int64 == 0 {
 		p.Total = zero.IntFrom(p.Subtotal.Int64 + p.Taxes.Int64 - p.Discount.Int64)
@@ -88,19 +92,21 @@ func (s *service) Add(ctx context.Context, cartID string, p *Product) error {
 
 // Checkout returns the cart total.
 func (s *service) Checkout(ctx context.Context, cartID string) (int64, error) {
-	var cart Cart
+	s.metrics.methodCalls.With(prometheus.Labels{"method": "Checkout"}).Inc()
 
+	var cart Cart
 	if err := s.db.GetContext(ctx, &cart, "SELECT * FROM carts WHERE id=$1", cartID); err != nil {
 		return 0, errors.Wrap(err, "couldn't find the cart")
 	}
 
 	total := cart.Total.Int64 + cart.Taxes.Int64 - cart.Discount.Int64
-
 	return total, nil
 }
 
 // Create a cart.
 func (s *service) Create(ctx context.Context, cartID string) error {
+	s.metrics.methodCalls.With(prometheus.Labels{"method": "Create"}).Inc()
+
 	cartQuery := `INSERT INTO carts
 	(id, counter, weight, discount, taxes, subtotal, total)
 	VALUES ($1, $2, $3, $4, $5, $6, $7)`
@@ -114,6 +120,8 @@ func (s *service) Create(ctx context.Context, cartID string) error {
 
 // Delete permanently deletes a cart from the database.
 func (s *service) Delete(ctx context.Context, cartID string) error {
+	s.metrics.methodCalls.With(prometheus.Labels{"method": "Delete"}).Inc()
+
 	if _, err := s.db.ExecContext(ctx, "DELETE FROM carts WHERE id=$1", cartID); err != nil {
 		return errors.New("deleting cart from postgres")
 	}
@@ -127,14 +135,15 @@ func (s *service) Delete(ctx context.Context, cartID string) error {
 
 // FilterBy filters the cart products field by the given args.
 func (s *service) FilterBy(ctx context.Context, cartID, field, args string) ([]Product, error) {
-	var products []Product
-
 	condition, ok := fields[field]
 	if !ok {
 		return nil, errors.Errorf("%q, invalid field", field)
 	}
 
+	s.metrics.methodCalls.With(prometheus.Labels{"method": "FilterBy " + field}).Inc()
+
 	query := "SELECT * FROM cart_products WHERE cart_id=$1 AND " + condition
+	var products []Product
 	if err := s.db.SelectContext(ctx, &products, query, cartID, args); err != nil {
 		return nil, errors.Wrap(err, "no products found")
 	}
@@ -148,6 +157,8 @@ func (s *service) FilterBy(ctx context.Context, cartID, field, args string) ([]P
 
 // Get returns the user cart.
 func (s *service) Get(ctx context.Context, cartID string) (*Cart, error) {
+	s.metrics.methodCalls.With(prometheus.Labels{"method": "Get"}).Inc()
+
 	q := `SELECT c.*, cp.*
 	FROM carts AS c
 	LEFT JOIN cart_products AS cp ON c.id=cp.cart_id
@@ -182,8 +193,9 @@ func (s *service) Get(ctx context.Context, cartID string) (*Cart, error) {
 
 // Products returns the cart products.
 func (s *service) Products(ctx context.Context, cartID string) ([]Product, error) {
-	var products []Product
+	s.metrics.methodCalls.With(prometheus.Labels{"method": "Products"}).Inc()
 
+	var products []Product
 	if err := s.db.SelectContext(ctx, &products, "SELECT * FROM cart_products WHERE cart_id=$1", cartID); err != nil {
 		return nil, errors.Wrap(err, "couldn't find the cart products")
 	}
@@ -197,8 +209,9 @@ func (s *service) Products(ctx context.Context, cartID string) ([]Product, error
 
 // Remove takes away the specified quantity of products from the cart.
 func (s *service) Remove(ctx context.Context, cartID string, pID string, quantity int64) error {
-	var product Product
+	s.metrics.methodCalls.With(prometheus.Labels{"method": "Remove"}).Inc()
 
+	var product Product
 	productQ := "SELECT * FROM cart_products WHERE id = $1 AND cart_id=$2"
 	if err := s.db.GetContext(ctx, &product, productQ, pID, cartID); err != nil {
 		return errors.New("couldn't find the product")
@@ -235,6 +248,8 @@ func (s *service) Remove(ctx context.Context, cartID string, pID string, quantit
 
 // Reset sets cart values to default.
 func (s *service) Reset(ctx context.Context, cartID string) error {
+	s.metrics.methodCalls.With(prometheus.Labels{"method": "Reset"}).Inc()
+
 	del := "DELETE FROM cart_products WHERE cart_id=$1"
 	if _, err := s.db.ExecContext(ctx, del, cartID); err != nil {
 		return errors.Wrap(err, "couldn't delete cart products")
@@ -256,6 +271,8 @@ func (s *service) Reset(ctx context.Context, cartID string) error {
 
 // Size returns the quantity of products inside the cart.
 func (s *service) Size(ctx context.Context, cartID string) (int64, error) {
+	s.metrics.methodCalls.With(prometheus.Labels{"method": "Size"}).Inc()
+
 	var size int64
 	row := s.db.QueryRowContext(ctx, "SELECT counter FROM carts WHERE id=$1", cartID)
 	if err := row.Scan(&size); err != nil {

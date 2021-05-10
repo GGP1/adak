@@ -127,13 +127,13 @@ func getProductsByID(ctx context.Context, s ordering.Service) func(*testing.T) {
 
 func updateStatus(ctx context.Context, s ordering.Service) func(*testing.T) {
 	return func(t *testing.T) {
-		status := zero.IntFrom(int64(ordering.Shipped))
+		status := ordering.Shipped
 		err := s.UpdateStatus(ctx, orderID, status)
 		assert.NoError(t, err)
 
 		order, err := s.GetByID(ctx, orderID)
 		assert.NoError(t, err)
 
-		assert.Equal(t, status, order.Status)
+		assert.Equal(t, int64(status), order.Status.Int64)
 	}
 }

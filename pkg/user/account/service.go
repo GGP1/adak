@@ -6,6 +6,7 @@ import (
 
 	"github.com/GGP1/adak/internal/logger"
 	"github.com/GGP1/adak/pkg/user"
+	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
@@ -20,19 +21,21 @@ type Service interface {
 }
 
 type service struct {
-	DB *sqlx.DB
+	db      *sqlx.DB
+	metrics metrics
 }
 
 // NewService creates an account service.
 func NewService(db *sqlx.DB) Service {
-	return &service{db}
+	return &service{db, initMetrics()}
 }
 
 // Change changes the user email.
 func (s *service) ChangeEmail(ctx context.Context, id, newEmail, token string) error {
-	var user user.User
+	s.metrics.methodCalls.With(prometheus.Labels{"method": "ChangeEmail"}).Inc()
 
-	if err := s.DB.SelectContext(ctx, &user, "SELECT * FROM users WHERE id=?", id); err != nil {
+	var user user.User
+	if err := s.db.SelectContext(ctx, &user, "SELECT * FROM users WHERE id=?", id); err != nil {
 		return errors.Wrap(err, "invalid email")
 	}
 
@@ -40,7 +43,7 @@ func (s *service) ChangeEmail(ctx context.Context, id, newEmail, token string) e
 		return errors.New("accounts must be 3 days old to change email")
 	}
 
-	_, err := s.DB.ExecContext(ctx, "UPDATE users set email=$2 WHERE id=$1", id, newEmail)
+	_, err := s.db.ExecContext(ctx, "UPDATE users set email=$2 WHERE id=$1", id, newEmail)
 	if err != nil {
 		logger.Errorf("failed updating the user's email: %v", err)
 		return errors.Wrap(err, "couldn't change the email")
@@ -51,9 +54,10 @@ func (s *service) ChangeEmail(ctx context.Context, id, newEmail, token string) e
 
 // ChangePassword changes the user password.
 func (s *service) ChangePassword(ctx context.Context, id, oldPass, newPass string) error {
-	var user user.User
+	s.metrics.methodCalls.With(prometheus.Labels{"method": "ChangePassword"}).Inc()
 
-	if err := s.DB.GetContext(ctx, &user, "SELECT password, created_at FROM users WHERE id=$1", id); err != nil {
+	var user user.User
+	if err := s.db.GetContext(ctx, &user, "SELECT password, created_at FROM users WHERE id=$1", id); err != nil {
 		return errors.Wrap(err, "invalid email")
 	}
 
@@ -72,7 +76,7 @@ func (s *service) ChangePassword(ctx context.Context, id, oldPass, newPass strin
 	}
 	user.Password = string(newPassHash)
 
-	_, err = s.DB.ExecContext(ctx, "UPDATE users SET password=$2 WHERE id=$1", user.ID, user.Password)
+	_, err = s.db.ExecContext(ctx, "UPDATE users SET password=$2 WHERE id=$1", user.ID, user.Password)
 	if err != nil {
 		logger.Errorf("failed updating user's password: %v", err)
 		return errors.Wrap(err, "couldn't change the password")
@@ -83,9 +87,10 @@ func (s *service) ChangePassword(ctx context.Context, id, oldPass, newPass strin
 
 // ValidateUserEmail sets the time when the user validated its email and the token he received.
 func (s *service) ValidateUserEmail(ctx context.Context, id, confirmationCode string, verified bool) error {
-	q := "UPDATE users SET verified_email=$2, confirmation_code=$3 WHERE id=$1"
+	s.metrics.methodCalls.With(prometheus.Labels{"method": "ValidateUserEmail"}).Inc()
 
-	_, err := s.DB.ExecContext(ctx, q, id, verified, confirmationCode)
+	q := "UPDATE users SET verified_email=$2, confirmation_code=$3 WHERE id=$1"
+	_, err := s.db.ExecContext(ctx, q, id, verified, confirmationCode)
 	if err != nil {
 		logger.Errorf("failed validating the user: %v", err)
 		return errors.Wrap(err, "couldn't validate the user")

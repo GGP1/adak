@@ -26,19 +26,21 @@ type Session interface {
 }
 
 type session struct {
-	db   *sqlx.DB
-	dev  bool
-	rdb  *redis.Client
-	conf config.Session
+	conf    config.Session
+	db      *sqlx.DB
+	dev     bool
+	metrics metrics
+	rdb     *redis.Client
 }
 
 // NewSession creates a new session with the necessary dependencies.
 func NewSession(db *sqlx.DB, rdb *redis.Client, config config.Session, development bool) Session {
 	return &session{
-		db:   db,
-		dev:  development,
-		rdb:  rdb,
-		conf: config,
+		conf:    config,
+		db:      db,
+		dev:     development,
+		metrics: initMetrics(),
+		rdb:     rdb,
 	}
 }
 
@@ -128,6 +130,7 @@ func (s *session) Logout(ctx context.Context, w http.ResponseWriter, r *http.Req
 	cookie.Delete(w, "SID")
 	cookie.Delete(w, "UID")
 	cookie.Delete(w, "CID")
+	s.metrics.activeSessions.Dec()
 	return nil
 }
 
@@ -167,5 +170,11 @@ func (s *session) storeSession(ctx context.Context, w http.ResponseWriter, userI
 		return err
 	}
 	// -CID- cart id, used to identify which cart belongs to each user
-	return cookie.Set(w, "CID", cartID, "/", s.conf.Length)
+	if err := cookie.Set(w, "CID", cartID, "/", s.conf.Length); err != nil {
+		return err
+	}
+
+	s.metrics.activeSessions.Inc()
+	s.metrics.totalSessions.Inc()
+	return nil
 }

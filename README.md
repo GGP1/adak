@@ -79,6 +79,34 @@ Down:
 migrate -path pkg/postgres/migrations -database <postgres_url> down
 ```
 
+### Metrics
+
+Adak collects information using [prometheus](https://prometheus.io/) and runs a [grafana](https://grafana.com/) container for visualizing it.
+
+The data is gathered from multiple sources:
+
+- **Server**: requests and database hits
+- **Node**: hardware and OS metrics provided by [node exporter](https://github.com/prometheus/node_exporter)
+
+More data can be extracted from other services like Postgres, Redis and Memcached, although they are not implemented, it would imply configuration changes only.
+
+#### Visualizing data
+
+There are a few ways of see the actual data:
+
+- The server raw statistics are showed in the */metrics* path (it also shows Go's metrics but not the information from external sources).
+- With prometheus by creating graphs at `http://localhost:9090` 
+- Grafana
+
+To display prometheus' information with grafana follow these steps:
+
+1. Go to http://localhost:3000 and login as "admin" user, the password is "admin".
+2. Add prometheus as a data source, set `HTTTP/Access` to `Browser` and the url to `http://localhost:9090`, then click `Save & Test`.
+3. On the top of the page and next to the *Settings* tab there other called *Dashboards*, click it and import `Prometheus 2.0 Stats`.
+4. Finally, go to the dashboards home and select the dashboard imported above.
+
+> You can create your own or use official/community built [dashboards](https://grafana.com/grafana/dashboards). This is more related to Grafana than Adak so it's left to the user.
+
 ### Amounts
 
 Amounts are represented by 64-bit integers to be provided in a currency's smallest unit (100 = 1 USD).

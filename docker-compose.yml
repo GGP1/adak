@@ -1,4 +1,4 @@
-version: "3.8"  
+version: "3.8"
 services:
   
   server:
@@ -13,6 +13,7 @@ services:
       - ./hide/certs:/certs/
     networks:
       - storage
+      - metrics
     depends_on:
       - postgres
       - memcached
@@ -25,8 +26,8 @@ services:
       POSTGRES_PASSWORD: adak
     ports:
       - 5432:5432
-    # volumes: 
-    #   - ./hide/postgres-data:/var/lib/postgresql/data
+    volumes: 
+      - ./hide/postgres-data:/var/lib/postgresql/data
     # Make sure that ./hide/postgres-data/pg_hba.conf contains the following line to connect to postgres:
     # host    all             all             0.0.0.0/0               trust
     networks:
@@ -43,15 +44,55 @@ services:
     image: redis:6.2.1-alpine
     ports:
       - 6379:6379
-    # volumes:
-      # - ./hide/redis.conf:/usr/local/etc/redis/redis.conf:ro
-      #   - ./hide/redis-data:/data
+    volumes:
+      - ./hide/redis.conf:/usr/local/etc/redis/redis.conf:ro
+      - ./hide/redis-data:/data
     networks:
       - storage
 
-# volumes:
-#   postgres-data:
-#   redis-data
+  prometheus:
+    image: prom/prometheus:latest
+    restart: on-failure:5
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+    ports:
+      - 9090:9090
+    volumes:
+      - ./hide/prometheus.yml/:/etc/prometheus/prometheus.yml:ro
+      - ./hide/certs:/certs/
+      - ./hide/prometheus-data:/prometheus
+    networks: 
+      - metrics
+      
+  node_exporter:
+    image: quay.io/prometheus/node-exporter:latest
+    restart: unless-stopped
+    command:
+      - '--path.rootfs=/host'
+    expose:
+    - 9100
+    networks:
+      - metrics
+
+  grafana:
+    image: grafana/grafana:latest
+    restart: on-failure:5
+    ports:
+      - 3000:3000
+    volumes:
+      - ./hide/grafana-data:/var/lib/grafana
+    networks:
+      - metrics
+    
+volumes:
+  postgres-data:
+  redis-data:
+  grafana-data:
+  prometheus-data:
 
 networks:
   storage:
+  metrics:

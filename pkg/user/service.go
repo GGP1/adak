@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/GGP1/adak/pkg/review"
+	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/bradfitz/gomemcache/memcache"
 	"github.com/jmoiron/sqlx"
@@ -28,17 +29,20 @@ type Service interface {
 }
 
 type service struct {
-	db *sqlx.DB
-	mc *memcache.Client
+	db      *sqlx.DB
+	mc      *memcache.Client
+	metrics metrics
 }
 
 // NewService returns a new user service.
 func NewService(db *sqlx.DB, mc *memcache.Client) Service {
-	return &service{db, mc}
+	return &service{db, mc, initMetrics()}
 }
 
 // Create a user.
 func (s *service) Create(ctx context.Context, user AddUser) error {
+	s.metrics.methodCalls.With(prometheus.Labels{"method": "Create"}).Inc()
+
 	var count int
 	q := "SELECT COUNT(id) FROM users WHERE email=$1 OR username=$2"
 	_ = s.db.GetContext(ctx, &count, q, user.Email, user.Username)
@@ -62,7 +66,6 @@ func (s *service) Create(ctx context.Context, user AddUser) error {
 			break
 		}
 	}
-
 	userQuery := `INSERT INTO users
 	(id, cart_id, username, email, password, is_admin, created_at)
 	VALUES ($1, $2, $3, $4, $5, $6, $7)`
@@ -72,14 +75,17 @@ func (s *service) Create(ctx context.Context, user AddUser) error {
 		return errors.Wrap(err, "couldn't create the user")
 	}
 
+	s.metrics.registeredUsers.Inc()
 	return nil
 }
 
 // Delete permanently deletes a user from the database.
 func (s *service) Delete(ctx context.Context, id string) error {
+	s.metrics.methodCalls.With(prometheus.Labels{"method": "Delete"}).Inc()
 	if _, err := s.db.ExecContext(ctx, "DELETE FROM users WHERE id=$1", id); err != nil {
 		return errors.Wrap(err, "couldn't delete the user")
 	}
+	s.metrics.registeredUsers.Dec()
 
 	if err := s.mc.Delete(id); err != nil && err != memcache.ErrCacheMiss {
 		return errors.Wrap(err, "deleting user from cache")
@@ -90,8 +96,9 @@ func (s *service) Delete(ctx context.Context, id string) error {
 
 // Get returns a list with all the users stored in the database.
 func (s *service) Get(ctx context.Context) ([]ListUser, error) {
-	var users []ListUser
+	s.metrics.methodCalls.With(prometheus.Labels{"method": "Get"}).Inc()
 
+	var users []ListUser
 	q := "SELECT id, cart_id, username, email, is_admin FROM users"
 	if err := s.db.SelectContext(ctx, &users, q); err != nil {
 		return nil, errors.Wrap(err, "couldn't find the users")
@@ -102,21 +109,25 @@ func (s *service) Get(ctx context.Context) ([]ListUser, error) {
 
 // GetByEmail retrieves the user requested from the database.
 func (s *service) GetByEmail(ctx context.Context, email string) (ListUser, error) {
+	s.metrics.methodCalls.With(prometheus.Labels{"method": "GetByEmail"}).Inc()
 	return s.getBy(ctx, "email", email)
 }
 
 // GetByID retrieves the user with the id requested from the database.
 func (s *service) GetByID(ctx context.Context, id string) (ListUser, error) {
+	s.metrics.methodCalls.With(prometheus.Labels{"method": "GetByID"}).Inc()
 	return s.getBy(ctx, "id", id)
 }
 
 // GetByUsername retrieves the user with the username requested from the database.
 func (s *service) GetByUsername(ctx context.Context, username string) (ListUser, error) {
+	s.metrics.methodCalls.With(prometheus.Labels{"method": "GetByUsername"}).Inc()
 	return s.getBy(ctx, "username", username)
 }
 
 // IsAdmin returns if the user is an admin and an error if the query failed.
 func (s *service) IsAdmin(ctx context.Context, id string) (bool, error) {
+	s.metrics.methodCalls.With(prometheus.Labels{"method": "IsAdmin"}).Inc()
 	var isAdmin bool
 	row := s.db.QueryRowContext(ctx, "SELECT is_admin FROM users WHERE id=$1", id)
 	if err := row.Scan(&isAdmin); err != nil {
@@ -128,6 +139,7 @@ func (s *service) IsAdmin(ctx context.Context, id string) (bool, error) {
 
 // Search looks for the users that contain the value specified (only text fields).
 func (s *service) Search(ctx context.Context, query string) ([]ListUser, error) {
+	s.metrics.methodCalls.With(prometheus.Labels{"method": "Search"}).Inc()
 	var users []ListUser
 	q := `SELECT
 	id, cart_id, username, email, is_admin
@@ -144,6 +156,7 @@ func (s *service) Search(ctx context.Context, query string) ([]ListUser, error) 
 
 // Update sets new values for an already existing user.
 func (s *service) Update(ctx context.Context, u UpdateUser, id string) error {
+	s.metrics.methodCalls.With(prometheus.Labels{"method": "Update"}).Inc()
 	q := "UPDATE users SET username=$2, updated_at=$3 WHERE id=$1"
 	if _, err := s.db.ExecContext(ctx, q, id, u.Username, time.Now()); err != nil {
 		return errors.Wrap(err, "couldn't update the user")

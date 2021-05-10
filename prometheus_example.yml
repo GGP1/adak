@@ -1,0 +1,33 @@
+global:
+  scrape_interval: 15s
+  scrape_timeout: 10s
+  evaluation_interval: 1m
+
+scrape_configs:
+# Default scheme is 'http' and metrics_path '/metrics'
+
+- job_name: prometheus
+  scrape_interval: 15s
+  scrape_timeout: 10s
+  static_configs:
+  - targets:
+    - localhost:9090
+
+- job_name: server
+  scrape_interval: 15s
+  scrape_timeout: 10s
+  scheme: https # If no certificates are provided change to http
+  tls_config:
+    cert_file: /certs/server.crt # Path to certificate inside the server container
+    key_file: /certs/server.key # Path to certificate inside the server container
+    insecure_skip_verify: true # Self-signed certificates
+  static_configs:
+    - targets:
+      - server:4000
+
+- job_name: node_exporter
+  scrape_interval: 15s
+  scrape_timeout: 10s
+  static_configs:
+    - targets:
+      - node_exporter:9100
