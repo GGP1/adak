@@ -762,7 +762,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-  /order/{id}:
+  /orders/{id}:
     delete:
       summary: Delete an order.
       parameters:
@@ -813,7 +813,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-  /order/user/{id}:
+  /orders/user/{id}:
     get:
       summary: List orders by user id.
       parameters:
@@ -847,7 +847,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
-  /order/new:
+  /orders/new:
     post:
       summary: Create a new order.
       requestBody:

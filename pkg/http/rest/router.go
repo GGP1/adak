@@ -110,11 +110,13 @@ func NewRouter(config config.Config, db *sqlx.DB, mc *memcache.Client, rdb *redi
 		DB:              db,
 		Cache:           mc,
 	}
-	router.With(adminsOnly).Get("/orders", order.Get())
-	router.With(adminsOnly).Delete("/order/{id}", order.Delete())
-	router.With(adminsOnly).Get("/order/{id}", order.GetByID())
-	router.With(requireLogin).Get("/order/user/{id}", order.GetByUserID())
-	router.With(requireLogin).Post("/order/new", order.New())
+	router.Route("/orders", func(r chi.Router) {
+		router.With(adminsOnly).Get("/", order.Get())
+		router.With(adminsOnly).Delete("/{id}", order.Delete())
+		router.With(adminsOnly).Get("/{id}", order.GetByID())
+		router.With(requireLogin).Get("/user/{id}", order.GetByUserID())
+		router.With(requireLogin).Post("/new", order.New())
+	})
 
 	// Product
 	product := product.Handler{
