@@ -8,6 +8,8 @@ import (
 	"net/http"
 	"strings"
 	"time"
+
+	"github.com/GGP1/adak/internal/bufferpool"
 )
 
 // Headers and corresponding parser to look up the real client IP.
@@ -29,18 +31,17 @@ type ipHeader struct {
 // Footprint takes user non-private information and generates a hash.
 // The hash is unique for the visitor, not for the page.
 func Footprint(r *http.Request, salt string) (string, error) {
-	var sb strings.Builder
-
 	ip := GetUserIP(r)
-
-	sb.WriteString(r.Header.Get("User-Agent"))
-	sb.WriteString(ip)
-	sb.WriteString(fmt.Sprintf("%d", time.Now().UnixNano()))
-	sb.WriteString(salt)
+	buf := bufferpool.Get()
+	buf.WriteString(r.Header.Get("User-Agent"))
+	buf.WriteString(ip)
+	buf.WriteString(fmt.Sprintf("%d", time.Now().UnixNano()))
+	buf.WriteString(salt)
 
 	hash := md5.New()
-	// md5 write method never fails
-	hash.Write([]byte(sb.String()))
+	// md5 write method returns always nil
+	hash.Write(buf.Bytes())
+	bufferpool.Put(buf)
 
 	return hex.EncodeToString(hash.Sum(nil)), nil
 }
