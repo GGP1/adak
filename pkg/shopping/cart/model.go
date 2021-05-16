@@ -23,22 +23,9 @@ type Cart struct {
 	Products []Product `json:"products,omitempty"`
 }
 
-// Product represents a product that has been appended to the cart.
-//
-// Amounts to be provided in a currency’s smallest unit.
-// 100 = 1 USD.
+// Product represents a product that has been added to the cart.
 type Product struct {
-	ID          zero.String `json:"id,omitempty" validate:"required"`
-	CartID      zero.String `json:"cart_id,omitempty" db:"cart_id"`
-	Quantity    zero.Int    `json:"quantity,omitempty" validate:"required,min=1"`
-	Brand       zero.String `json:"brand,omitempty" validate:"required"`
-	Category    zero.String `json:"category,omitempty" validate:"required"`
-	Type        zero.String `json:"type,omitempty" validate:"required"`
-	Description zero.String `json:"description,omitempty"`
-	// 1000 = 1kg
-	Weight   zero.Int `json:"weight,omitempty" validate:"required"`
-	Discount zero.Int `json:"discount,omitempty" validate:"required"`
-	Taxes    zero.Int `json:"taxes,omitempty" validate:"required"`
-	Subtotal zero.Int `json:"subtotal,omitempty" validate:"required"`
-	Total    zero.Int `json:"total,omitempty"`
+	ID       zero.String `json:"id,omitempty" validate:"required"`
+	CartID   zero.String `json:"cart_id,omitempty" db:"cart_id"`
+	Quantity zero.Int    `json:"quantity,omitempty" validate:"required,min=1"`
 }

@@ -10,6 +10,7 @@ import (
 	"github.com/GGP1/adak/internal/response"
 	"github.com/GGP1/adak/internal/sanitize"
 	"github.com/GGP1/adak/internal/validate"
+	"gopkg.in/guregu/null.v4/zero"
 
 	"github.com/bradfitz/gomemcache/memcache"
 	"github.com/go-chi/chi/v5"
@@ -46,7 +47,8 @@ func (h *Handler) Add() http.HandlerFunc {
 			return
 		}
 
-		if err := h.Service.Add(ctx, cartID, &product); err != nil {
+		product.CartID = zero.StringFrom(cartID)
+		if err := h.Service.Add(ctx, product); err != nil {
 			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
@@ -134,7 +136,7 @@ func (h *Handler) Products() http.HandlerFunc {
 			return
 		}
 
-		items, err := h.Service.Products(ctx, cartID)
+		items, err := h.Service.CartProducts(ctx, cartID)
 		if err != nil {
 			response.Error(w, http.StatusNotFound, err)
 			return

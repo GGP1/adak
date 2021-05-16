@@ -8,6 +8,7 @@ import (
 	"github.com/GGP1/adak/internal/logger"
 	"github.com/GGP1/adak/internal/test"
 	"github.com/GGP1/adak/pkg/shopping/cart"
+
 	"github.com/stretchr/testify/assert"
 	"gopkg.in/guregu/null.v4/zero"
 )
@@ -46,19 +47,19 @@ func TestMain(m *testing.M) {
 func TestAdd(t *testing.T) {
 	ctx := context.Background()
 	quantity := zero.IntFrom(5)
-	product := &cart.Product{
-		ID:       zero.StringFrom("1"),
-		Brand:    zero.StringFrom("Mónaco"),
+	pID := "1"
+	product := cart.Product{
+		ID:       zero.StringFrom(pID),
 		Quantity: quantity,
 	}
 
-	err := service.Add(ctx, cartID, product)
+	err := service.Add(ctx, product)
 	assert.NoError(t, err)
 
-	products, err := service.FilterBy(ctx, cartID, "brand", "Mónaco")
+	p, err := service.CartProduct(ctx, cartID, pID)
 	assert.NoError(t, err)
 
-	assert.Equal(t, quantity, products[0].Quantity)
+	assert.Equal(t, quantity, p.Quantity)
 }
 
 func TestCheckout(t *testing.T) {
@@ -89,20 +90,19 @@ func TestGet(t *testing.T) {
 
 func TestRemove(t *testing.T) {
 	ctx := context.Background()
-	product := &cart.Product{
+	product := cart.Product{
 		ID:       zero.StringFrom("2"),
-		Type:     zero.StringFrom("deleted"),
 		Quantity: zero.IntFrom(1),
 	}
 
-	err := service.Add(ctx, cartID, product)
+	err := service.Add(ctx, product)
 	assert.NoError(t, err)
 
 	err = service.Remove(ctx, cartID, "2", 1)
 	assert.NoError(t, err)
 
-	_, err = service.FilterBy(ctx, cartID, "type", "deleted")
-	assert.Error(t, err, "Expected no products found error")
+	c, _ := service.Get(ctx, cartID)
+	assert.Equal(t, &cart.Cart{}, c)
 }
 
 func TestReset(t *testing.T) {

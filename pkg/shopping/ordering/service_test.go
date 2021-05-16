@@ -57,8 +57,8 @@ func TestOrderingService(t *testing.T) {
 
 func new(ctx context.Context, s ordering.Service, cartService cart.Service) func(*testing.T) {
 	return func(t *testing.T) {
-		p := &cart.Product{ID: zero.StringFrom("test"), Quantity: zero.IntFrom(1)}
-		err := cartService.Add(ctx, cartID, p)
+		p := cart.Product{ID: zero.StringFrom("test"), Quantity: zero.IntFrom(1)}
+		err := cartService.Add(ctx, p)
 		assert.NoError(t, err)
 
 		params := ordering.OrderParams{

@@ -5,6 +5,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/GGP1/adak/pkg/product"
 	"github.com/GGP1/adak/pkg/shopping/cart"
 	"github.com/prometheus/client_golang/prometheus"
 
@@ -15,7 +16,7 @@ import (
 
 // Service contains order functionalities.
 type Service interface {
-	New(ctx context.Context, id, userID string, cartID string, oParams OrderParams, cartService cart.Service) (*Order, error)
+	New(ctx context.Context, id, userID string, cartID string, oParams OrderParams, cartService cart.Service) (Order, error)
 	Delete(ctx context.Context, orderID string) error
 	Get(ctx context.Context) ([]Order, error)
 	GetByID(ctx context.Context, orderID string) (Order, error)
@@ -37,23 +38,23 @@ func NewService(db *sqlx.DB) Service {
 
 // New creates an order.
 func (s *service) New(ctx context.Context, id, userID, cartID string,
-	oParams OrderParams, cartService cart.Service) (*Order, error) {
+	oParams OrderParams, cartService cart.Service) (Order, error) {
 	s.metrics.methodCalls.With(prometheus.Labels{"method": "New"})
 
 	cart, err := cartService.Get(ctx, cartID)
 	if err != nil {
-		return nil, err
+		return Order{}, err
 	}
 
 	if cart.Counter.Int64 == 0 {
-		return nil, errors.New("ordering zero products is not permitted")
+		return Order{}, errors.New("ordering zero products is not permitted")
 	}
 
 	// Format delivery date
 	deliveryDate := time.Date(oParams.Date.Year, time.Month(oParams.Date.Month), oParams.Date.Day,
 		oParams.Date.Hour, oParams.Date.Minutes, 0, 0, time.Local)
 	if deliveryDate.Before(time.Now()) {
-		return nil, errors.New("past dates are not valid")
+		return Order{}, errors.New("past dates are not valid")
 	}
 
 	orderQ := `INSERT INTO orders
@@ -65,15 +66,15 @@ func (s *service) New(ctx context.Context, id, userID, cartID string,
 		zero.IntFrom(int64(Pending)), zero.TimeFrom(time.Now()),
 		zero.TimeFrom(deliveryDate), cart.ID)
 	if err != nil {
-		return nil, errors.Wrap(err, "couldn't create the order")
+		return Order{}, errors.Wrap(err, "couldn't create the order")
 	}
 
 	if err := s.saveOrderCart(ctx, id, cart); err != nil {
-		return nil, err
+		return Order{}, err
 	}
 
 	if err := s.saveOrderProducts(ctx, id, cart.Products); err != nil {
-		return nil, err
+		return Order{}, err
 	}
 
 	order := Order{
@@ -100,7 +101,7 @@ func (s *service) New(ctx context.Context, id, userID, cartID string,
 	}
 
 	s.metrics.totalOrders.With(prometheus.Labels{"status": strconv.FormatInt(int64(Pending), 10)}).Inc()
-	return &order, nil
+	return order, nil
 }
 
 // Delete removes an order.
@@ -240,11 +241,11 @@ func (s *service) UpdateStatus(ctx context.Context, orderID string, status statu
 }
 
 // saveOrderCart saves the current user cart to the database.
-func (s *service) saveOrderCart(ctx context.Context, id string, cart *cart.Cart) error {
-	cartQ := `INSERT INTO order_carts
+func (s *service) saveOrderCart(ctx context.Context, id string, cart cart.Cart) error {
+	q := `INSERT INTO order_carts
 	(order_id, counter, weight, discount, taxes, subtotal, total)
 	VALUES ($1, $2, $3, $4, $5, $6, $7)`
-	_, err := s.db.ExecContext(ctx, cartQ, id, cart.Counter, cart.Weight,
+	_, err := s.db.ExecContext(ctx, q, id, cart.Counter, cart.Weight,
 		cart.Discount, cart.Taxes, cart.Subtotal, cart.Total)
 	if err != nil {
 		return errors.Wrap(err, "couldn't save the order cart")
@@ -255,12 +256,17 @@ func (s *service) saveOrderCart(ctx context.Context, id string, cart *cart.Cart)
 
 // saveOrderProducts saves cart products to the database using batch insert.
 func (s *service) saveOrderProducts(ctx context.Context, id string, cartProducts []cart.Product) error {
-	products := make([]OrderProduct, len(cartProducts))
-	for i, p := range cartProducts {
-		products[i] = OrderProduct{
-			ProductID:   p.ID,
+	orderProducts := make([]OrderProduct, len(cartProducts))
+	for i, cp := range cartProducts {
+		var p product.Product
+		if err := s.db.GetContext(ctx, &p, "SELECT * FROM products WHERE id=$1", cp.ID); err != nil {
+			return errors.Wrap(err, "couldn't find product")
+		}
+
+		orderProducts[i] = OrderProduct{
+			ProductID:   cp.ID,
 			OrderID:     zero.StringFrom(id),
-			Quantity:    p.Quantity,
+			Quantity:    cp.Quantity,
 			Brand:       p.Brand,
 			Category:    p.Category,
 			Description: p.Description,
@@ -272,13 +278,13 @@ func (s *service) saveOrderProducts(ctx context.Context, id string, cartProducts
 		}
 	}
 
-	productsQ := `INSERT INTO order_products
+	q := `INSERT INTO order_products
 	(order_id, product_id, quantity, brand, category, type, description, weight, 
 	discount, taxes, subtotal, total)
 	VALUES 
 	(:order_id, :product_id, :quantity, :brand, :category, :type, :description, 
 	:weight, :discount, :taxes, :subtotal, :total)`
-	if _, err := s.db.NamedExecContext(ctx, productsQ, products); err != nil {
+	if _, err := s.db.NamedExecContext(ctx, q, orderProducts); err != nil {
 		return errors.Wrap(err, "couldn't save order products")
 	}
 

@@ -3,6 +3,7 @@ package cart
 import (
 	"context"
 
+	"github.com/GGP1/adak/pkg/product"
 	"github.com/bradfitz/gomemcache/memcache"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
@@ -22,13 +23,14 @@ var fields = map[string]string{
 
 // Service contains order functionalities.
 type Service interface {
-	Add(ctx context.Context, cartID string, p *Product) error
+	Add(ctx context.Context, cartProduct Product) error
 	Checkout(ctx context.Context, cartID string) (int64, error)
 	Create(ctx context.Context, cartID string) error
 	Delete(ctx context.Context, cartID string) error
-	FilterBy(ctx context.Context, cartID, field, args string) ([]Product, error)
-	Get(ctx context.Context, cartID string) (*Cart, error)
-	Products(ctx context.Context, cartID string) ([]Product, error)
+	FilterBy(ctx context.Context, cartID, field, args string) ([]product.Product, error)
+	Get(ctx context.Context, cartID string) (Cart, error)
+	CartProduct(ctx context.Context, cartID, productID string) (Product, error)
+	CartProducts(ctx context.Context, cartID string) ([]Product, error)
 	Remove(ctx context.Context, cartID string, pID string, quantity int64) error
 	Reset(ctx context.Context, cartID string) error
 	Size(ctx context.Context, cartID string) (int64, error)
@@ -60,15 +62,15 @@ func New(id string) *Cart {
 }
 
 // Add adds a product to the cart.
-func (s *service) Add(ctx context.Context, cartID string, p *Product) error {
+func (s *service) Add(ctx context.Context, cartProduct Product) error {
 	s.metrics.methodCalls.With(prometheus.Labels{"method": "Add"}).Inc()
 
-	p.CartID = zero.StringFrom(cartID)
-	if p.Total.Int64 == 0 {
-		p.Total = zero.IntFrom(p.Subtotal.Int64 + p.Taxes.Int64 - p.Discount.Int64)
+	var p product.Product
+	if err := s.db.GetContext(ctx, &p, "SELECT * FROM products WHERE id=$1", cartProduct.ID); err != nil {
+		return errors.Wrap(err, "couldn't find product")
 	}
 
-	if err := s.createOrUpdateProduct(ctx, cartID, p); err != nil {
+	if err := s.createOrUpdateProduct(ctx, cartProduct); err != nil {
 		return err
 	}
 
@@ -77,13 +79,13 @@ func (s *service) Add(ctx context.Context, cartID string, p *Product) error {
 	discount=discount+$4, taxes=taxes+$5, 
 	subtotal=subtotal+$6, total=total+$7 
 	WHERE id=$1`
-	_, err := s.db.ExecContext(ctx, q, cartID, p.Quantity, p.Weight, p.Discount,
-		p.Taxes, p.Subtotal, p.Total)
+	_, err := s.db.ExecContext(ctx, q, cartProduct.CartID, cartProduct.Quantity,
+		p.Weight, p.Discount, p.Taxes, p.Subtotal, p.Total)
 	if err != nil {
 		return errors.Wrap(err, "updating cart")
 	}
 
-	if err := s.mc.Delete(cartID); err != nil && err != memcache.ErrCacheMiss {
+	if err := s.mc.Delete(cartProduct.CartID.String); err != nil && err != memcache.ErrCacheMiss {
 		return errors.Wrap(err, "deleting cart from cache")
 	}
 
@@ -134,7 +136,7 @@ func (s *service) Delete(ctx context.Context, cartID string) error {
 }
 
 // FilterBy filters the cart products field by the given args.
-func (s *service) FilterBy(ctx context.Context, cartID, field, args string) ([]Product, error) {
+func (s *service) FilterBy(ctx context.Context, cartID, field, args string) ([]product.Product, error) {
 	condition, ok := fields[field]
 	if !ok {
 		return nil, errors.Errorf("%q, invalid field", field)
@@ -142,8 +144,8 @@ func (s *service) FilterBy(ctx context.Context, cartID, field, args string) ([]P
 
 	s.metrics.methodCalls.With(prometheus.Labels{"method": "FilterBy " + field}).Inc()
 
-	query := "SELECT * FROM cart_products WHERE cart_id=$1 AND " + condition
-	var products []Product
+	query := "SELECT * FROM products WHERE cart_id=$1 AND " + condition
+	var products []product.Product
 	if err := s.db.SelectContext(ctx, &products, query, cartID, args); err != nil {
 		return nil, errors.Wrap(err, "no products found")
 	}
@@ -156,7 +158,7 @@ func (s *service) FilterBy(ctx context.Context, cartID, field, args string) ([]P
 }
 
 // Get returns the user cart.
-func (s *service) Get(ctx context.Context, cartID string) (*Cart, error) {
+func (s *service) Get(ctx context.Context, cartID string) (Cart, error) {
 	s.metrics.methodCalls.With(prometheus.Labels{"method": "Get"}).Inc()
 
 	q := `SELECT c.*, cp.*
@@ -166,7 +168,7 @@ func (s *service) Get(ctx context.Context, cartID string) (*Cart, error) {
 
 	rows, err := s.db.QueryContext(ctx, q, cartID)
 	if err != nil {
-		return nil, errors.Wrap(err, "fetching cart")
+		return Cart{}, errors.Wrap(err, "fetching cart")
 	}
 	defer rows.Close()
 
@@ -177,22 +179,32 @@ func (s *service) Get(ctx context.Context, cartID string) (*Cart, error) {
 			&cart.ID, &cart.Counter, &cart.Weight, &cart.Discount,
 			&cart.Taxes, &cart.Subtotal, &cart.Total,
 			&p.ID, &p.CartID, &p.Quantity,
-			&p.Brand, &p.Category, &p.Type,
-			&p.Description, &p.Weight, &p.Discount,
-			&p.Taxes, &p.Subtotal, &p.Total,
 		)
 		if err != nil {
-			return nil, errors.Wrap(err, "couldn't scan cart")
+			return Cart{}, errors.Wrap(err, "couldn't scan cart")
 		}
 
 		cart.Products = append(cart.Products, p)
 	}
 
-	return &cart, nil
+	return cart, nil
+}
+
+// CartProduct returns a cart product.
+func (s *service) CartProduct(ctx context.Context, cartID, productID string) (Product, error) {
+	s.metrics.methodCalls.With(prometheus.Labels{"method": "Product"}).Inc()
+
+	var product Product
+	q := "SELECT * FROM cart_products WHERE id=$1 AND cart_id=$2"
+	if err := s.db.GetContext(ctx, &product, q, productID, cartID); err != nil {
+		return Product{}, errors.Wrap(err, "couldn't find cart product")
+	}
+
+	return product, nil
 }
 
 // Products returns the cart products.
-func (s *service) Products(ctx context.Context, cartID string) ([]Product, error) {
+func (s *service) CartProducts(ctx context.Context, cartID string) ([]Product, error) {
 	s.metrics.methodCalls.With(prometheus.Labels{"method": "Products"}).Inc()
 
 	var products []Product
@@ -211,29 +223,33 @@ func (s *service) Products(ctx context.Context, cartID string) ([]Product, error
 func (s *service) Remove(ctx context.Context, cartID string, pID string, quantity int64) error {
 	s.metrics.methodCalls.With(prometheus.Labels{"method": "Remove"}).Inc()
 
-	var product Product
-	productQ := "SELECT * FROM cart_products WHERE id = $1 AND cart_id=$2"
-	if err := s.db.GetContext(ctx, &product, productQ, pID, cartID); err != nil {
-		return errors.New("couldn't find the product")
+	cartProduct, err := s.CartProduct(ctx, cartID, pID)
+	if err != nil {
+		return err
 	}
 
-	if quantity > product.Quantity.Int64 {
+	if quantity > cartProduct.Quantity.Int64 {
 		return errors.Errorf("quantity to remove (%d) is higher than the stock of products (%v)",
-			quantity, product.Quantity)
+			quantity, cartProduct.Quantity)
 	}
 
-	if quantity == product.Quantity.Int64 {
+	if quantity == cartProduct.Quantity.Int64 {
 		_, err := s.db.ExecContext(ctx, "DELETE FROM cart_products WHERE id=$1 AND cart_id=$2", pID, cartID)
 		if err != nil {
 			return errors.Wrap(err, "couldn't delete the product")
 		}
 	}
 
-	cartQ := `UPDATE carts SET 
+	var product product.Product
+	if err := s.db.GetContext(ctx, &product, "SELECT * FROM products WHERE id = $1", pID); err != nil {
+		return errors.New("couldn't find the product")
+	}
+
+	q := `UPDATE carts SET 
 	counter=counter-$2, weight=weight-$3, discount=discount-$4, 
 	taxes=taxes-$5, subtotal=subtotal-$6, total=total-$7 
 	WHERE id=$1`
-	_, err := s.db.ExecContext(ctx, cartQ, cartID, quantity, product.Weight,
+	_, err = s.db.ExecContext(ctx, q, cartID, quantity, product.Weight,
 		product.Discount, product.Taxes, product.Subtotal, product.Total)
 	if err != nil {
 		return errors.Wrap(err, "updating cart")
@@ -281,15 +297,13 @@ func (s *service) Size(ctx context.Context, cartID string) (int64, error) {
 	return size, nil
 }
 
-func (s *service) createOrUpdateProduct(ctx context.Context, cartID string, p *Product) error {
+func (s *service) createOrUpdateProduct(ctx context.Context, cartProduct Product) error {
 	productsQ := `INSERT INTO cart_products
-	(id, cart_id, quantity, brand, category, type, description, weight, 
-	discount, taxes, subtotal, total)
-	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)
+	(id, cart_id, quantity)
+	VALUES ($1, $2, $3)
 	ON CONFLICT (id) DO UPDATE SET 
 	quantity=EXCLUDED.quantity+$3`
-	_, err := s.db.ExecContext(ctx, productsQ, p.ID, cartID, p.Quantity, p.Brand, p.Category,
-		p.Type, p.Description, p.Weight, p.Discount, p.Taxes, p.Subtotal, p.Total)
+	_, err := s.db.ExecContext(ctx, productsQ, cartProduct.ID, cartProduct.CartID, cartProduct.Quantity)
 	if err != nil {
 		return errors.Wrap(err, "couldn't create the product")
 	}
