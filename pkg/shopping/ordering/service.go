@@ -57,11 +57,17 @@ func (s *service) New(ctx context.Context, id, userID, cartID string,
 		return Order{}, errors.New("past dates are not valid")
 	}
 
+	tx, err := s.db.Beginx()
+	if err != nil {
+		return Order{}, errors.Wrap(err, "starting transaction")
+	}
+	defer tx.Commit()
+
 	orderQ := `INSERT INTO orders
 	(id, user_id, currency, address, city, country, state, zip_code, 
 	status, ordered_at, delivery_date, cart_id)
 	VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10, $11, $12)`
-	_, err = s.db.ExecContext(ctx, orderQ, id, userID, oParams.Currency,
+	_, err = tx.ExecContext(ctx, orderQ, id, userID, oParams.Currency,
 		oParams.Address, oParams.City, oParams.Country, oParams.State, oParams.ZipCode,
 		zero.IntFrom(int64(Pending)), zero.TimeFrom(time.Now()),
 		zero.TimeFrom(deliveryDate), cart.ID)
@@ -69,11 +75,11 @@ func (s *service) New(ctx context.Context, id, userID, cartID string,
 		return Order{}, errors.Wrap(err, "couldn't create the order")
 	}
 
-	if err := s.saveOrderCart(ctx, id, cart); err != nil {
+	if err := s.saveOrderCart(ctx, tx, id, cart); err != nil {
 		return Order{}, err
 	}
 
-	if err := s.saveOrderProducts(ctx, id, cart.Products); err != nil {
+	if err := s.saveOrderProducts(ctx, tx, id, cart.Products); err != nil {
 		return Order{}, err
 	}
 
@@ -241,11 +247,11 @@ func (s *service) UpdateStatus(ctx context.Context, orderID string, status statu
 }
 
 // saveOrderCart saves the current user cart to the database.
-func (s *service) saveOrderCart(ctx context.Context, id string, cart cart.Cart) error {
+func (s *service) saveOrderCart(ctx context.Context, tx *sqlx.Tx, id string, cart cart.Cart) error {
 	q := `INSERT INTO order_carts
 	(order_id, counter, weight, discount, taxes, subtotal, total)
 	VALUES ($1, $2, $3, $4, $5, $6, $7)`
-	_, err := s.db.ExecContext(ctx, q, id, cart.Counter, cart.Weight,
+	_, err := tx.ExecContext(ctx, q, id, cart.Counter, cart.Weight,
 		cart.Discount, cart.Taxes, cart.Subtotal, cart.Total)
 	if err != nil {
 		return errors.Wrap(err, "couldn't save the order cart")
@@ -255,11 +261,11 @@ func (s *service) saveOrderCart(ctx context.Context, id string, cart cart.Cart) 
 }
 
 // saveOrderProducts saves cart products to the database using batch insert.
-func (s *service) saveOrderProducts(ctx context.Context, id string, cartProducts []cart.Product) error {
+func (s *service) saveOrderProducts(ctx context.Context, tx *sqlx.Tx, id string, cartProducts []cart.Product) error {
 	orderProducts := make([]OrderProduct, len(cartProducts))
 	for i, cp := range cartProducts {
 		var p product.Product
-		if err := s.db.GetContext(ctx, &p, "SELECT * FROM products WHERE id=$1", cp.ID); err != nil {
+		if err := tx.GetContext(ctx, &p, "SELECT * FROM products WHERE id=$1", cp.ID); err != nil {
 			return errors.Wrap(err, "couldn't find product")
 		}
 
@@ -284,7 +290,7 @@ func (s *service) saveOrderProducts(ctx context.Context, id string, cartProducts
 	VALUES 
 	(:order_id, :product_id, :quantity, :brand, :category, :type, :description, 
 	:weight, :discount, :taxes, :subtotal, :total)`
-	if _, err := s.db.NamedExecContext(ctx, q, orderProducts); err != nil {
+	if _, err := tx.NamedExecContext(ctx, q, orderProducts); err != nil {
 		return errors.Wrap(err, "couldn't save order products")
 	}
 

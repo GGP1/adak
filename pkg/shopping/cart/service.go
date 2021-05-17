@@ -65,12 +65,18 @@ func New(id string) *Cart {
 func (s *service) Add(ctx context.Context, cartProduct Product) error {
 	s.metrics.methodCalls.With(prometheus.Labels{"method": "Add"}).Inc()
 
+	tx, err := s.db.Beginx()
+	if err != nil {
+		return errors.Wrap(err, "starting transaction")
+	}
+	defer tx.Commit()
+
 	var p product.Product
-	if err := s.db.GetContext(ctx, &p, "SELECT * FROM products WHERE id=$1", cartProduct.ID); err != nil {
+	if err := tx.GetContext(ctx, &p, "SELECT * FROM products WHERE id=$1", cartProduct.ID); err != nil {
 		return errors.Wrap(err, "couldn't find product")
 	}
 
-	if err := s.createOrUpdateProduct(ctx, cartProduct); err != nil {
+	if err := s.createOrUpdateProduct(ctx, tx, cartProduct); err != nil {
 		return err
 	}
 
@@ -79,7 +85,7 @@ func (s *service) Add(ctx context.Context, cartProduct Product) error {
 	discount=discount+$4, taxes=taxes+$5, 
 	subtotal=subtotal+$6, total=total+$7 
 	WHERE id=$1`
-	_, err := s.db.ExecContext(ctx, q, cartProduct.CartID, cartProduct.Quantity,
+	_, err = tx.ExecContext(ctx, q, cartProduct.CartID, cartProduct.Quantity,
 		p.Weight, p.Discount, p.Taxes, p.Subtotal, p.Total)
 	if err != nil {
 		return errors.Wrap(err, "updating cart")
@@ -223,9 +229,16 @@ func (s *service) CartProducts(ctx context.Context, cartID string) ([]Product, e
 func (s *service) Remove(ctx context.Context, cartID string, pID string, quantity int64) error {
 	s.metrics.methodCalls.With(prometheus.Labels{"method": "Remove"}).Inc()
 
-	cartProduct, err := s.CartProduct(ctx, cartID, pID)
+	tx, err := s.db.Beginx()
 	if err != nil {
-		return err
+		return errors.Wrap(err, "starting transaction")
+	}
+	defer tx.Commit()
+
+	var cartProduct Product
+	cpQ := "SELECT * FROM cart_products WHERE id=$1 AND cart_id=$2"
+	if err := tx.GetContext(ctx, &cartProduct, cpQ, pID, cartID); err != nil {
+		return errors.Wrap(err, "couldn't find cart product")
 	}
 
 	if quantity > cartProduct.Quantity.Int64 {
@@ -241,15 +254,15 @@ func (s *service) Remove(ctx context.Context, cartID string, pID string, quantit
 	}
 
 	var product product.Product
-	if err := s.db.GetContext(ctx, &product, "SELECT * FROM products WHERE id = $1", pID); err != nil {
+	if err := tx.GetContext(ctx, &product, "SELECT * FROM products WHERE id = $1", pID); err != nil {
 		return errors.New("couldn't find the product")
 	}
 
-	q := `UPDATE carts SET 
+	uptQ := `UPDATE carts SET 
 	counter=counter-$2, weight=weight-$3, discount=discount-$4, 
 	taxes=taxes-$5, subtotal=subtotal-$6, total=total-$7 
 	WHERE id=$1`
-	_, err = s.db.ExecContext(ctx, q, cartID, quantity, product.Weight,
+	_, err = tx.ExecContext(ctx, uptQ, cartID, quantity, product.Weight,
 		product.Discount, product.Taxes, product.Subtotal, product.Total)
 	if err != nil {
 		return errors.Wrap(err, "updating cart")
@@ -266,15 +279,21 @@ func (s *service) Remove(ctx context.Context, cartID string, pID string, quantit
 func (s *service) Reset(ctx context.Context, cartID string) error {
 	s.metrics.methodCalls.With(prometheus.Labels{"method": "Reset"}).Inc()
 
+	tx, err := s.db.Begin()
+	if err != nil {
+		return errors.Wrap(err, "starting transaction")
+	}
+	defer tx.Commit()
+
 	del := "DELETE FROM cart_products WHERE cart_id=$1"
-	if _, err := s.db.ExecContext(ctx, del, cartID); err != nil {
+	if _, err := tx.ExecContext(ctx, del, cartID); err != nil {
 		return errors.Wrap(err, "couldn't delete cart products")
 	}
 
 	upt := `UPDATE carts SET 
 	counter=$2, weight=$3, discount=$4, taxes=$5, subtotal=$6, total=$7 
 	WHERE id=$1`
-	if _, err := s.db.ExecContext(ctx, upt, cartID, 0, 0, 0, 0, 0, 0); err != nil {
+	if _, err := tx.ExecContext(ctx, upt, cartID, 0, 0, 0, 0, 0, 0); err != nil {
 		return errors.Wrap(err, "updating cart")
 	}
 
@@ -297,13 +316,13 @@ func (s *service) Size(ctx context.Context, cartID string) (int64, error) {
 	return size, nil
 }
 
-func (s *service) createOrUpdateProduct(ctx context.Context, cartProduct Product) error {
+func (s *service) createOrUpdateProduct(ctx context.Context, tx *sqlx.Tx, cartProduct Product) error {
 	productsQ := `INSERT INTO cart_products
 	(id, cart_id, quantity)
 	VALUES ($1, $2, $3)
 	ON CONFLICT (id) DO UPDATE SET 
 	quantity=EXCLUDED.quantity+$3`
-	_, err := s.db.ExecContext(ctx, productsQ, cartProduct.ID, cartProduct.CartID, cartProduct.Quantity)
+	_, err := tx.ExecContext(ctx, productsQ, cartProduct.ID, cartProduct.CartID, cartProduct.Quantity)
 	if err != nil {
 		return errors.Wrap(err, "couldn't create the product")
 	}

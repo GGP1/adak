@@ -43,9 +43,15 @@ func NewService(db *sqlx.DB, mc *memcache.Client) Service {
 func (s *service) Create(ctx context.Context, user AddUser) error {
 	s.metrics.methodCalls.With(prometheus.Labels{"method": "Create"}).Inc()
 
+	tx, err := s.db.Beginx()
+	if err != nil {
+		return errors.Wrap(err, "starting transaction")
+	}
+	defer tx.Commit()
+
 	var count int
 	q := "SELECT COUNT(id) FROM users WHERE email=$1 OR username=$2"
-	_ = s.db.GetContext(ctx, &count, q, user.Email, user.Username)
+	_ = tx.GetContext(ctx, &count, q, user.Email, user.Username)
 	if count > 0 {
 		return errors.New("email or username is already taken")
 	}
@@ -69,7 +75,7 @@ func (s *service) Create(ctx context.Context, user AddUser) error {
 	userQuery := `INSERT INTO users
 	(id, cart_id, username, email, password, is_admin, created_at)
 	VALUES ($1, $2, $3, $4, $5, $6, $7)`
-	_, err = s.db.ExecContext(ctx, userQuery, user.ID, user.CartID, user.Username,
+	_, err = tx.ExecContext(ctx, userQuery, user.ID, user.CartID, user.Username,
 		user.Email, user.Password, user.IsAdmin, user.CreatedAt)
 	if err != nil {
 		return errors.Wrap(err, "couldn't create the user")

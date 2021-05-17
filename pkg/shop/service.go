@@ -39,10 +39,16 @@ func NewService(db *sqlx.DB, mc *memcache.Client) Service {
 func (s *service) Create(ctx context.Context, shop Shop) error {
 	s.metrics.methodCalls.With(prometheus.Labels{"method": "Create"}).Inc()
 
+	tx, err := s.db.Begin()
+	if err != nil {
+		return errors.Wrap(err, "starting trasaction")
+	}
+	defer tx.Commit()
+
 	sQuery := `INSERT INTO shops
 	(id, name, created_at)
 	VALUES ($1, $2, $3)`
-	_, err := s.db.ExecContext(ctx, sQuery, shop.ID, shop.Name, time.Now())
+	_, err = tx.ExecContext(ctx, sQuery, shop.ID, shop.Name, time.Now())
 	if err != nil {
 		return errors.Wrap(err, "couldn't create the shop")
 	}
@@ -50,7 +56,7 @@ func (s *service) Create(ctx context.Context, shop Shop) error {
 	lQuery := `INSERT INTO locations
 	(shop_id, country, state, zip_code, city, address)
 	VALUES ($1, $2, $3, $4, $5, $6)`
-	_, err = s.db.ExecContext(ctx, lQuery, shop.ID, shop.Location.Country, shop.Location.State,
+	_, err = tx.ExecContext(ctx, lQuery, shop.ID, shop.Location.Country, shop.Location.State,
 		shop.Location.ZipCode, shop.Location.City, shop.Location.Address)
 	if err != nil {
 		return errors.Wrap(err, "couldn't create the location")
