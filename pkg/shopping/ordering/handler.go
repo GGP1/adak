@@ -16,6 +16,7 @@ import (
 	"github.com/bradfitz/gomemcache/memcache"
 	"github.com/go-chi/chi/v5"
 	"github.com/jmoiron/sqlx"
+	"gopkg.in/guregu/null.v4/zero"
 )
 
 // OrderParams holds the parameters for creating a order.
@@ -169,6 +170,7 @@ func (h *Handler) New() http.HandlerFunc {
 			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
+		order.Status = zero.IntFrom(int64(Paid))
 
 		if err := h.CartService.Reset(ctx, cartID); err != nil {
 			response.Error(w, http.StatusInternalServerError, err)

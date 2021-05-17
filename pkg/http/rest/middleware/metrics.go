@@ -146,7 +146,7 @@ func cleanPath(path string) string {
 		path = path[:len(path)-1]
 	}
 	lastIdx := strings.LastIndex(path, "/")
-	if lastIdx == 0 {
+	if lastIdx < 1 {
 		return path
 	}
 	return path[:lastIdx]

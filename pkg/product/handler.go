@@ -42,11 +42,6 @@ func (h *Handler) Create() http.HandlerFunc {
 
 		p.ID = zero.StringFrom(token.RandString(27))
 		p.CreatedAt = zero.TimeFrom(time.Now())
-		// percentages -> numeric values
-		p.Taxes.Int64 = ((p.Subtotal.Int64 / 100) * p.Taxes.Int64)
-		p.Discount.Int64 = ((p.Subtotal.Int64 / 100) * p.Discount.Int64)
-		p.Total.Int64 = p.Subtotal.Int64 + p.Taxes.Int64 - p.Discount.Int64
-
 		if err := h.Service.Create(ctx, p); err != nil {
 			response.Error(w, http.StatusInternalServerError, err)
 			return

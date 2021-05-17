@@ -11,26 +11,26 @@ import (
 // Shop represents a market with its name and location.
 // Each shop has multiple reviews and products.
 type Shop struct {
-	ID        string            `json:"id"`
-	Name      string            `json:"name" validate:"required"`
-	Location  Location          `json:"location"`
+	ID        string            `json:"id,omitempty"`
+	Name      string            `json:"name,omitempty" validate:"required"`
+	Location  Location          `json:"location,omitempty"`
 	Reviews   []review.Review   `json:"reviews,omitempty"`
-	Products  []product.Product `json:"products"`
-	CreatedAt time.Time         `json:"created_at" db:"created_at"`
-	UpdatedAt zero.Time         `json:"updated_at" db:"updated_at"`
+	Products  []product.Product `json:"products,omitempty"`
+	CreatedAt time.Time         `json:"created_at,omitempty" db:"created_at"`
+	UpdatedAt zero.Time         `json:"updated_at,omitempty" db:"updated_at"`
 }
 
 // UpdateShop is the structure used to update shops.
 type UpdateShop struct {
-	Name string `json:"name" validate:"required"`
+	Name string `json:"name,omitempty" validate:"required"`
 }
 
 // Location of the shop.
 type Location struct {
-	ShopID  string `json:"shop_id" db:"shop_id"`
-	Country string `json:"country" validate:"required"`
-	State   string `json:"state"`
-	ZipCode string `json:"zip_code" db:"zip_code"`
-	City    string `json:"city" validate:"required"`
-	Address string `json:"address" validate:"required"`
+	ShopID  string `json:"shop_id,omitempty" db:"shop_id"`
+	Country string `json:"country,omitempty" validate:"required"`
+	State   string `json:"state,omitempty"`
+	ZipCode string `json:"zip_code,omitempty" db:"zip_code"`
+	City    string `json:"city,omitempty" validate:"required"`
+	Address string `json:"address,omitempty" validate:"required"`
 }
