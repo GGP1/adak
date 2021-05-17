@@ -194,6 +194,9 @@ CREATE TABLE IF NOT EXISTS order_products
     taxes integer,
     subtotal integer,
     total integer,
-    FOREIGN KEY (order_id) REFERENCES orders (id) ON DELETE CASCADE
+    FOREIGN KEY (order_id) 
+        REFERENCES orders (id)
+        ON DELETE CASCADE
+        DEFERRABLE INITIALLY DEFERRED
 );
 `
