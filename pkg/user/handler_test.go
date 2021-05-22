@@ -11,6 +11,7 @@ import (
 	"testing"
 
 	"github.com/GGP1/adak/internal/config"
+	"github.com/GGP1/adak/internal/email"
 	"github.com/GGP1/adak/internal/logger"
 	"github.com/GGP1/adak/internal/test"
 	"github.com/GGP1/adak/pkg/auth"
@@ -21,7 +22,11 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var handler user.Handler
+var (
+	handler     user.Handler
+	userService user.Service
+	cartService cart.Service
+)
 
 type msgResponse struct {
 	Message string `json:"message"`
@@ -42,15 +47,9 @@ func TestMain(m *testing.M) {
 		logger.Fatal(err)
 	}
 
-	userService := user.NewService(db, mc)
-	cartService := cart.NewService(db, mc)
-
-	handler = user.Handler{
-		Development: true,
-		UserService: userService,
-		CartService: cartService,
-		Cache:       mc,
-	}
+	userService = user.NewService(db, mc)
+	cartService = cart.NewService(db, mc)
+	handler = user.NewHandler(true, userService, cartService, email.Emailer{}, mc)
 
 	code := m.Run()
 
@@ -88,7 +87,7 @@ func TestCreateHandler(t *testing.T) {
 	assert.Equal(t, u.Email, response.Email)
 	assert.Equal(t, u.Username, response.Username)
 
-	c, err := handler.CartService.Get(context.Background(), response.CartID)
+	c, err := cartService.Get(context.Background(), response.CartID)
 	assert.NoError(t, err)
 	assert.Equal(t, response.CartID, c.ID)
 	assert.Equal(t, int64(0), c.Total.Int64)
@@ -103,7 +102,7 @@ func TestDeleteHandler(t *testing.T) {
 		Password: "test_delete",
 	}
 
-	err := handler.UserService.Create(context.Background(), u)
+	err := userService.Create(context.Background(), u)
 	assert.NoError(t, err)
 
 	rdb := test.StartRedis(t)
@@ -135,7 +134,7 @@ func TestGetHandler(t *testing.T) {
 		Password: "test_get",
 	}
 
-	err := handler.UserService.Create(context.Background(), u)
+	err := userService.Create(context.Background(), u)
 	assert.NoError(t, err)
 
 	mux := chi.NewRouter()
@@ -164,7 +163,7 @@ func TestGetByHandler(t *testing.T) {
 		Password: "test_getby",
 	}
 
-	err := handler.UserService.Create(context.Background(), u)
+	err := userService.Create(context.Background(), u)
 	assert.NoError(t, err)
 
 	mux := chi.NewRouter()
@@ -223,7 +222,7 @@ func TestSearchHandler(t *testing.T) {
 		Password: "test_search",
 	}
 
-	err := handler.UserService.Create(context.Background(), u)
+	err := userService.Create(context.Background(), u)
 	assert.NoError(t, err)
 
 	mux := chi.NewRouter()
@@ -250,7 +249,7 @@ func TestUpdateHandler(t *testing.T) {
 		Password: "test_update",
 	}
 
-	err := handler.UserService.Create(context.Background(), u)
+	err := userService.Create(context.Background(), u)
 	assert.NoError(t, err)
 
 	mux := chi.NewRouter()

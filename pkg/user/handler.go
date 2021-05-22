@@ -14,19 +14,30 @@ import (
 	"github.com/GGP1/adak/internal/validate"
 	"github.com/GGP1/adak/pkg/auth"
 	"github.com/GGP1/adak/pkg/shopping/cart"
-	"github.com/pkg/errors"
 
 	"github.com/bradfitz/gomemcache/memcache"
 	"github.com/go-chi/chi/v5"
+	"github.com/pkg/errors"
 )
 
 // Handler handles user endpoints.
 type Handler struct {
-	Development bool
-	UserService Service
-	CartService cart.Service
-	Emailer     email.Emailer
-	Cache       *memcache.Client
+	userService Service
+	development bool
+	emailer     email.Emailer
+	cache       *memcache.Client
+	cartService cart.Service
+}
+
+// NewHandler returns a new user handler.
+func NewHandler(dev bool, userS Service, cartS cart.Service, emailer email.Emailer, cache *memcache.Client) Handler {
+	return Handler{
+		development: dev,
+		userService: userS,
+		cartService: cartS,
+		emailer:     emailer,
+		cache:       cache,
+	}
 }
 
 // Create creates a new user and saves it.
@@ -46,9 +57,9 @@ func (h *Handler) Create() http.HandlerFunc {
 			return
 		}
 
-		if !h.Development {
+		if !h.development {
 			confirmationCode := token.RandString(20)
-			if err := h.Emailer.SendValidation(ctx, user.Username, user.Email, confirmationCode); err != nil {
+			if err := h.emailer.SendValidation(ctx, user.Username, user.Email, confirmationCode); err != nil {
 				response.Error(w, http.StatusInternalServerError, err)
 				return
 			}
@@ -61,12 +72,12 @@ func (h *Handler) Create() http.HandlerFunc {
 		user.Email = sanitize.Normalize(user.Email)
 		user.CreatedAt = time.Now()
 
-		if err := h.UserService.Create(ctx, user); err != nil {
+		if err := h.userService.Create(ctx, user); err != nil {
 			response.Error(w, http.StatusBadRequest, err)
 			return
 		}
 
-		if err := h.CartService.Create(ctx, user.CartID); err != nil {
+		if err := h.cartService.Create(ctx, user.CartID); err != nil {
 			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
@@ -92,12 +103,12 @@ func (h *Handler) Delete(s auth.Session) http.HandlerFunc {
 			return
 		}
 
-		if err := h.CartService.Delete(ctx, cartID); err != nil {
+		if err := h.cartService.Delete(ctx, cartID); err != nil {
 			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
 
-		if err := h.UserService.Delete(ctx, id); err != nil {
+		if err := h.userService.Delete(ctx, id); err != nil {
 			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
@@ -116,7 +127,7 @@ func (h *Handler) Get() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
-		users, err := h.UserService.Get(ctx)
+		users, err := h.userService.Get(ctx)
 		if err != nil {
 			response.Error(w, http.StatusNotFound, err)
 			return
@@ -132,19 +143,19 @@ func (h *Handler) GetByID() http.HandlerFunc {
 		id := chi.URLParam(r, "id")
 		ctx := r.Context()
 
-		item, err := h.Cache.Get(id)
+		item, err := h.cache.Get(id)
 		if err == nil {
 			response.EncodedJSON(w, item.Value)
 			return
 		}
 
-		user, err := h.UserService.GetByID(ctx, id)
+		user, err := h.userService.GetByID(ctx, id)
 		if err != nil {
 			response.Error(w, http.StatusNotFound, err)
 			return
 		}
 
-		response.JSONAndCache(h.Cache, w, id, user)
+		response.JSONAndCache(h.cache, w, id, user)
 	}
 }
 
@@ -154,7 +165,7 @@ func (h *Handler) GetByEmail() http.HandlerFunc {
 		email := chi.URLParam(r, "email")
 		ctx := r.Context()
 
-		user, err := h.UserService.GetByEmail(ctx, email)
+		user, err := h.userService.GetByEmail(ctx, email)
 		if err != nil {
 			response.Error(w, http.StatusNotFound, err)
 			return
@@ -170,7 +181,7 @@ func (h *Handler) GetByUsername() http.HandlerFunc {
 		username := chi.URLParam(r, "username")
 		ctx := r.Context()
 
-		user, err := h.UserService.GetByUsername(ctx, username)
+		user, err := h.userService.GetByUsername(ctx, username)
 		if err != nil {
 			response.Error(w, http.StatusNotFound, err)
 			return
@@ -192,7 +203,7 @@ func (h *Handler) Search() http.HandlerFunc {
 			return
 		}
 
-		users, err := h.UserService.Search(ctx, query)
+		users, err := h.userService.Search(ctx, query)
 		if err != nil {
 			response.Error(w, http.StatusInternalServerError, err)
 			return
@@ -225,7 +236,7 @@ func (h *Handler) Update() http.HandlerFunc {
 			return
 		}
 
-		if err := h.UserService.Update(ctx, user, id); err != nil {
+		if err := h.userService.Update(ctx, user, id); err != nil {
 			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}

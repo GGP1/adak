@@ -16,8 +16,16 @@ import (
 
 // Handler handles reviews endpoints.
 type Handler struct {
-	Service Service
-	Cache   *memcache.Client
+	service Service
+	cache   *memcache.Client
+}
+
+// NewHandler returns a new review handler.
+func NewHandler(service Service, cache *memcache.Client) Handler {
+	return Handler{
+		service: service,
+		cache:   cache,
+	}
 }
 
 // Create creates a new review and saves it.
@@ -49,7 +57,7 @@ func (h *Handler) Create() http.HandlerFunc {
 		}
 
 		review.ID = zero.StringFrom(token.RandString(28))
-		if err := h.Service.Create(ctx, review); err != nil {
+		if err := h.service.Create(ctx, review); err != nil {
 			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
@@ -64,7 +72,7 @@ func (h *Handler) Delete() http.HandlerFunc {
 		id := chi.URLParam(r, "id")
 		ctx := r.Context()
 
-		if err := h.Service.Delete(ctx, id); err != nil {
+		if err := h.service.Delete(ctx, id); err != nil {
 			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
@@ -78,7 +86,7 @@ func (h *Handler) Get() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
-		reviews, err := h.Service.Get(ctx)
+		reviews, err := h.service.Get(ctx)
 		if err != nil {
 			response.Error(w, http.StatusNotFound, err)
 			return
@@ -94,18 +102,18 @@ func (h *Handler) GetByID() http.HandlerFunc {
 		id := chi.URLParam(r, "id")
 		ctx := r.Context()
 
-		item, err := h.Cache.Get(id)
+		item, err := h.cache.Get(id)
 		if err == nil {
 			response.EncodedJSON(w, item.Value)
 			return
 		}
 
-		review, err := h.Service.GetByID(ctx, id)
+		review, err := h.service.GetByID(ctx, id)
 		if err != nil {
 			response.Error(w, http.StatusNotFound, err)
 			return
 		}
 
-		response.JSONAndCache(h.Cache, w, id, review)
+		response.JSONAndCache(h.cache, w, id, review)
 	}
 }

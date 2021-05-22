@@ -70,7 +70,7 @@ func NewRouter(config config.Config, db *sqlx.DB, mc *memcache.Client, rdb *redi
 	router.Get("/login/oauth2/google", auth.OAuth2Google(session))
 
 	// Cart
-	cart := cart.Handler{Service: cartService, DB: db, Cache: mc}
+	cart := cart.NewHandler(cartService, db, mc)
 	router.Route("/cart", func(r chi.Router) {
 		r.Use(requireLogin)
 
@@ -96,13 +96,7 @@ func NewRouter(config config.Config, db *sqlx.DB, mc *memcache.Client, rdb *redi
 	}))
 
 	// Ordering
-	order := ordering.Handler{
-		Development:     config.Development,
-		OrderingService: orderingService,
-		CartService:     cartService,
-		DB:              db,
-		Cache:           mc,
-	}
+	order := ordering.NewHandler(config.Development, orderingService, cartService, db, mc)
 	router.Route("/orders", func(r chi.Router) {
 		r.With(adminsOnly).Get("/", order.Get())
 		r.With(adminsOnly).Delete("/{id}", order.Delete())
@@ -112,7 +106,7 @@ func NewRouter(config config.Config, db *sqlx.DB, mc *memcache.Client, rdb *redi
 	})
 
 	// Product
-	product := product.Handler{Service: productService, Cache: mc}
+	product := product.NewHandler(productService, mc)
 	router.Route("/products", func(r chi.Router) {
 		r.Get("/", product.Get())
 		r.Get("/{id}", product.GetByID())
@@ -123,7 +117,7 @@ func NewRouter(config config.Config, db *sqlx.DB, mc *memcache.Client, rdb *redi
 	})
 
 	// Review
-	review := review.Handler{Service: reviewService, Cache: mc}
+	review := review.NewHandler(reviewService, mc)
 	router.Route("/reviews", func(r chi.Router) {
 		r.Get("/", review.Get())
 		r.Get("/{id}", review.GetByID())
@@ -132,7 +126,7 @@ func NewRouter(config config.Config, db *sqlx.DB, mc *memcache.Client, rdb *redi
 	})
 
 	// Shop
-	shop := shop.Handler{Service: shopService, Cache: mc}
+	shop := shop.NewHandler(shopService, mc)
 	router.Route("/shops", func(r chi.Router) {
 		r.Get("/", shop.Get())
 		r.Get("/{id}", shop.GetByID())
@@ -143,7 +137,7 @@ func NewRouter(config config.Config, db *sqlx.DB, mc *memcache.Client, rdb *redi
 	})
 
 	// Stripe
-	stripe := stripe.Handler{}
+	stripe := stripe.NewHandler()
 	router.Route("/stripe", func(r chi.Router) {
 		r.Use(adminsOnly)
 
@@ -155,7 +149,7 @@ func NewRouter(config config.Config, db *sqlx.DB, mc *memcache.Client, rdb *redi
 	})
 
 	// Tracking
-	tracker := tracking.Handler{Service: trackingService}
+	tracker := tracking.NewHandler(trackingService)
 	router.Route("/tracker", func(r chi.Router) {
 		r.Use(adminsOnly)
 
@@ -166,13 +160,7 @@ func NewRouter(config config.Config, db *sqlx.DB, mc *memcache.Client, rdb *redi
 	})
 
 	// User
-	user := user.Handler{
-		Development: config.Development,
-		UserService: userService,
-		CartService: cartService,
-		Emailer:     emailer,
-		Cache:       mc,
-	}
+	user := user.NewHandler(config.Development, userService, cartService, emailer, mc)
 	router.Route("/users", func(r chi.Router) {
 		r.Get("/", user.Get())
 		r.Get("/{id}", user.GetByID())
@@ -185,11 +173,7 @@ func NewRouter(config config.Config, db *sqlx.DB, mc *memcache.Client, rdb *redi
 	})
 
 	// Account
-	account := account.Handler{
-		AccountService: accountService,
-		UserService:    userService,
-		Emailer:        emailer,
-	}
+	account := account.NewHandler(accountService, userService, emailer)
 	router.With(requireLogin).Post("/settings/email", account.SendChangeConfirmation())
 	router.With(requireLogin).Post("/settings/password", account.ChangePassword())
 	router.Get("/verification/{email}/{token}", account.SendEmailValidation(userService))

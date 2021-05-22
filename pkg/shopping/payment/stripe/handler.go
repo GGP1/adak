@@ -11,6 +11,11 @@ import (
 // Handler manages stripe endpoints.
 type Handler struct{}
 
+// NewHandler returns a new stripe handler.
+func NewHandler() Handler {
+	return Handler{}
+}
+
 // GetBalance responds with the account balance.
 func (h *Handler) GetBalance() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {

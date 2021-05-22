@@ -42,11 +42,22 @@ type Date struct {
 
 // Handler handles ordering endpoints.
 type Handler struct {
-	Development     bool
-	OrderingService Service
-	CartService     cart.Service
-	DB              *sqlx.DB
-	Cache           *memcache.Client
+	orderingService Service
+	development     bool
+	db              *sqlx.DB
+	cache           *memcache.Client
+	cartService     cart.Service
+}
+
+// NewHandler returns a new ordering handler.
+func NewHandler(dev bool, orderingS Service, cartS cart.Service, db *sqlx.DB, cache *memcache.Client) Handler {
+	return Handler{
+		development:     dev,
+		orderingService: orderingS,
+		cartService:     cartS,
+		db:              db,
+		cache:           cache,
+	}
 }
 
 // Delete deletes an order.
@@ -55,7 +66,7 @@ func (h *Handler) Delete() http.HandlerFunc {
 		id := chi.URLParam(r, "id")
 		ctx := r.Context()
 
-		if err := h.OrderingService.Delete(ctx, id); err != nil {
+		if err := h.orderingService.Delete(ctx, id); err != nil {
 			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
@@ -69,7 +80,7 @@ func (h *Handler) Get() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
-		orders, err := h.OrderingService.Get(ctx)
+		orders, err := h.orderingService.Get(ctx)
 		if err != nil {
 			response.Error(w, http.StatusNotFound, err)
 			return
@@ -85,7 +96,7 @@ func (h *Handler) GetByID() http.HandlerFunc {
 		id := chi.URLParam(r, "id")
 		ctx := r.Context()
 
-		order, err := h.OrderingService.GetByID(ctx, id)
+		order, err := h.orderingService.GetByID(ctx, id)
 		if err != nil {
 			response.Error(w, http.StatusNotFound, err)
 			return
@@ -107,19 +118,19 @@ func (h *Handler) GetByUserID() http.HandlerFunc {
 		}
 
 		// Every service has ids of different length, they will never match
-		item, err := h.Cache.Get(id)
+		item, err := h.cache.Get(id)
 		if err == nil {
 			response.EncodedJSON(w, item.Value)
 			return
 		}
 
-		orders, err := h.OrderingService.GetByUserID(ctx, id)
+		orders, err := h.orderingService.GetByUserID(ctx, id)
 		if err != nil {
 			response.Error(w, http.StatusNotFound, err)
 			return
 		}
 
-		response.JSONAndCache(h.Cache, w, id, orders)
+		response.JSONAndCache(h.cache, w, id, orders)
 	}
 }
 
@@ -150,13 +161,13 @@ func (h *Handler) New() http.HandlerFunc {
 		}
 
 		id := token.RandString(30)
-		order, err := h.OrderingService.New(ctx, id, userID, cartID, orderParams, h.CartService)
+		order, err := h.orderingService.New(ctx, id, userID, cartID, orderParams, h.cartService)
 		if err != nil {
 			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
 
-		if !h.Development {
+		if !h.development {
 			// Create payment intent and update the order status
 			_, err = stripe.CreateIntent(order.ID.String, order.CartID.String,
 				order.Currency.String, order.Cart.Total.Int64, orderParams.Card)
@@ -166,13 +177,13 @@ func (h *Handler) New() http.HandlerFunc {
 			}
 		}
 
-		if err := h.OrderingService.UpdateStatus(ctx, order.ID.String, Paid); err != nil {
+		if err := h.orderingService.UpdateStatus(ctx, order.ID.String, Paid); err != nil {
 			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
 		order.Status = zero.IntFrom(int64(Paid))
 
-		if err := h.CartService.Reset(ctx, cartID); err != nil {
+		if err := h.cartService.Reset(ctx, cartID); err != nil {
 			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}

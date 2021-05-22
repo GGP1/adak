@@ -10,18 +10,27 @@ import (
 	"github.com/GGP1/adak/internal/response"
 	"github.com/GGP1/adak/internal/sanitize"
 	"github.com/GGP1/adak/internal/validate"
-	"gopkg.in/guregu/null.v4/zero"
 
 	"github.com/bradfitz/gomemcache/memcache"
 	"github.com/go-chi/chi/v5"
 	"github.com/jmoiron/sqlx"
+	"gopkg.in/guregu/null.v4/zero"
 )
 
 // Handler manages cart endpoints.
 type Handler struct {
-	Service Service
-	DB      *sqlx.DB
-	Cache   *memcache.Client
+	service Service
+	db      *sqlx.DB
+	cache   *memcache.Client
+}
+
+// NewHandler returns a new cart handler.
+func NewHandler(service Service, db *sqlx.DB, cache *memcache.Client) Handler {
+	return Handler{
+		service: service,
+		db:      db,
+		cache:   cache,
+	}
 }
 
 // Add appends a product to the cart.
@@ -48,7 +57,7 @@ func (h *Handler) Add() http.HandlerFunc {
 		}
 
 		product.CartID = zero.StringFrom(cartID)
-		if err := h.Service.Add(ctx, product); err != nil {
+		if err := h.service.Add(ctx, product); err != nil {
 			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
@@ -67,7 +76,7 @@ func (h *Handler) Checkout() http.HandlerFunc {
 			return
 		}
 
-		checkout, err := h.Service.Checkout(ctx, cartID)
+		checkout, err := h.service.Checkout(ctx, cartID)
 		if err != nil {
 			response.Error(w, http.StatusNotFound, err)
 			return
@@ -90,7 +99,7 @@ func (h *Handler) FilterBy() http.HandlerFunc {
 		field := sanitize.Normalize(chi.URLParam(r, "field"))
 		args := sanitize.Normalize(chi.URLParam(r, "args"))
 
-		products, err := h.Service.FilterBy(ctx, cartID, field, args)
+		products, err := h.service.FilterBy(ctx, cartID, field, args)
 		if err != nil {
 			response.Error(w, http.StatusNotFound, err)
 			return
@@ -110,19 +119,19 @@ func (h *Handler) Get() http.HandlerFunc {
 			return
 		}
 
-		item, err := h.Cache.Get(cartID)
+		item, err := h.cache.Get(cartID)
 		if err == nil {
 			response.EncodedJSON(w, item.Value)
 			return
 		}
 
-		cart, err := h.Service.Get(ctx, cartID)
+		cart, err := h.service.Get(ctx, cartID)
 		if err != nil {
 			response.Error(w, http.StatusNotFound, err)
 			return
 		}
 
-		response.JSONAndCache(h.Cache, w, cartID, cart)
+		response.JSONAndCache(h.cache, w, cartID, cart)
 	}
 }
 
@@ -136,7 +145,7 @@ func (h *Handler) Products() http.HandlerFunc {
 			return
 		}
 
-		items, err := h.Service.CartProducts(ctx, cartID)
+		items, err := h.service.CartProducts(ctx, cartID)
 		if err != nil {
 			response.Error(w, http.StatusNotFound, err)
 			return
@@ -165,7 +174,7 @@ func (h *Handler) Remove() http.HandlerFunc {
 			return
 		}
 
-		if err := h.Service.Remove(ctx, cartID, id, int64(quantity)); err != nil {
+		if err := h.service.Remove(ctx, cartID, id, int64(quantity)); err != nil {
 			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
@@ -184,7 +193,7 @@ func (h *Handler) Reset() http.HandlerFunc {
 			return
 		}
 
-		if err := h.Service.Reset(ctx, cartID); err != nil {
+		if err := h.service.Reset(ctx, cartID); err != nil {
 			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
@@ -203,7 +212,7 @@ func (h *Handler) Size() http.HandlerFunc {
 			return
 		}
 
-		size, err := h.Service.Size(ctx, cartID)
+		size, err := h.service.Size(ctx, cartID)
 		if err != nil {
 			response.Error(w, http.StatusNotFound, err)
 			return

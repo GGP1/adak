@@ -17,13 +17,22 @@ import (
 
 // Handler handles account endpoints.
 type Handler struct {
-	AccountService Service
-	UserService    user.Service
-	Emailer        email.Emailer
+	accountService Service
+	userService    user.Service
+	emailer        email.Emailer
 }
 
 type changeEmail struct {
 	Email string `json:"email"`
+}
+
+// NewHandler returns a new account handler.
+func NewHandler(accountS Service, userS user.Service, emailer email.Emailer) Handler {
+	return Handler{
+		accountService: accountS,
+		userService:    userS,
+		emailer:        emailer,
+	}
 }
 
 // ChangeEmail changes the user email to the specified one.
@@ -35,7 +44,7 @@ func (h *Handler) ChangeEmail() http.HandlerFunc {
 
 		ctx := r.Context()
 
-		if err := h.AccountService.ChangeEmail(ctx, id, email, token); err != nil {
+		if err := h.accountService.ChangeEmail(ctx, id, email, token); err != nil {
 			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
@@ -67,7 +76,7 @@ func (h *Handler) ChangePassword() http.HandlerFunc {
 		}
 		defer r.Body.Close()
 
-		if err := h.AccountService.ChangePassword(ctx, userID, changePass.OldPassword, changePass.NewPassword); err != nil {
+		if err := h.accountService.ChangePassword(ctx, userID, changePass.OldPassword, changePass.NewPassword); err != nil {
 			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
@@ -88,7 +97,7 @@ func (h *Handler) SendChangeConfirmation() http.HandlerFunc {
 		}
 		defer r.Body.Close()
 
-		if _, err := h.UserService.GetByEmail(ctx, new.Email); err == nil {
+		if _, err := h.userService.GetByEmail(ctx, new.Email); err == nil {
 			response.Error(w, http.StatusBadRequest, errors.New("email is already taken"))
 			return
 		}
@@ -99,14 +108,14 @@ func (h *Handler) SendChangeConfirmation() http.HandlerFunc {
 			return
 		}
 
-		user, err := h.UserService.GetByID(ctx, userID)
+		user, err := h.userService.GetByID(ctx, userID)
 		if err != nil {
 			response.Error(w, http.StatusNotFound, err)
 			return
 		}
 
 		token := token.RandString(20)
-		if err := h.Emailer.SendChangeConfirmation(user.ID, user.Username, user.Email, token, new.Email); err != nil {
+		if err := h.emailer.SendChangeConfirmation(user.ID, user.Username, user.Email, token, new.Email); err != nil {
 			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
@@ -129,7 +138,7 @@ func (h *Handler) SendEmailValidation(u user.Service) http.HandlerFunc {
 			return
 		}
 
-		if err := h.AccountService.ValidateUserEmail(ctx, usr.ID, token, true); err != nil {
+		if err := h.accountService.ValidateUserEmail(ctx, usr.ID, token, true); err != nil {
 			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}

@@ -10,17 +10,25 @@ import (
 	"github.com/GGP1/adak/internal/sanitize"
 	"github.com/GGP1/adak/internal/token"
 	"github.com/GGP1/adak/internal/validate"
-	"github.com/pkg/errors"
-	"gopkg.in/guregu/null.v4/zero"
 
 	"github.com/bradfitz/gomemcache/memcache"
 	"github.com/go-chi/chi/v5"
+	"github.com/pkg/errors"
+	"gopkg.in/guregu/null.v4/zero"
 )
 
 // Handler handles product endpoints.
 type Handler struct {
-	Service Service
-	Cache   *memcache.Client
+	service Service
+	cache   *memcache.Client
+}
+
+// NewHandler returns a new product handler.
+func NewHandler(service Service, cache *memcache.Client) Handler {
+	return Handler{
+		service: service,
+		cache:   cache,
+	}
 }
 
 // Create creates a new product and saves it.
@@ -42,7 +50,7 @@ func (h *Handler) Create() http.HandlerFunc {
 
 		p.ID = zero.StringFrom(token.RandString(27))
 		p.CreatedAt = zero.TimeFrom(time.Now())
-		if err := h.Service.Create(ctx, p); err != nil {
+		if err := h.service.Create(ctx, p); err != nil {
 			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
@@ -57,7 +65,7 @@ func (h *Handler) Delete() http.HandlerFunc {
 		id := chi.URLParam(r, "id")
 		ctx := r.Context()
 
-		if err := h.Service.Delete(ctx, id); err != nil {
+		if err := h.service.Delete(ctx, id); err != nil {
 			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
@@ -71,7 +79,7 @@ func (h *Handler) Get() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
-		products, err := h.Service.Get(ctx)
+		products, err := h.service.Get(ctx)
 		if err != nil {
 			response.Error(w, http.StatusNotFound, err)
 			return
@@ -87,19 +95,19 @@ func (h *Handler) GetByID() http.HandlerFunc {
 		id := chi.URLParam(r, "id")
 		ctx := r.Context()
 
-		item, err := h.Cache.Get(id)
+		item, err := h.cache.Get(id)
 		if err == nil {
 			response.EncodedJSON(w, item.Value)
 			return
 		}
 
-		product, err := h.Service.GetByID(ctx, id)
+		product, err := h.service.GetByID(ctx, id)
 		if err != nil {
 			response.Error(w, http.StatusNotFound, err)
 			return
 		}
 
-		response.JSONAndCache(h.Cache, w, id, product)
+		response.JSONAndCache(h.cache, w, id, product)
 	}
 }
 
@@ -115,7 +123,7 @@ func (h *Handler) Search() http.HandlerFunc {
 			return
 		}
 
-		products, err := h.Service.Search(ctx, query)
+		products, err := h.service.Search(ctx, query)
 		if err != nil {
 			response.Error(w, http.StatusNotFound, err)
 			return
@@ -138,7 +146,7 @@ func (h *Handler) Update() http.HandlerFunc {
 		}
 		defer r.Body.Close()
 
-		if err := h.Service.Update(ctx, id, product); err != nil {
+		if err := h.service.Update(ctx, id, product); err != nil {
 			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}

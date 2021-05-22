@@ -11,7 +11,12 @@ import (
 
 // Handler handles tracking endpoints.
 type Handler struct {
-	Service Tracker
+	service Tracker
+}
+
+// NewHandler returns a new tracking handler.
+func NewHandler(service Tracker) Handler {
+	return Handler{service}
 }
 
 // DeleteHit prints the hit with the specified day.
@@ -20,7 +25,7 @@ func (h *Handler) DeleteHit() http.HandlerFunc {
 		id := chi.URLParam(r, "id")
 		ctx := r.Context()
 
-		if err := h.Service.Delete(ctx, id); err != nil {
+		if err := h.service.Delete(ctx, id); err != nil {
 			response.Error(w, http.StatusInternalServerError, err)
 			return
 		}
@@ -34,7 +39,7 @@ func (h *Handler) GetHits() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
-		hits, err := h.Service.Get(ctx)
+		hits, err := h.service.Get(ctx)
 		if err != nil {
 			response.Error(w, http.StatusNotFound, err)
 			return
@@ -50,7 +55,7 @@ func (h *Handler) SearchHit() http.HandlerFunc {
 		query := chi.URLParam(r, "query")
 		ctx := r.Context()
 
-		hits, err := h.Service.Search(ctx, query)
+		hits, err := h.service.Search(ctx, query)
 		if err != nil {
 			response.Error(w, http.StatusNotFound, err)
 			return
@@ -67,7 +72,7 @@ func (h *Handler) SearchHitByField() http.HandlerFunc {
 		value := chi.URLParam(r, "value")
 		ctx := r.Context()
 
-		hits, err := h.Service.SearchByField(ctx, field, value)
+		hits, err := h.service.SearchByField(ctx, field, value)
 		if err != nil {
 			response.Error(w, http.StatusNotFound, err)
 			return
