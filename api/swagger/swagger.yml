@@ -58,29 +58,6 @@ components:
         quantity:
           type: integer
           format: int64
-        brand:
-          type: string
-        category:
-          type: string
-        type:
-          type: string
-        description:
-          type: string
-        weight:
-          type: integer
-          format: int64
-        discount:
-          type: integer
-          format: int64
-        taxes:
-          type: integer
-          format: int64
-        subtotal:
-          type: integer
-          format: int64
-        total:
-          type: integer
-          format: int64
     
     Error:
       type: object
@@ -643,7 +620,7 @@ paths:
       summary: List cart products.
       responses:
         '200':
-          description: Cart product objects.
+          description: Cart product objects, id field references a product.
           content:
             application/json:
               schema:
@@ -653,7 +630,6 @@ paths:
         '404':
           description: 
             couldn't find the cart
-            cart is empty
           content:
             application/json:
               schema:
