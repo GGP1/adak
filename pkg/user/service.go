@@ -7,6 +7,7 @@ import (
 
 	"github.com/GGP1/adak/pkg/review"
 	"github.com/prometheus/client_golang/prometheus"
+	"gopkg.in/guregu/null.v4/zero"
 
 	"github.com/bradfitz/gomemcache/memcache"
 	"github.com/jmoiron/sqlx"
@@ -105,7 +106,7 @@ func (s *service) Get(ctx context.Context) ([]ListUser, error) {
 	s.metrics.methodCalls.With(prometheus.Labels{"method": "Get"}).Inc()
 
 	var users []ListUser
-	q := "SELECT id, cart_id, username, email, is_admin FROM users"
+	q := "SELECT id, cart_id, username, email, is_admin, created_at, updated_at FROM users"
 	if err := s.db.SelectContext(ctx, &users, q); err != nil {
 		return nil, errors.Wrap(err, "couldn't find the users")
 	}
@@ -164,7 +165,7 @@ func (s *service) Search(ctx context.Context, query string) ([]ListUser, error) 
 func (s *service) Update(ctx context.Context, u UpdateUser, id string) error {
 	s.metrics.methodCalls.With(prometheus.Labels{"method": "Update"}).Inc()
 	q := "UPDATE users SET username=$2, updated_at=$3 WHERE id=$1"
-	if _, err := s.db.ExecContext(ctx, q, id, u.Username, time.Now()); err != nil {
+	if _, err := s.db.ExecContext(ctx, q, id, u.Username, zero.TimeFrom(time.Now())); err != nil {
 		return errors.Wrap(err, "couldn't update the user")
 	}
 
@@ -178,7 +179,7 @@ func (s *service) Update(ctx context.Context, u UpdateUser, id string) error {
 func (s *service) getBy(ctx context.Context, field, value string) (ListUser, error) {
 	// Concatenation preferred over fmt.Sprintf
 	q := `SELECT
-	u.id, u.cart_id, u.username, u.email, u.is_admin, r.*
+	u.id, u.cart_id, u.username, u.email, u.is_admin, u.created_at, u.updated_at, r.*
 	FROM users AS u
 	LEFT JOIN reviews AS r ON u.id = r.user_id
 	WHERE u.` + field + `=$1`
@@ -198,7 +199,7 @@ func scan(rows *sql.Rows) (ListUser, error) {
 	for rows.Next() {
 		r := &review.Review{}
 		err := rows.Scan(
-			&user.ID, &user.CartID, &user.Username, &user.Email, &user.IsAdmin,
+			&user.ID, &user.CartID, &user.Username, &user.Email, &user.IsAdmin, &user.CreatedAt, &user.UpdatedAt,
 			&r.ID, &r.Stars, &r.Comment, &r.UserID, &r.ProductID,
 			&r.ShopID, &r.CreatedAt,
 		)
