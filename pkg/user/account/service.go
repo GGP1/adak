@@ -6,7 +6,6 @@ import (
 
 	"github.com/GGP1/adak/internal/logger"
 	"github.com/GGP1/adak/pkg/user"
-	"github.com/prometheus/client_golang/prometheus"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
@@ -32,7 +31,7 @@ func NewService(db *sqlx.DB) Service {
 
 // Change changes the user email.
 func (s *service) ChangeEmail(ctx context.Context, id, newEmail, token string) error {
-	s.metrics.methodCalls.With(prometheus.Labels{"method": "ChangeEmail"}).Inc()
+	s.metrics.incMethodCalls("ChangeEmail")
 
 	var user user.User
 	if err := s.db.SelectContext(ctx, &user, "SELECT * FROM users WHERE id=?", id); err != nil {
@@ -54,7 +53,7 @@ func (s *service) ChangeEmail(ctx context.Context, id, newEmail, token string) e
 
 // ChangePassword changes the user password.
 func (s *service) ChangePassword(ctx context.Context, id, oldPass, newPass string) error {
-	s.metrics.methodCalls.With(prometheus.Labels{"method": "ChangePassword"}).Inc()
+	s.metrics.incMethodCalls("ChangePassword")
 
 	var user user.User
 	if err := s.db.GetContext(ctx, &user, "SELECT password, created_at FROM users WHERE id=$1", id); err != nil {
@@ -87,7 +86,7 @@ func (s *service) ChangePassword(ctx context.Context, id, oldPass, newPass strin
 
 // ValidateUserEmail sets the time when the user validated its email and the token he received.
 func (s *service) ValidateUserEmail(ctx context.Context, id, confirmationCode string, verified bool) error {
-	s.metrics.methodCalls.With(prometheus.Labels{"method": "ValidateUserEmail"}).Inc()
+	s.metrics.incMethodCalls("ValidateUserEmail")
 
 	q := "UPDATE users SET verified_email=$2, confirmation_code=$3 WHERE id=$1"
 	_, err := s.db.ExecContext(ctx, q, id, verified, confirmationCode)

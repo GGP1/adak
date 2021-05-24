@@ -7,7 +7,6 @@ import (
 	"github.com/bradfitz/gomemcache/memcache"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
-	"github.com/prometheus/client_golang/prometheus"
 	"gopkg.in/guregu/null.v4/zero"
 )
 
@@ -32,7 +31,7 @@ func NewService(db *sqlx.DB, mc *memcache.Client) Service {
 
 // Create a review.
 func (s *service) Create(ctx context.Context, r Review) error {
-	s.metrics.methodCalls.With(prometheus.Labels{"method": "Create"}).Inc()
+	s.metrics.incMethodCalls("Create")
 
 	q := `INSERT INTO reviews
 	(id, stars, comment, user_id, product_id, shop_id, created_at)
@@ -49,7 +48,7 @@ func (s *service) Create(ctx context.Context, r Review) error {
 
 // Delete permanently deletes a review from the database.
 func (s *service) Delete(ctx context.Context, id string) error {
-	s.metrics.methodCalls.With(prometheus.Labels{"method": "Delete"}).Inc()
+	s.metrics.incMethodCalls("Delete")
 	_, err := s.db.ExecContext(ctx, "DELETE FROM reviews WHERE id=$1", id)
 	if err != nil {
 		return errors.Wrap(err, "couldn't delete the review")
@@ -65,7 +64,7 @@ func (s *service) Delete(ctx context.Context, id string) error {
 
 // Get returns a list with all the reviews stored in the database.
 func (s *service) Get(ctx context.Context) ([]Review, error) {
-	s.metrics.methodCalls.With(prometheus.Labels{"method": "Get"}).Inc()
+	s.metrics.incMethodCalls("Get")
 
 	var reviews []Review
 	if err := s.db.SelectContext(ctx, &reviews, "SELECT * FROM reviews"); err != nil {
@@ -77,7 +76,7 @@ func (s *service) Get(ctx context.Context) ([]Review, error) {
 
 // GetByID retrieves the review requested from the database.
 func (s *service) GetByID(ctx context.Context, id string) (Review, error) {
-	s.metrics.methodCalls.With(prometheus.Labels{"method": "GetByID"}).Inc()
+	s.metrics.incMethodCalls("GetByID")
 
 	var review Review
 	row := s.db.QueryRowContext(ctx, "SELECT * FROM reviews WHERE id=$1", id)

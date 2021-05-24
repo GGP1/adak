@@ -6,7 +6,6 @@ import (
 
 	"github.com/GGP1/adak/pkg/product"
 	"github.com/GGP1/adak/pkg/review"
-	"github.com/prometheus/client_golang/prometheus"
 	"gopkg.in/guregu/null.v4/zero"
 
 	"github.com/bradfitz/gomemcache/memcache"
@@ -37,7 +36,7 @@ func NewService(db *sqlx.DB, mc *memcache.Client) Service {
 
 // Create a shop.
 func (s *service) Create(ctx context.Context, shop Shop) error {
-	s.metrics.methodCalls.With(prometheus.Labels{"method": "Create"}).Inc()
+	s.metrics.incMethodCalls("Create")
 
 	tx, err := s.db.Begin()
 	if err != nil {
@@ -68,7 +67,7 @@ func (s *service) Create(ctx context.Context, shop Shop) error {
 
 // Delete permanently deletes a shop from the database.
 func (s *service) Delete(ctx context.Context, id string) error {
-	s.metrics.methodCalls.With(prometheus.Labels{"method": "Delete"}).Inc()
+	s.metrics.incMethodCalls("Delete")
 	_, err := s.db.ExecContext(ctx, "DELETE FROM shops WHERE id=$1", id)
 	if err != nil {
 		return errors.Wrap(err, "deleting shop from database")
@@ -84,7 +83,7 @@ func (s *service) Delete(ctx context.Context, id string) error {
 
 // Get returns a list with all the shops stored in the database.
 func (s *service) Get(ctx context.Context) ([]Shop, error) {
-	s.metrics.methodCalls.With(prometheus.Labels{"method": "Get"}).Inc()
+	s.metrics.incMethodCalls("Get")
 
 	var shops []Shop
 	if err := s.db.SelectContext(ctx, &shops, "SELECT * FROM shops"); err != nil {
@@ -96,7 +95,7 @@ func (s *service) Get(ctx context.Context) ([]Shop, error) {
 
 // GetByID retrieves the shop requested from the database.
 func (s *service) GetByID(ctx context.Context, id string) (Shop, error) {
-	s.metrics.methodCalls.With(prometheus.Labels{"method": "GetByID"}).Inc()
+	s.metrics.incMethodCalls("GetByID")
 
 	q := `SELECT s.*, l.*, r.*, p.* 
 	FROM shops s
@@ -136,7 +135,7 @@ func (s *service) GetByID(ctx context.Context, id string) (Shop, error) {
 
 // Search looks for the shops that contain the value specified. (Only text fields)
 func (s *service) Search(ctx context.Context, query string) ([]Shop, error) {
-	s.metrics.methodCalls.With(prometheus.Labels{"method": "Search"}).Inc()
+	s.metrics.incMethodCalls("Search")
 
 	var shops []Shop
 	q := "SELECT * FROM shops WHERE to_tsvector(id || ' ' || name) @@ plainto_tsquery($1)"
@@ -149,7 +148,7 @@ func (s *service) Search(ctx context.Context, query string) ([]Shop, error) {
 
 // Update updates shop fields.
 func (s *service) Update(ctx context.Context, id string, shop UpdateShop) error {
-	s.metrics.methodCalls.With(prometheus.Labels{"method": "Update"}).Inc()
+	s.metrics.incMethodCalls("Update")
 
 	q := "UPDATE shops SET name=$2, updated_at=$3 WHERE id=$1"
 	_, err := s.db.ExecContext(ctx, q, id, shop.Name, zero.TimeFrom(time.Now()))
@@ -166,6 +165,6 @@ func (s *service) Update(ctx context.Context, id string, shop UpdateShop) error 
 
 // TODO: finish and add to Service interface
 func (s *service) UpdateLocation(ctx context.Context, shopID string, location Location) error {
-	s.metrics.methodCalls.With(prometheus.Labels{"method": "UpdateLocation"}).Inc()
+	s.metrics.incMethodCalls("UpdateLocation")
 	return nil
 }

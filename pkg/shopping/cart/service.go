@@ -7,7 +7,6 @@ import (
 	"github.com/bradfitz/gomemcache/memcache"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
-	"github.com/prometheus/client_golang/prometheus"
 	"gopkg.in/guregu/null.v4/zero"
 )
 
@@ -63,7 +62,7 @@ func New(id string) *Cart {
 
 // Add adds a product to the cart.
 func (s *service) Add(ctx context.Context, cartProduct Product) error {
-	s.metrics.methodCalls.With(prometheus.Labels{"method": "Add"}).Inc()
+	s.metrics.incMethodCalls("Add")
 
 	tx, err := s.db.Beginx()
 	if err != nil {
@@ -100,7 +99,7 @@ func (s *service) Add(ctx context.Context, cartProduct Product) error {
 
 // Checkout returns the cart total.
 func (s *service) Checkout(ctx context.Context, cartID string) (int64, error) {
-	s.metrics.methodCalls.With(prometheus.Labels{"method": "Checkout"}).Inc()
+	s.metrics.incMethodCalls("Checkout")
 
 	var cart Cart
 	if err := s.db.GetContext(ctx, &cart, "SELECT * FROM carts WHERE id=$1", cartID); err != nil {
@@ -113,7 +112,7 @@ func (s *service) Checkout(ctx context.Context, cartID string) (int64, error) {
 
 // Create a cart.
 func (s *service) Create(ctx context.Context, cartID string) error {
-	s.metrics.methodCalls.With(prometheus.Labels{"method": "Create"}).Inc()
+	s.metrics.incMethodCalls("Create")
 
 	cartQuery := `INSERT INTO carts
 	(id, counter, weight, discount, taxes, subtotal, total)
@@ -128,7 +127,7 @@ func (s *service) Create(ctx context.Context, cartID string) error {
 
 // Delete permanently deletes a cart from the database.
 func (s *service) Delete(ctx context.Context, cartID string) error {
-	s.metrics.methodCalls.With(prometheus.Labels{"method": "Delete"}).Inc()
+	s.metrics.incMethodCalls("Delete")
 
 	if _, err := s.db.ExecContext(ctx, "DELETE FROM carts WHERE id=$1", cartID); err != nil {
 		return errors.New("deleting cart from postgres")
@@ -148,7 +147,7 @@ func (s *service) FilterBy(ctx context.Context, cartID, field, args string) ([]p
 		return nil, errors.Errorf("%q, invalid field", field)
 	}
 
-	s.metrics.methodCalls.With(prometheus.Labels{"method": "FilterBy " + field}).Inc()
+	s.metrics.incMethodCalls("FilterBy " + field)
 
 	query := "SELECT * FROM products WHERE cart_id=$1 AND " + condition
 	var products []product.Product
@@ -165,7 +164,7 @@ func (s *service) FilterBy(ctx context.Context, cartID, field, args string) ([]p
 
 // Get returns the user cart.
 func (s *service) Get(ctx context.Context, cartID string) (Cart, error) {
-	s.metrics.methodCalls.With(prometheus.Labels{"method": "Get"}).Inc()
+	s.metrics.incMethodCalls("Get")
 
 	q := `SELECT c.*, cp.*
 	FROM carts AS c
@@ -198,7 +197,7 @@ func (s *service) Get(ctx context.Context, cartID string) (Cart, error) {
 
 // CartProduct returns a cart product.
 func (s *service) CartProduct(ctx context.Context, cartID, productID string) (Product, error) {
-	s.metrics.methodCalls.With(prometheus.Labels{"method": "Product"}).Inc()
+	s.metrics.incMethodCalls("Product")
 
 	var product Product
 	q := "SELECT * FROM cart_products WHERE id=$1 AND cart_id=$2"
@@ -211,7 +210,7 @@ func (s *service) CartProduct(ctx context.Context, cartID, productID string) (Pr
 
 // Products returns the cart products.
 func (s *service) CartProducts(ctx context.Context, cartID string) ([]Product, error) {
-	s.metrics.methodCalls.With(prometheus.Labels{"method": "Products"}).Inc()
+	s.metrics.incMethodCalls("Products")
 
 	var products []Product
 	if err := s.db.SelectContext(ctx, &products, "SELECT * FROM cart_products WHERE cart_id=$1", cartID); err != nil {
@@ -227,7 +226,7 @@ func (s *service) CartProducts(ctx context.Context, cartID string) ([]Product, e
 
 // Remove takes away the specified quantity of products from the cart.
 func (s *service) Remove(ctx context.Context, cartID string, pID string, quantity int64) error {
-	s.metrics.methodCalls.With(prometheus.Labels{"method": "Remove"}).Inc()
+	s.metrics.incMethodCalls("Remove")
 
 	tx, err := s.db.Beginx()
 	if err != nil {
@@ -277,7 +276,7 @@ func (s *service) Remove(ctx context.Context, cartID string, pID string, quantit
 
 // Reset sets cart values to default.
 func (s *service) Reset(ctx context.Context, cartID string) error {
-	s.metrics.methodCalls.With(prometheus.Labels{"method": "Reset"}).Inc()
+	s.metrics.incMethodCalls("Reset")
 
 	tx, err := s.db.Begin()
 	if err != nil {
@@ -306,7 +305,7 @@ func (s *service) Reset(ctx context.Context, cartID string) error {
 
 // Size returns the quantity of products inside the cart.
 func (s *service) Size(ctx context.Context, cartID string) (int64, error) {
-	s.metrics.methodCalls.With(prometheus.Labels{"method": "Size"}).Inc()
+	s.metrics.incMethodCalls("Size")
 
 	var size int64
 	row := s.db.QueryRowContext(ctx, "SELECT counter FROM carts WHERE id=$1", cartID)

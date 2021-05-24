@@ -20,14 +20,14 @@ type MetricsHandler struct {
 }
 
 // NewMetrics initializes the metrics and returns the handler used to scrap.
-func NewMetrics() *MetricsHandler {
+func NewMetrics() MetricsHandler {
 	const ns, sub = "adak", "http"
 
 	basicLabels := []string{"path"}
 	httpLabels := []string{"path", "method", "code"}
 	sizeBuckets := prometheus.ExponentialBuckets(256, 4, 8)
 
-	return &MetricsHandler{
+	return MetricsHandler{
 		requestInFlight: promauto.NewGaugeVec(prometheus.GaugeOpts{
 			Namespace: ns,
 			Subsystem: sub,
@@ -65,7 +65,7 @@ func NewMetrics() *MetricsHandler {
 }
 
 // Scrap registers endpoint behavior metrics.
-func (m *MetricsHandler) Scrap(next http.Handler) http.Handler {
+func (m MetricsHandler) Scrap(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		start := time.Now()
 		path := cleanPath(r.URL.Path)

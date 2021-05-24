@@ -7,7 +7,6 @@ import (
 	"github.com/bradfitz/gomemcache/memcache"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
-	"github.com/prometheus/client_golang/prometheus"
 )
 
 // Service provides product operations.
@@ -33,7 +32,7 @@ func NewService(db *sqlx.DB, mc *memcache.Client) Service {
 
 // Create a product.
 func (s *service) Create(ctx context.Context, p Product) error {
-	s.metrics.methodCalls.With(prometheus.Labels{"method": "Create"}).Inc()
+	s.metrics.incMethodCalls("Create")
 
 	q := `INSERT INTO products 
 	(id, shop_id, stock, brand, category, type, description, 
@@ -52,7 +51,7 @@ func (s *service) Create(ctx context.Context, p Product) error {
 
 // Delete permanently deletes a product from the database.
 func (s *service) Delete(ctx context.Context, id string) error {
-	s.metrics.methodCalls.With(prometheus.Labels{"method": "Delete"}).Inc()
+	s.metrics.incMethodCalls("Delete")
 	_, err := s.db.ExecContext(ctx, "DELETE FROM products WHERE id=$1", id)
 	if err != nil {
 		return errors.Wrap(err, "couldn't delete product from the database")
@@ -68,7 +67,7 @@ func (s *service) Delete(ctx context.Context, id string) error {
 
 // Get returns a list with all the products stored in the database.
 func (s *service) Get(ctx context.Context) ([]Product, error) {
-	s.metrics.methodCalls.With(prometheus.Labels{"method": "Get"}).Inc()
+	s.metrics.incMethodCalls("Get")
 
 	q := `SELECT p.*, r.*
 	FROM products AS p
@@ -103,7 +102,7 @@ func (s *service) Get(ctx context.Context) ([]Product, error) {
 
 // GetByID retrieves the product requested from the database.
 func (s *service) GetByID(ctx context.Context, id string) (Product, error) {
-	s.metrics.methodCalls.With(prometheus.Labels{"method": "GetByID"}).Inc()
+	s.metrics.incMethodCalls("GetByID")
 
 	q := `SELECT p.*, r.*
 	FROM products p
@@ -137,7 +136,7 @@ func (s *service) GetByID(ctx context.Context, id string) (Product, error) {
 
 // Search looks for the products that contain the value specified. (Only text fields)
 func (s *service) Search(ctx context.Context, query string) ([]Product, error) {
-	s.metrics.methodCalls.With(prometheus.Labels{"method": "Search"}).Inc()
+	s.metrics.incMethodCalls("Search")
 
 	var products []Product
 	q := `SELECT * FROM products WHERE
@@ -152,7 +151,7 @@ func (s *service) Search(ctx context.Context, query string) ([]Product, error) {
 
 // Update updates product fields.
 func (s *service) Update(ctx context.Context, id string, p UpdateProduct) error {
-	s.metrics.methodCalls.With(prometheus.Labels{"method": "Update"}).Inc()
+	s.metrics.incMethodCalls("Update")
 
 	q := `UPDATE products SET stock=$2, brand=$3, category=$4, type=$5,
 	description=$6, weight=$7, discount=$8, taxes=$9, subtotal=$10, total=$11

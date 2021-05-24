@@ -20,3 +20,7 @@ func initMetrics() metrics {
 		}, []string{"method"}),
 	}
 }
+
+func (m metrics) incMethodCalls(method string) {
+	m.methodCalls.With(prometheus.Labels{"method": method}).Inc()
+}
