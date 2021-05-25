@@ -54,8 +54,7 @@ type Postgres struct {
 
 // RateLimiter configuration.
 type RateLimiter struct {
-	Enabled bool
-	Rate    int
+	Rate int
 }
 
 // Redis configuration.
@@ -192,8 +191,7 @@ var (
 		"postgres.name":     "adak",
 		"postgres.sslmode":  "disable",
 		// Rate limiter
-		"ratelimiter.enabled": true,
-		"ratelimiter.rate":    5, // Per minute
+		"ratelimiter.rate": 5, // Per minute
 		// Redis
 		"redis.host":     "redis",
 		"redis.port":     "6379",
@@ -240,8 +238,7 @@ var (
 		"postgres.name":     "POSTGRES_DB",
 		"postgres.sslmode":  "POSTGRES_SSL",
 		// Rate limiter
-		"ratelimiter.enabled": "RATELIMITER_ENABLED",
-		"ratelimiter.rate":    "RATELIMITER_RATE",
+		"ratelimiter.rate": "RATELIMITER_RATE",
 		// Redis
 		"redis.host":     "REDIS_HOST",
 		"redis.port":     "REDIS_PORT",

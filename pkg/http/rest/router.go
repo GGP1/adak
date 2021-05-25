@@ -57,7 +57,7 @@ func NewRouter(config config.Config, db *sqlx.DB, mc *memcache.Client, rdb *redi
 		middleware.LogFormatter, middleware.GZIPCompress, metrics.Scrap)
 
 	// Must be after the other middlewares otherwise they won't have effect when rate limiting
-	if config.RateLimiter.Enabled {
+	if config.RateLimiter.Rate > 0 {
 		rateLimiter := middleware.NewRateLimiter(config.RateLimiter, rdb)
 		router.Use(rateLimiter.Limit)
 	}
