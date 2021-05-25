@@ -29,8 +29,7 @@ postgres:
   sslmode: disable
 
 ratelimiter:
-  enabled: true
-  rate: 6 # 1 request is refilled per (minute/rate) seconds.
+  rate: 6 # 1 request is refilled per (minute/rate) seconds. Set to 0 to disable.
 
 redis:
   host: redis
