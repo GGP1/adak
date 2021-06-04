@@ -49,10 +49,10 @@ func (s *service) Create(ctx context.Context, user AddUser) error {
 	}
 	defer tx.Commit()
 
-	var count int
-	q := "SELECT COUNT(id) FROM users WHERE email=$1 OR username=$2"
-	_ = tx.GetContext(ctx, &count, q, user.Email, user.Username)
-	if count > 0 {
+	var exists bool
+	q := "SELECT EXISTS(SELECT id FROM users WHERE email=$1 OR username=$2)"
+	_ = tx.GetContext(ctx, &exists, q, user.Email, user.Username)
+	if exists {
 		return errors.New("email or username is already taken")
 	}
 

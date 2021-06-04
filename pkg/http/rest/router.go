@@ -80,7 +80,7 @@ func NewRouter(config config.Config, db *sqlx.DB, mc *memcache.Client, rdb *redi
 		r.Get("/checkout", cart.Checkout())
 		r.Get("/products", cart.Products())
 		r.Delete("/remove/{id}/{quantity}", cart.Remove())
-		r.Get("/reset", cart.Reset())
+		r.Post("/reset", cart.Reset())
 		r.Get("/size", cart.Size())
 	})
 
