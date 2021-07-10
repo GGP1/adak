@@ -4,6 +4,8 @@ import (
 	"context"
 	"time"
 
+	"github.com/GGP1/adak/internal/params"
+	"github.com/GGP1/adak/pkg/postgres"
 	"github.com/GGP1/adak/pkg/product"
 	"github.com/GGP1/adak/pkg/review"
 	"gopkg.in/guregu/null.v4/zero"
@@ -17,7 +19,7 @@ import (
 type Service interface {
 	Create(ctx context.Context, shop Shop) error
 	Delete(ctx context.Context, id string) error
-	Get(ctx context.Context) ([]Shop, error)
+	Get(ctx context.Context, params params.Query) ([]Shop, error)
 	GetByID(ctx context.Context, id string) (Shop, error)
 	Search(ctx context.Context, query string) ([]Shop, error)
 	Update(ctx context.Context, id string, shop UpdateShop) error
@@ -82,11 +84,12 @@ func (s *service) Delete(ctx context.Context, id string) error {
 }
 
 // Get returns a list with all the shops stored in the database.
-func (s *service) Get(ctx context.Context) ([]Shop, error) {
+func (s *service) Get(ctx context.Context, params params.Query) ([]Shop, error) {
 	s.metrics.incMethodCalls("Get")
 
 	var shops []Shop
-	if err := s.db.SelectContext(ctx, &shops, "SELECT * FROM shops"); err != nil {
+	q, args := postgres.AddPagination("SELECT * FROM shops", params)
+	if err := s.db.SelectContext(ctx, &shops, q, args); err != nil {
 		return nil, errors.Wrap(err, "couldn't find the shops")
 	}
 

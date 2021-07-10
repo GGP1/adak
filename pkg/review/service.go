@@ -4,6 +4,8 @@ import (
 	"context"
 	"time"
 
+	"github.com/GGP1/adak/internal/params"
+	"github.com/GGP1/adak/pkg/postgres"
 	"github.com/bradfitz/gomemcache/memcache"
 	"github.com/jmoiron/sqlx"
 	"github.com/pkg/errors"
@@ -14,7 +16,7 @@ import (
 type Service interface {
 	Create(ctx context.Context, r Review) error
 	Delete(ctx context.Context, id string) error
-	Get(ctx context.Context) ([]Review, error)
+	Get(ctx context.Context, params params.Query) ([]Review, error)
 	GetByID(ctx context.Context, id string) (Review, error)
 }
 
@@ -63,11 +65,12 @@ func (s *service) Delete(ctx context.Context, id string) error {
 }
 
 // Get returns a list with all the reviews stored in the database.
-func (s *service) Get(ctx context.Context) ([]Review, error) {
+func (s *service) Get(ctx context.Context, params params.Query) ([]Review, error) {
 	s.metrics.incMethodCalls("Get")
 
 	var reviews []Review
-	if err := s.db.SelectContext(ctx, &reviews, "SELECT * FROM reviews"); err != nil {
+	q, args := postgres.AddPagination("SELECT * FROM reviews", params)
+	if err := s.db.SelectContext(ctx, &reviews, q, args...); err != nil {
 		return nil, errors.Wrap(err, "couldn't find the reviews")
 	}
 

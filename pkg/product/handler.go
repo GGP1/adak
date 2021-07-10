@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/GGP1/adak/internal/params"
 	"github.com/GGP1/adak/internal/response"
 	"github.com/GGP1/adak/internal/sanitize"
 	"github.com/GGP1/adak/internal/token"
@@ -16,6 +17,11 @@ import (
 	"github.com/pkg/errors"
 	"gopkg.in/guregu/null.v4/zero"
 )
+
+type cursorResponse struct {
+	NextCursor string    `json:"next_cursor,omitempty"`
+	Products   []Product `json:"products,omitempty"`
+}
 
 // Handler handles product endpoints.
 type Handler struct {
@@ -79,13 +85,30 @@ func (h *Handler) Get() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
-		products, err := h.service.Get(ctx)
+		urlParams, err := params.ParseQuery(r.URL.RawQuery, params.Product)
+		if err != nil {
+			response.Error(w, http.StatusBadRequest, err)
+			return
+		}
+
+		products, err := h.service.Get(ctx, urlParams)
 		if err != nil {
 			response.Error(w, http.StatusNotFound, err)
 			return
 		}
 
-		response.JSON(w, http.StatusOK, products)
+		var nextCursor string
+		if len(products) > 0 {
+			nextCursor = params.EncodeCursor(
+				products[len(products)-1].CreatedAt.Time,
+				products[len(products)-1].ID.String,
+			)
+		}
+
+		response.JSON(w, http.StatusOK, cursorResponse{
+			NextCursor: nextCursor,
+			Products:   products,
+		})
 	}
 }
 

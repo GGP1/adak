@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/GGP1/adak/internal/logger"
+	"github.com/GGP1/adak/internal/params"
 	"github.com/GGP1/adak/internal/test"
 	"github.com/GGP1/adak/pkg/shop"
 
@@ -76,7 +77,8 @@ func delete(ctx context.Context, s shop.Service) func(t *testing.T) {
 
 func get(ctx context.Context, s shop.Service) func(t *testing.T) {
 	return func(t *testing.T) {
-		shops, err := s.Get(ctx)
+		params := params.Query{}
+		shops, err := s.Get(ctx, params)
 		assert.NoError(t, err)
 		assert.Equal(t, sh.Name, shops[0].Name)
 	}

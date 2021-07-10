@@ -1,6 +1,8 @@
 package ordering
 
-import "gopkg.in/guregu/null.v4/zero"
+import (
+	"gopkg.in/guregu/null.v4/zero"
+)
 
 type status int64
 
@@ -29,6 +31,7 @@ type Order struct {
 	CartID       zero.String    `json:"cart_id,omitempty" db:"cart_id"`
 	Cart         OrderCart      `json:"cart,omitempty"`
 	Products     []OrderProduct `json:"products,omitempty"`
+	CreatedAt    zero.Time      `json:"created_at,omitempty" db:"created_at"`
 }
 
 // OrderCart represents the cart ordered by the user.

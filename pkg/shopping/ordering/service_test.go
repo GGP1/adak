@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/GGP1/adak/internal/logger"
+	"github.com/GGP1/adak/internal/params"
 	"github.com/GGP1/adak/internal/test"
 	"github.com/GGP1/adak/pkg/shopping/cart"
 	"github.com/GGP1/adak/pkg/shopping/ordering"
@@ -89,7 +90,8 @@ func delete(ctx context.Context, s ordering.Service) func(*testing.T) {
 
 func get(ctx context.Context, s ordering.Service) func(*testing.T) {
 	return func(t *testing.T) {
-		orders, err := s.Get(ctx)
+		params := params.Query{}
+		orders, err := s.Get(ctx, params)
 		assert.NoError(t, err)
 
 		assert.Equal(t, 1, len(orders))

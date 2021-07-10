@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/GGP1/adak/internal/cookie"
+	"github.com/GGP1/adak/internal/params"
 	"github.com/GGP1/adak/internal/response"
 	"github.com/GGP1/adak/internal/token"
 	"github.com/GGP1/adak/internal/validate"
@@ -13,6 +14,11 @@ import (
 	"github.com/go-chi/chi/v5"
 	"gopkg.in/guregu/null.v4/zero"
 )
+
+type cursorResponse struct {
+	NextCursor string   `json:"next_cursor,omitempty"`
+	Reviews    []Review `json:"reviews,omitempty"`
+}
 
 // Handler handles reviews endpoints.
 type Handler struct {
@@ -86,13 +92,30 @@ func (h *Handler) Get() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
-		reviews, err := h.service.Get(ctx)
+		urlParams, err := params.ParseQuery(r.URL.RawQuery, params.Review)
+		if err != nil {
+			response.Error(w, http.StatusBadRequest, err)
+			return
+		}
+
+		reviews, err := h.service.Get(ctx, urlParams)
 		if err != nil {
 			response.Error(w, http.StatusNotFound, err)
 			return
 		}
 
-		response.JSON(w, http.StatusOK, reviews)
+		var nextCursor string
+		if len(reviews) > 0 {
+			nextCursor = params.EncodeCursor(
+				reviews[len(reviews)-1].CreatedAt.Time,
+				reviews[len(reviews)-1].ID.String,
+			)
+		}
+
+		response.JSON(w, http.StatusOK, cursorResponse{
+			NextCursor: nextCursor,
+			Reviews:    reviews,
+		})
 	}
 }
 

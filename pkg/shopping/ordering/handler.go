@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/GGP1/adak/internal/cookie"
+	"github.com/GGP1/adak/internal/params"
 	"github.com/GGP1/adak/internal/response"
 	"github.com/GGP1/adak/internal/sanitize"
 	"github.com/GGP1/adak/internal/token"
@@ -18,6 +19,11 @@ import (
 	"github.com/jmoiron/sqlx"
 	"gopkg.in/guregu/null.v4/zero"
 )
+
+type cursorResponse struct {
+	NextCursor string  `json:"next_cursor,omitempty"`
+	Orders     []Order `json:"orders,omitempty"`
+}
 
 // OrderParams holds the parameters for creating a order.
 type OrderParams struct {
@@ -80,13 +86,30 @@ func (h *Handler) Get() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
-		orders, err := h.orderingService.Get(ctx)
+		urlParams, err := params.ParseQuery(r.URL.RawQuery, params.Order)
+		if err != nil {
+			response.Error(w, http.StatusBadRequest, err)
+			return
+		}
+
+		orders, err := h.orderingService.Get(ctx, urlParams)
 		if err != nil {
 			response.Error(w, http.StatusNotFound, err)
 			return
 		}
 
-		response.JSON(w, http.StatusOK, orders)
+		var nextCursor string
+		if len(orders) > 0 {
+			nextCursor = params.EncodeCursor(
+				orders[len(orders)-1].CreatedAt.Time,
+				orders[len(orders)-1].ID.String,
+			)
+		}
+
+		response.JSON(w, http.StatusOK, cursorResponse{
+			NextCursor: nextCursor,
+			Orders:     orders,
+		})
 	}
 }
 

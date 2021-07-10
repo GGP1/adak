@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/GGP1/adak/internal/params"
 	"github.com/GGP1/adak/internal/response"
 	"github.com/GGP1/adak/internal/sanitize"
 	"github.com/GGP1/adak/internal/token"
@@ -14,6 +15,11 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/pkg/errors"
 )
+
+type cursorResponse struct {
+	NextCursor string `json:"next_cursor,omitempty"`
+	Shops      []Shop `json:"shops,omitempty"`
+}
 
 // Handler handles shop endpoints.
 type Handler struct {
@@ -76,13 +82,27 @@ func (h *Handler) Get() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
-		shops, err := h.service.Get(ctx)
+		urlParams, err := params.ParseQuery(r.URL.RawQuery, params.Shop)
+		if err != nil {
+			response.Error(w, http.StatusBadRequest, err)
+			return
+		}
+
+		shops, err := h.service.Get(ctx, urlParams)
 		if err != nil {
 			response.Error(w, http.StatusNotFound, err)
 			return
 		}
 
-		response.JSON(w, http.StatusOK, shops)
+		var nextCursor string
+		if len(shops) > 0 {
+			nextCursor = params.EncodeCursor(shops[len(shops)-1].CreatedAt, shops[len(shops)-1].ID)
+		}
+
+		response.JSON(w, http.StatusOK, cursorResponse{
+			NextCursor: nextCursor,
+			Shops:      shops,
+		})
 	}
 }
 

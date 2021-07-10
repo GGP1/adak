@@ -38,13 +38,16 @@ func Connect(ctx context.Context, c config.Postgres) (*sqlx.DB, error) {
 // testing purposes.
 func CreateTables(ctx context.Context, db *sqlx.DB) error {
 	if _, err := db.ExecContext(ctx, tables); err != nil {
-		return errors.Wrap(err, "couldn't create the tables")
+		return errors.Wrap(err, "couldn't create tables")
 	}
 
 	return nil
 }
 
 // Order matters
+//
+// TODO: postgres throws an error when creating
+// index orders (created_at) even when the field is correctly set
 const tables = `
 CREATE TABLE IF NOT EXISTS users
 (
@@ -161,9 +164,10 @@ CREATE TABLE IF NOT EXISTS orders
     zip_code text,
     country text,
     status integer,
+    cart_id text,
+    created_at timestamp with time zone DEFAULT NOW(),
     ordered_at timestamp with time zone,
     delivery_date timestamp with time zone,
-    cart_id text,
     CONSTRAINT orders_pkey PRIMARY KEY (id),
     FOREIGN KEY (user_id) REFERENCES users (id) ON DELETE CASCADE
 );
@@ -199,4 +203,8 @@ CREATE TABLE IF NOT EXISTS order_products
         ON DELETE CASCADE
         DEFERRABLE INITIALLY DEFERRED
 );
-`
+
+CREATE INDEX ON users (created_at);
+CREATE INDEX ON shops (created_at);
+CREATE INDEX ON products (created_at);
+CREATE INDEX ON reviews (created_at);`

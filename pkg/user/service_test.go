@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/GGP1/adak/internal/logger"
+	"github.com/GGP1/adak/internal/params"
 	"github.com/GGP1/adak/internal/test"
 	"github.com/GGP1/adak/pkg/user"
 
@@ -78,7 +79,8 @@ func delete(ctx context.Context, s user.Service) func(t *testing.T) {
 
 func get(ctx context.Context, s user.Service) func(t *testing.T) {
 	return func(t *testing.T) {
-		users, err := s.Get(ctx)
+		params := params.Query{}
+		users, err := s.Get(ctx, params)
 		assert.NoError(t, err)
 		assert.Equal(t, u.Email, users[0].Email)
 	}

@@ -8,6 +8,7 @@ import (
 
 	"github.com/GGP1/adak/internal/cookie"
 	"github.com/GGP1/adak/internal/email"
+	"github.com/GGP1/adak/internal/params"
 	"github.com/GGP1/adak/internal/response"
 	"github.com/GGP1/adak/internal/sanitize"
 	"github.com/GGP1/adak/internal/token"
@@ -19,6 +20,11 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/pkg/errors"
 )
+
+type cursorResponse struct {
+	NextCursor string     `json:"next_cursor,omitempty"`
+	Users      []ListUser `json:"users,omitempty"`
+}
 
 // Handler handles user endpoints.
 type Handler struct {
@@ -65,7 +71,7 @@ func (h *Handler) Create() http.HandlerFunc {
 			}
 		}
 
-		// Set fields here for testing purposes and normalize inputs
+		// Set fields here to make testing easier and normalize inputs
 		user.ID = token.RandString(32)
 		user.CartID = token.RandString(31)
 		user.Username = sanitize.Normalize(user.Username)
@@ -127,13 +133,27 @@ func (h *Handler) Get() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
-		users, err := h.userService.Get(ctx)
+		urlParams, err := params.ParseQuery(r.URL.RawQuery, params.Shop)
+		if err != nil {
+			response.Error(w, http.StatusBadRequest, err)
+			return
+		}
+
+		users, err := h.userService.Get(ctx, urlParams)
 		if err != nil {
 			response.Error(w, http.StatusNotFound, err)
 			return
 		}
 
-		response.JSON(w, http.StatusOK, users)
+		var nextCursor string
+		if len(users) > 0 {
+			nextCursor = params.EncodeCursor(users[len(users)-1].CreatedAt, users[len(users)-1].ID)
+		}
+
+		response.JSON(w, http.StatusOK, cursorResponse{
+			NextCursor: nextCursor,
+			Users:      users,
+		})
 	}
 }
 

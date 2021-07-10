@@ -5,6 +5,8 @@ import (
 	"database/sql"
 	"time"
 
+	"github.com/GGP1/adak/internal/params"
+	"github.com/GGP1/adak/pkg/postgres"
 	"github.com/GGP1/adak/pkg/review"
 
 	"github.com/bradfitz/gomemcache/memcache"
@@ -19,7 +21,7 @@ import (
 type Service interface {
 	Create(ctx context.Context, user AddUser) error
 	Delete(ctx context.Context, id string) error
-	Get(ctx context.Context) ([]ListUser, error)
+	Get(ctx context.Context, params params.Query) ([]ListUser, error)
 	GetByEmail(ctx context.Context, email string) (ListUser, error)
 	GetByID(ctx context.Context, id string) (ListUser, error)
 	GetByUsername(ctx context.Context, username string) (ListUser, error)
@@ -50,7 +52,7 @@ func (s *service) Create(ctx context.Context, user AddUser) error {
 	defer tx.Commit()
 
 	var exists bool
-	q := "SELECT EXISTS(SELECT id FROM users WHERE email=$1 OR username=$2)"
+	q := "SELECT EXISTS(SELECT 1 FROM users WHERE email=$1 OR username=$2)"
 	_ = tx.GetContext(ctx, &exists, q, user.Email, user.Username)
 	if exists {
 		return errors.New("email or username is already taken")
@@ -101,12 +103,12 @@ func (s *service) Delete(ctx context.Context, id string) error {
 }
 
 // Get returns a list with all the users stored in the database.
-func (s *service) Get(ctx context.Context) ([]ListUser, error) {
+func (s *service) Get(ctx context.Context, params params.Query) ([]ListUser, error) {
 	s.metrics.incMethodCalls("Get")
 
 	var users []ListUser
-	q := "SELECT id, cart_id, username, email, is_admin, created_at, updated_at FROM users"
-	if err := s.db.SelectContext(ctx, &users, q); err != nil {
+	q, args := postgres.AddPagination("SELECT id, cart_id, username, email, is_admin, created_at, updated_at FROM users", params)
+	if err := s.db.SelectContext(ctx, &users, q, args...); err != nil {
 		return nil, errors.Wrap(err, "couldn't find the users")
 	}
 

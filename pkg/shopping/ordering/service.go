@@ -5,6 +5,8 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/GGP1/adak/internal/params"
+	"github.com/GGP1/adak/pkg/postgres"
 	"github.com/GGP1/adak/pkg/product"
 	"github.com/GGP1/adak/pkg/shopping/cart"
 	"github.com/prometheus/client_golang/prometheus"
@@ -18,7 +20,7 @@ import (
 type Service interface {
 	New(ctx context.Context, id, userID string, cartID string, oParams OrderParams, cartService cart.Service) (Order, error)
 	Delete(ctx context.Context, orderID string) error
-	Get(ctx context.Context) ([]Order, error)
+	Get(ctx context.Context, params params.Query) ([]Order, error)
 	GetByID(ctx context.Context, orderID string) (Order, error)
 	GetByUserID(ctx context.Context, userID string) ([]Order, error)
 	GetCartByID(ctx context.Context, orderID string) (OrderCart, error)
@@ -121,11 +123,12 @@ func (s *service) Delete(ctx context.Context, orderID string) error {
 }
 
 // Get retrieves all the orders.
-func (s *service) Get(ctx context.Context) ([]Order, error) {
+func (s *service) Get(ctx context.Context, params params.Query) ([]Order, error) {
 	s.metrics.incMethodCalls("Get")
 
 	var orders []Order
-	if err := s.db.SelectContext(ctx, &orders, "SELECT * FROM orders"); err != nil {
+	q, args := postgres.AddPagination("SELECT * FROM orders", params)
+	if err := s.db.SelectContext(ctx, &orders, q, args...); err != nil {
 		return nil, errors.Wrap(err, "couldn't find the orders")
 	}
 

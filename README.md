@@ -11,24 +11,13 @@ For the microservices version please change to the [microservices](https://githu
 
 ## Features
 
-- Authentication
-    - Password encryption using [bcrypt](https://pkg.go.dev/golang.org/x/crypto/bcrypt)
-    - Email verification
-    - Distinction between users and admins
-    - Delay after a configurable amount of failures (for mitigating brute force attacks)
-    - Basic authentication and OAuth2 (Google)
-- Distributed caching, sessions and rate limiting
-- Rate limiter to protect against API abuse and DDoS attacks
-- Hexagonal architecture
-- Context cancelling and graceful shutdown
+- Cookie-based sessions encrypted using ChaCha20-Poly1305
+- Basic authentication and OAuth2 (Google)
+- Password encryption using [bcrypt](https://pkg.go.dev/golang.org/x/crypto/bcrypt)
+- Email and admins verification
 - OpenAPI Specification 3.0.0 with Swagger
-- Requests and services logging
-- Connection encrypted with TLS (self-signed certificate as it wont be used in production)
-- Input sanitization and validation
-- Encrypted cookies using ChaCha20-Poly1305 and hex encoding/decoding
-- Non invasive user tracking service
-- GZIP responses compression
 - Stripe integration for payments
+- Pagination, caching, rate limiting, GZIP responses compression, input sanitization and validation, context cancelling
 
 ## Installation
 
@@ -78,6 +67,37 @@ Down:
 ```
 migrate -path pkg/postgres/migrations -database <postgres_url> down
 ```
+
+### Pagination
+
+Adak accepts bot `limit` and `cursor` url parameters for paginating results. 
+
+The `next_cursor` field is always included in the response if there are more values to be fetched. The next cursor is builded up from the last record's *created_at timestamp* and *uuid*, they are formatted (time) and concatenated, the resulting string is encoded with base64 and sent to the client.
+
+Example response:
+
+```json
+{
+"next_cursor": "MjAyMS0wNy0wOVQyMzo0ODozOC42NDg0MDZaLHhLM0lBY01XenFTdmY5aEdyUVpsOENOc1haeUV2NlBJ",
+    "users": [
+        {
+            "id": "xK3IAcMWzqSvf9hGrQZl8CNsXZyEv6PI",
+            "created_at": "2021-07-09T23:48:38.648406Z",
+        }
+    ]
+}
+```
+
+Example request:
+```
+localhost:4000/users?limit=5&cursor=MjAyMS0wNy0wOVQyMzo0ODozOC42NDg0MDZaLHhLM0lBY01XenFTdmY5aEdyUVpsOENOc1haeUV2NlBJ
+```
+
+### Amounts
+
+Amounts are represented by 64-bit integers to be provided in a currency's smallest unit (100 = 1 USD).
+
+In the case of weights, 1000 = 1kg.
 
 ### Monitoring
 
@@ -163,9 +183,3 @@ Details (average, fastest, slowest):
 Status code distribution:
   [200] 10000 responses
 ```
-
-### Amounts
-
-Amounts are represented by 64-bit integers to be provided in a currency's smallest unit (100 = 1 USD).
-
-In the case of weights, 1000 = 1kg.

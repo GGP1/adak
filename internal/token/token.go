@@ -13,6 +13,8 @@ import (
 var pool = []rune("abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ123456789")
 
 // RandString returns a random string.
+//
+// TODO: replace ids with a uuid/guid/ulid
 func RandString(length int) string {
 	b := make([]rune, length)
 

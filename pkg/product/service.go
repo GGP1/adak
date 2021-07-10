@@ -3,6 +3,8 @@ package product
 import (
 	"context"
 
+	"github.com/GGP1/adak/internal/params"
+	"github.com/GGP1/adak/pkg/postgres"
 	"github.com/GGP1/adak/pkg/review"
 	"github.com/bradfitz/gomemcache/memcache"
 	"github.com/jmoiron/sqlx"
@@ -13,7 +15,7 @@ import (
 type Service interface {
 	Create(ctx context.Context, p Product) error
 	Delete(ctx context.Context, id string) error
-	Get(ctx context.Context) ([]Product, error)
+	Get(ctx context.Context, params params.Query) ([]Product, error)
 	GetByID(ctx context.Context, id string) (Product, error)
 	Search(ctx context.Context, query string) ([]Product, error)
 	Update(ctx context.Context, id string, p UpdateProduct) error
@@ -66,13 +68,14 @@ func (s *service) Delete(ctx context.Context, id string) error {
 }
 
 // Get returns a list with all the products stored in the database.
-func (s *service) Get(ctx context.Context) ([]Product, error) {
+func (s *service) Get(ctx context.Context, params params.Query) ([]Product, error) {
 	s.metrics.incMethodCalls("Get")
 
-	q := `SELECT p.*, r.*
+	q, args := postgres.AddPagination(`SELECT p.*, r.*
 	FROM products AS p
-	LEFT JOIN reviews AS r ON p.id=r.product_id`
-	rows, err := s.db.QueryContext(ctx, q)
+	LEFT JOIN reviews AS r ON p.id=r.product_id`, params)
+
+	rows, err := s.db.QueryContext(ctx, q, args...)
 	if err != nil {
 		return nil, errors.Wrap(err, "couldn't find the products")
 	}
