@@ -4,9 +4,9 @@ Package email helps us to use the email as the tool to identify each user
 package email
 
 import (
+	"bytes"
 	"context"
 	"embed"
-	"fmt"
 	"html/template"
 	"net"
 	"net/mail"
@@ -89,7 +89,7 @@ func (e *Emailer) SendValidation(ctx context.Context, username, email, token str
 	defer bufferpool.Put(message)
 
 	for k, v := range headers {
-		message.WriteString(fmt.Sprintf("%s: %s\r\n", k, v))
+		fmtHeaders(message, k, v)
 	}
 
 	buf := bufferpool.Get()
@@ -133,7 +133,7 @@ func (e *Emailer) SendChangeConfirmation(id, username, email, newEmail, token st
 	defer bufferpool.Put(message)
 
 	for k, v := range headers {
-		message.WriteString(fmt.Sprintf("%s: %s\r\n", k, v))
+		fmtHeaders(message, k, v)
 	}
 
 	buf := bufferpool.Get()
@@ -153,4 +153,14 @@ func (e *Emailer) SendChangeConfirmation(id, username, email, newEmail, token st
 
 	logger.Infof("Successfully sent email to: %s", to.Address)
 	return nil
+}
+
+func fmtHeaders(buf *bytes.Buffer, k, v string) {
+	// "key: value\r\n"
+	buf.WriteString(k)
+	buf.WriteByte(':')
+	buf.WriteByte(' ')
+	buf.WriteString(v)
+	buf.WriteByte('\r')
+	buf.WriteByte('\n')
 }
