@@ -12,7 +12,7 @@ import (
 // User represents platform customers.
 // Each user has a unique cart.
 type User struct {
-	ID               string           `json:"id,omitempty" validate:"unique"`
+	ID               string           `json:"id,omitempty" validate:"uuid4_rfc4122"`
 	CartID           string           `json:"cart_id,omitempty" db:"cart_id"`
 	Username         string           `json:"username,omitempty"`
 	Email            string           `json:"email,omitempty" validate:"email"`

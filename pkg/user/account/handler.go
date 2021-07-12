@@ -7,9 +7,10 @@ import (
 
 	"github.com/GGP1/adak/internal/cookie"
 	"github.com/GGP1/adak/internal/email"
+	"github.com/GGP1/adak/internal/params"
 	"github.com/GGP1/adak/internal/response"
-	"github.com/GGP1/adak/internal/token"
 	"github.com/GGP1/adak/pkg/user"
+	"github.com/google/uuid"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/pkg/errors"
@@ -38,11 +39,15 @@ func NewHandler(accountS Service, userS user.Service, emailer email.Emailer) Han
 // ChangeEmail changes the user email to the specified one.
 func (h *Handler) ChangeEmail() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
 		token := chi.URLParam(r, "token")
 		email := chi.URLParam(r, "email")
-		id := chi.URLParam(r, "id")
 
-		ctx := r.Context()
+		id, err := params.URLID(ctx)
+		if err != nil {
+			response.Error(w, http.StatusBadRequest, err)
+			return
+		}
 
 		if err := h.accountService.ChangeEmail(ctx, id, email, token); err != nil {
 			response.Error(w, http.StatusInternalServerError, err)
@@ -114,7 +119,7 @@ func (h *Handler) SendChangeConfirmation() http.HandlerFunc {
 			return
 		}
 
-		token := token.RandString(20)
+		token := uuid.NewString()
 		if err := h.emailer.SendChangeConfirmation(user.ID, user.Username, user.Email, token, new.Email); err != nil {
 			response.Error(w, http.StatusInternalServerError, err)
 			return

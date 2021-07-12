@@ -36,7 +36,7 @@ func (hit *Hit) String() (string, error) {
 
 // HitRequest generates a hit for each request.
 func HitRequest(r *http.Request, salt string) (*Hit, error) {
-	id := token.RandString(19)
+	id := token.RandString(30)
 	date := time.Now()
 
 	footprint, err := Footprint(r, salt)

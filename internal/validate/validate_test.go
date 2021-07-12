@@ -5,11 +5,13 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/GGP1/adak/internal/token"
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 )
 
 type value struct {
-	ID          string `validate:"required"`
+	ID          string `validate:"uuid4_rfc4122"`
 	Events      []string
 	Email       string `validate:"required,email"`
 	Username    string `validate:"required,min=4"`
@@ -22,7 +24,7 @@ type value struct {
 func TestStruct(t *testing.T) {
 	t.Run("Valid", func(t *testing.T) {
 		v := value{
-			ID:       "F53tPeXayYG6Bs",
+			ID:       uuid.NewString(),
 			Email:    "adak@test.com",
 			Username: "adak",
 			Age:      27,
@@ -33,7 +35,7 @@ func TestStruct(t *testing.T) {
 	t.Run("Validation error", func(t *testing.T) {
 		v := value{
 			ID:       "VTizDf64ylNQmF",
-			Email:    "adaktest.com",
+			Email:    "adak@test.com",
 			Username: "mav",
 			Age:      130,
 		}
@@ -44,5 +46,19 @@ func TestStruct(t *testing.T) {
 		err := Struct(context.Background(), nil)
 		assert.Error(t, err, "Expected an error and got nil")
 		assert.Equal(t, err, fmt.Errorf("invalid request body: validator: (nil)"))
+	})
+}
+
+func TestUUID(t *testing.T) {
+	t.Run("Valid", func(t *testing.T) {
+		id := uuid.NewString()
+		err := UUID(id)
+		assert.NoError(t, err)
+	})
+
+	t.Run("Invalid", func(t *testing.T) {
+		id := token.RandString(36)
+		err := UUID(id)
+		assert.Error(t, err)
 	})
 }

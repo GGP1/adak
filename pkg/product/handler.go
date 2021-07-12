@@ -9,8 +9,8 @@ import (
 	"github.com/GGP1/adak/internal/params"
 	"github.com/GGP1/adak/internal/response"
 	"github.com/GGP1/adak/internal/sanitize"
-	"github.com/GGP1/adak/internal/token"
 	"github.com/GGP1/adak/internal/validate"
+	"github.com/google/uuid"
 
 	"github.com/bradfitz/gomemcache/memcache"
 	"github.com/go-chi/chi/v5"
@@ -54,7 +54,7 @@ func (h *Handler) Create() http.HandlerFunc {
 			return
 		}
 
-		p.ID = zero.StringFrom(token.RandString(27))
+		p.ID = zero.StringFrom(uuid.NewString())
 		p.CreatedAt = zero.TimeFrom(time.Now())
 		if err := h.service.Create(ctx, p); err != nil {
 			response.Error(w, http.StatusInternalServerError, err)
@@ -68,8 +68,13 @@ func (h *Handler) Create() http.HandlerFunc {
 // Delete removes a product.
 func (h *Handler) Delete() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		id := chi.URLParam(r, "id")
 		ctx := r.Context()
+
+		id, err := params.URLID(ctx)
+		if err != nil {
+			response.Error(w, http.StatusBadRequest, err)
+			return
+		}
 
 		if err := h.service.Delete(ctx, id); err != nil {
 			response.Error(w, http.StatusInternalServerError, err)
@@ -115,8 +120,13 @@ func (h *Handler) Get() http.HandlerFunc {
 // GetByID lists the product with the id requested.
 func (h *Handler) GetByID() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		id := chi.URLParam(r, "id")
 		ctx := r.Context()
+
+		id, err := params.URLID(ctx)
+		if err != nil {
+			response.Error(w, http.StatusBadRequest, err)
+			return
+		}
 
 		item, err := h.cache.Get(id)
 		if err == nil {
@@ -159,8 +169,13 @@ func (h *Handler) Search() http.HandlerFunc {
 // Update updates the product with the given id.
 func (h *Handler) Update() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		id := chi.URLParam(r, "id")
 		ctx := r.Context()
+
+		id, err := params.URLID(ctx)
+		if err != nil {
+			response.Error(w, http.StatusBadRequest, err)
+			return
+		}
 
 		var product UpdateProduct
 		if err := json.NewDecoder(r.Body).Decode(&product); err != nil {
@@ -168,6 +183,11 @@ func (h *Handler) Update() http.HandlerFunc {
 			return
 		}
 		defer r.Body.Close()
+
+		if err := validate.Struct(ctx, product); err != nil {
+			response.Error(w, http.StatusBadRequest, err)
+			return
+		}
 
 		if err := h.service.Update(ctx, id, product); err != nil {
 			response.Error(w, http.StatusInternalServerError, err)

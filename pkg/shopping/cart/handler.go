@@ -7,6 +7,7 @@ import (
 	"strconv"
 
 	"github.com/GGP1/adak/internal/cookie"
+	"github.com/GGP1/adak/internal/params"
 	"github.com/GGP1/adak/internal/response"
 	"github.com/GGP1/adak/internal/sanitize"
 	"github.com/GGP1/adak/internal/validate"
@@ -164,10 +165,14 @@ func (h *Handler) Remove() http.HandlerFunc {
 			return
 		}
 
-		id := chi.URLParam(r, "id")
-		q := chi.URLParam(r, "quantity")
 		ctx := r.Context()
+		id, err := params.URLID(ctx)
+		if err != nil {
+			response.Error(w, http.StatusBadRequest, err)
+			return
+		}
 
+		q := chi.URLParam(r, "quantity")
 		quantity, err := strconv.Atoi(q)
 		if err != nil {
 			response.Error(w, http.StatusInternalServerError, err)

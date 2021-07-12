@@ -18,6 +18,7 @@ import (
 
 	"github.com/bradfitz/gomemcache/memcache"
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 	"github.com/pkg/errors"
 )
 
@@ -64,7 +65,7 @@ func (h *Handler) Create() http.HandlerFunc {
 		}
 
 		if !h.development {
-			confirmationCode := token.RandString(20)
+			confirmationCode := uuid.NewString()
 			if err := h.emailer.SendValidation(ctx, user.Username, user.Email, confirmationCode); err != nil {
 				response.Error(w, http.StatusInternalServerError, err)
 				return
@@ -72,8 +73,8 @@ func (h *Handler) Create() http.HandlerFunc {
 		}
 
 		// Set fields here to make testing easier and normalize inputs
-		user.ID = token.RandString(32)
-		user.CartID = token.RandString(31)
+		user.ID = uuid.NewString()
+		user.CartID = uuid.NewString()
 		user.Username = sanitize.Normalize(user.Username)
 		user.Email = sanitize.Normalize(user.Email)
 		user.CreatedAt = time.Now()
@@ -96,8 +97,14 @@ func (h *Handler) Create() http.HandlerFunc {
 // Delete removes a user.
 func (h *Handler) Delete(s auth.Session) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		id := chi.URLParam(r, "id")
 		ctx := r.Context()
+
+		id, err := params.URLID(ctx)
+		if err != nil {
+			response.Error(w, http.StatusBadRequest, err)
+			return
+		}
+
 		cartID, err := cookie.GetValue(r, "CID")
 		if err != nil {
 			response.Error(w, http.StatusForbidden, err)
@@ -160,8 +167,13 @@ func (h *Handler) Get() http.HandlerFunc {
 // GetByID lists the user with the id requested.
 func (h *Handler) GetByID() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		id := chi.URLParam(r, "id")
 		ctx := r.Context()
+
+		id, err := params.URLID(ctx)
+		if err != nil {
+			response.Error(w, http.StatusBadRequest, err)
+			return
+		}
 
 		item, err := h.cache.Get(id)
 		if err == nil {
@@ -236,15 +248,20 @@ func (h *Handler) Search() http.HandlerFunc {
 // Update updates the user with the given id.
 func (h *Handler) Update() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		var user UpdateUser
-		id := chi.URLParam(r, "id")
 		ctx := r.Context()
+
+		id, err := params.URLID(ctx)
+		if err != nil {
+			response.Error(w, http.StatusBadRequest, err)
+			return
+		}
 
 		if err := token.CheckPermits(r, id); err != nil {
 			response.Error(w, http.StatusForbidden, err)
 			return
 		}
 
+		var user UpdateUser
 		if err := json.NewDecoder(r.Body).Decode(&user); err != nil {
 			response.Error(w, http.StatusBadRequest, err)
 			return

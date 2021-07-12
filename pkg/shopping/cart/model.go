@@ -25,7 +25,7 @@ type Cart struct {
 
 // Product represents a product that has been added to the cart.
 type Product struct {
-	ID       zero.String `json:"id,omitempty" validate:"required"`
+	ID       zero.String `json:"id,omitempty" validate:"uuid4_rfc4122"`
 	CartID   zero.String `json:"cart_id,omitempty" db:"cart_id"`
 	Quantity zero.Int    `json:"quantity,omitempty" validate:"required,min=1"`
 }

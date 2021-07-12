@@ -1,12 +1,15 @@
 package params
 
 import (
+	"context"
 	"encoding/base64"
 	"net/url"
 	"strconv"
 	"strings"
 	"time"
 
+	"github.com/GGP1/adak/internal/validate"
+	"github.com/go-chi/chi/v5"
 	"github.com/pkg/errors"
 )
 
@@ -98,6 +101,15 @@ func ParseQuery(rawQuery string, obj obj) (Query, error) {
 		Limit:  limit,
 	}
 	return params, nil
+}
+
+// URLID returns the id parsed from the url.
+func URLID(ctx context.Context) (string, error) {
+	id := chi.URLParamFromCtx(ctx, "id")
+	if err := validate.UUID(id); err != nil {
+		return "", err
+	}
+	return id, nil
 }
 
 // split is like strings.Split but returns nil if the slice is empty

@@ -13,9 +13,9 @@ import (
 	"github.com/GGP1/adak/internal/validate"
 	"github.com/GGP1/adak/pkg/shopping/cart"
 	"github.com/GGP1/adak/pkg/shopping/payment/stripe"
+	"github.com/google/uuid"
 
 	"github.com/bradfitz/gomemcache/memcache"
-	"github.com/go-chi/chi/v5"
 	"github.com/jmoiron/sqlx"
 	"gopkg.in/guregu/null.v4/zero"
 )
@@ -69,8 +69,13 @@ func NewHandler(dev bool, orderingS Service, cartS cart.Service, db *sqlx.DB, ca
 // Delete deletes an order.
 func (h *Handler) Delete() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		id := chi.URLParam(r, "id")
 		ctx := r.Context()
+
+		id, err := params.URLID(ctx)
+		if err != nil {
+			response.Error(w, http.StatusBadRequest, err)
+			return
+		}
 
 		if err := h.orderingService.Delete(ctx, id); err != nil {
 			response.Error(w, http.StatusInternalServerError, err)
@@ -116,8 +121,13 @@ func (h *Handler) Get() http.HandlerFunc {
 // GetByID retrieves all the orders from the user.
 func (h *Handler) GetByID() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		id := chi.URLParam(r, "id")
 		ctx := r.Context()
+
+		id, err := params.URLID(ctx)
+		if err != nil {
+			response.Error(w, http.StatusBadRequest, err)
+			return
+		}
 
 		order, err := h.orderingService.GetByID(ctx, id)
 		if err != nil {
@@ -132,8 +142,13 @@ func (h *Handler) GetByID() http.HandlerFunc {
 // GetByUserID retrieves all the orders from the user.
 func (h *Handler) GetByUserID() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		id := chi.URLParam(r, "id")
 		ctx := r.Context()
+
+		id, err := params.URLID(ctx)
+		if err != nil {
+			response.Error(w, http.StatusBadRequest, err)
+			return
+		}
 
 		if err := token.CheckPermits(r, id); err != nil {
 			response.Error(w, http.StatusForbidden, err)
@@ -183,7 +198,7 @@ func (h *Handler) New() http.HandlerFunc {
 			return
 		}
 
-		id := token.RandString(30)
+		id := uuid.NewString()
 		order, err := h.orderingService.New(ctx, id, userID, cartID, orderParams, h.cartService)
 		if err != nil {
 			response.Error(w, http.StatusInternalServerError, err)

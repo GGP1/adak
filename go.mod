@@ -12,6 +12,7 @@ require (
 	github.com/go-redis/redis/v8 v8.8.2
 	github.com/go-redis/redis_rate/v9 v9.1.1
 	github.com/golang/protobuf v1.5.2 // indirect
+	github.com/google/uuid v1.2.0
 	github.com/jmoiron/sqlx v1.3.3
 	github.com/leodido/go-urn v1.2.1 // indirect
 	github.com/lib/pq v1.10.1

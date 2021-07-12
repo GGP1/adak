@@ -17,6 +17,7 @@ import (
 	"github.com/GGP1/adak/pkg/auth"
 	"github.com/GGP1/adak/pkg/shopping/cart"
 	"github.com/GGP1/adak/pkg/user"
+	"github.com/google/uuid"
 
 	"github.com/go-chi/chi/v5"
 	"github.com/stretchr/testify/assert"
@@ -95,7 +96,7 @@ func TestCreateHandler(t *testing.T) {
 
 func TestDeleteHandler(t *testing.T) {
 	u := user.AddUser{
-		ID:       "test_delete",
+		ID:       uuid.NewString(),
 		CartID:   "test_delete_cart",
 		Email:    "test_delete@test.com",
 		Username: "test_delete",
@@ -128,7 +129,7 @@ func TestDeleteHandler(t *testing.T) {
 
 func TestGetHandler(t *testing.T) {
 	u := user.AddUser{
-		ID:       "test_get",
+		ID:       uuid.NewString(),
 		Email:    "test_get@test.com",
 		Username: "test_get",
 		Password: "test_get",
@@ -157,7 +158,7 @@ func TestGetHandler(t *testing.T) {
 
 func TestGetByHandler(t *testing.T) {
 	u := user.AddUser{
-		ID:       "test_getby",
+		ID:       uuid.NewString(),
 		Email:    "test_getby@test.com",
 		Username: "test_getby",
 		Password: "test_getby",
@@ -216,7 +217,7 @@ func TestGetByHandler(t *testing.T) {
 
 func TestSearchHandler(t *testing.T) {
 	u := user.AddUser{
-		ID:       "testSearch", // "_" is not allowed for search
+		ID:       uuid.NewString(),
 		Email:    "test_search@test.com",
 		Username: "test_search",
 		Password: "test_search",
@@ -243,7 +244,7 @@ func TestSearchHandler(t *testing.T) {
 
 func TestUpdateHandler(t *testing.T) {
 	u := user.AddUser{
-		ID:       "test_update",
+		ID:       uuid.NewString(),
 		Email:    "test_update@test.com",
 		Username: "test_update",
 		Password: "test_update",

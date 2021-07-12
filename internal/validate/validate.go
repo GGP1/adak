@@ -6,6 +6,8 @@ import (
 	"fmt"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/google/uuid"
+	"github.com/pkg/errors"
 )
 
 // Use a single instance of Validate, it caches struct info.
@@ -24,5 +26,13 @@ func Struct(ctx context.Context, v interface{}) error {
 		return fmt.Errorf("invalid request body: %v", err)
 	}
 
+	return nil
+}
+
+// UUID returns an error if the uuid received is invalid.
+func UUID(s string) error {
+	if _, err := uuid.Parse(s); err != nil {
+		return errors.Wrap(err, "invalid uuid")
+	}
 	return nil
 }

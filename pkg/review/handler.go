@@ -9,9 +9,9 @@ import (
 	"github.com/GGP1/adak/internal/response"
 	"github.com/GGP1/adak/internal/token"
 	"github.com/GGP1/adak/internal/validate"
+	"github.com/google/uuid"
 
 	"github.com/bradfitz/gomemcache/memcache"
-	"github.com/go-chi/chi/v5"
 	"gopkg.in/guregu/null.v4/zero"
 )
 
@@ -62,7 +62,7 @@ func (h *Handler) Create() http.HandlerFunc {
 			return
 		}
 
-		review.ID = zero.StringFrom(token.RandString(28))
+		review.ID = zero.StringFrom(uuid.NewString())
 		if err := h.service.Create(ctx, review); err != nil {
 			response.Error(w, http.StatusInternalServerError, err)
 			return
@@ -75,8 +75,13 @@ func (h *Handler) Create() http.HandlerFunc {
 // Delete removes a review.
 func (h *Handler) Delete() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		id := chi.URLParam(r, "id")
 		ctx := r.Context()
+
+		id, err := params.URLID(ctx)
+		if err != nil {
+			response.Error(w, http.StatusBadRequest, err)
+			return
+		}
 
 		if err := h.service.Delete(ctx, id); err != nil {
 			response.Error(w, http.StatusInternalServerError, err)
@@ -122,8 +127,13 @@ func (h *Handler) Get() http.HandlerFunc {
 // GetByID lists the review with the id requested.
 func (h *Handler) GetByID() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		id := chi.URLParam(r, "id")
 		ctx := r.Context()
+
+		id, err := params.URLID(ctx)
+		if err != nil {
+			response.Error(w, http.StatusBadRequest, err)
+			return
+		}
 
 		item, err := h.cache.Get(id)
 		if err == nil {
