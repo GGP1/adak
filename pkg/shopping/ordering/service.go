@@ -265,10 +265,16 @@ func (s *service) saveOrderCart(ctx context.Context, tx *sqlx.Tx, id string, car
 
 // saveOrderProducts saves cart products to the database using batch insert.
 func (s *service) saveOrderProducts(ctx context.Context, tx *sqlx.Tx, id string, cartProducts []cart.Product) error {
+	stmt, err := tx.PreparexContext(ctx, "SELECT * FROM products WHERE id=$1")
+	if err != nil {
+		return errors.Wrap(err, "preparing statement")
+	}
+	defer stmt.Close()
+
 	orderProducts := make([]OrderProduct, len(cartProducts))
 	for i, cp := range cartProducts {
 		var p product.Product
-		if err := tx.GetContext(ctx, &p, "SELECT * FROM products WHERE id=$1", cp.ID); err != nil {
+		if err := stmt.GetContext(ctx, &p, cp.ID); err != nil {
 			return errors.Wrap(err, "couldn't find product")
 		}
 
