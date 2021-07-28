@@ -142,9 +142,7 @@ func (s *service) Search(ctx context.Context, query string) ([]Product, error) {
 	s.metrics.incMethodCalls("Search")
 
 	var products []Product
-	q := `SELECT * FROM products WHERE
-	to_tsvector(id || ' ' ||  shop_id || ' ' || brand || ' ' || type || ' ' || category)
-	@@ plainto_tsquery($1)`
+	q := "SELECT * FROM products WHERE search @@ plainto_tsquery($1)"
 	if err := s.db.SelectContext(ctx, &products, q, query); err != nil {
 		return nil, errors.Wrap(err, "couldn't find products")
 	}

@@ -26,7 +26,7 @@ func Connect(ctx context.Context, c config.Postgres) (*sqlx.DB, error) {
 		return nil, errors.Wrap(err, "couldn't open the database")
 	}
 
-	if err := CreateTables(ctx, db); err != nil {
+	if err := Migrate(ctx, db); err != nil {
 		return nil, err
 	}
 
@@ -34,20 +34,45 @@ func Connect(ctx context.Context, c config.Postgres) (*sqlx.DB, error) {
 	return db, nil
 }
 
-// CreateTables creates the database tables. It's implemented in a separate function for
+// Migrate creates database tables, indexes and triggers.
+func Migrate(ctx context.Context, db *sqlx.DB) error {
+	if err := createTables(ctx, db); err != nil {
+		return err
+	}
+
+	if err := createIndexes(ctx, db); err != nil {
+		return err
+	}
+
+	return createTriggers(ctx, db)
+}
+
+// createTables creates the database tables. It's implemented in a separate function for
 // testing purposes.
-func CreateTables(ctx context.Context, db *sqlx.DB) error {
+func createTables(ctx context.Context, db *sqlx.DB) error {
 	if _, err := db.ExecContext(ctx, tables); err != nil {
 		return errors.Wrap(err, "couldn't create tables")
 	}
+	return nil
+}
 
+// createIndexes creates database indexes.
+func createIndexes(ctx context.Context, db *sqlx.DB) error {
+	if _, err := db.ExecContext(ctx, indexes); err != nil {
+		return errors.Wrap(err, "couldn't create indexes")
+	}
+	return nil
+}
+
+// createTriggers creates database functions and its triggers.
+func createTriggers(ctx context.Context, db *sqlx.DB) error {
+	if _, err := db.ExecContext(ctx, triggers); err != nil {
+		return errors.Wrap(err, "couldn't create triggers")
+	}
 	return nil
 }
 
 // Order matters
-//
-// TODO: postgres throws an error when creating
-// index orders (created_at) even when the field is correctly set
 const tables = `
 CREATE TABLE IF NOT EXISTS users
 (
@@ -59,6 +84,7 @@ CREATE TABLE IF NOT EXISTS users
     verified_email boolean DEFAULT false,
     is_admin boolean DEFAULT false,
     confirmation_code text,
+    search tsvector,
     created_at timestamp with time zone DEFAULT NOW(),
     updated_at timestamp DEFAULT NULL,
     CONSTRAINT users_pkey PRIMARY KEY (id)
@@ -68,6 +94,7 @@ CREATE TABLE IF NOT EXISTS shops
 (
     id text NOT NULL,
     name text NOT NULL,
+    search tsvector,
     created_at timestamp with time zone DEFAULT NOW(),
     updated_at timestamp with time zone,
     CONSTRAINT shops_pkey PRIMARY KEY (id)
@@ -98,6 +125,7 @@ CREATE TABLE IF NOT EXISTS products
     discount integer,
     subtotal integer NOT NULL,
     total integer NOT NULL,
+    search tsvector,
     created_at timestamp with time zone DEFAULT NOW(),
     updated_at timestamp with time zone,
     CONSTRAINT products_pkey PRIMARY KEY (id),
@@ -202,9 +230,59 @@ CREATE TABLE IF NOT EXISTS order_products
         REFERENCES orders (id)
         ON DELETE CASCADE
         DEFERRABLE INITIALLY DEFERRED
-);
+);`
+
+const indexes = `
+CREATE INDEX ON users USING GIN (search);
+CREATE INDEX ON shops USING GIN (search);
+CREATE INDEX ON products USING GIN (search);
 
 CREATE INDEX ON users (created_at);
 CREATE INDEX ON shops (created_at);
 CREATE INDEX ON products (created_at);
-CREATE INDEX ON reviews (created_at);`
+CREATE INDEX ON reviews (created_at);
+CREATE INDEX ON orders (created_at);`
+
+const triggers = `
+CREATE OR REPLACE FUNCTION users_tsvector_trigger() RETURNS trigger AS $$
+BEGIN
+  new.search := to_tsvector('english', new.username);
+  return new;
+END
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS users_tsvector_update ON users;
+
+CREATE TRIGGER users_tsvector_update BEFORE INSERT OR UPDATE
+    ON users FOR EACH ROW EXECUTE PROCEDURE users_tsvector_trigger();
+
+--
+    
+CREATE OR REPLACE FUNCTION shops_tsvector_trigger() RETURNS trigger AS $$
+BEGIN
+  new.search := to_tsvector('english', new.name);
+  return new;
+END
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS shops_tsvector_update ON shops;
+
+CREATE TRIGGER shops_tsvector_update BEFORE INSERT OR UPDATE
+    ON shops FOR EACH ROW EXECUTE PROCEDURE shops_tsvector_trigger();
+
+--
+
+CREATE OR REPLACE FUNCTION products_tsvector_trigger() RETURNS trigger AS $$
+BEGIN
+  new.search :=
+  setweight(to_tsvector('english', new.type), 'A')
+  || setweight(to_tsvector('english', new.category), 'B')
+  || setweight(to_tsvector('english', new.brand), 'C');
+  return new;
+END
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS products_tsvector_update ON products;
+
+CREATE TRIGGER products_tsvector_update BEFORE INSERT OR UPDATE
+    ON products FOR EACH ROW EXECUTE PROCEDURE products_tsvector_trigger();`

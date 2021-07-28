@@ -141,7 +141,7 @@ func RunPostgres() (*dockertest.Pool, *dockertest.Resource, *sqlx.DB, error) {
 		return nil, nil, nil, err
 	}
 
-	if err := postgres.CreateTables(context.Background(), db); err != nil {
+	if err := postgres.Migrate(context.Background(), db); err != nil {
 		return nil, nil, nil, err
 	}
 

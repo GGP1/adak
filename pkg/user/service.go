@@ -152,8 +152,7 @@ func (s *service) Search(ctx context.Context, query string) ([]ListUser, error) 
 	q := `SELECT
 	id, cart_id, username, email, is_admin
 	FROM users
-	WHERE to_tsvector(id || ' ' || username || ' ' || email) 
-	@@ plainto_tsquery($1)`
+	WHERE search @@ plainto_tsquery($1)`
 
 	if err := s.db.SelectContext(ctx, &users, q, query); err != nil {
 		return nil, errors.Wrap(err, "couldn't find the users")

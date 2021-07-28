@@ -141,7 +141,7 @@ func (s *service) Search(ctx context.Context, query string) ([]Shop, error) {
 	s.metrics.incMethodCalls("Search")
 
 	var shops []Shop
-	q := "SELECT * FROM shops WHERE to_tsvector(id || ' ' || name) @@ plainto_tsquery($1)"
+	q := "SELECT * FROM shops WHERE search @@ plainto_tsquery($1)"
 	if err := s.db.SelectContext(ctx, &shops, q, query); err != nil {
 		return nil, errors.Wrap(err, "couldn't find shops")
 	}
