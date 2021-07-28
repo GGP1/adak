@@ -4,6 +4,7 @@ package validate
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/google/uuid"
@@ -15,6 +16,14 @@ var validate *validator.Validate
 
 func init() {
 	validate = validator.New()
+}
+
+// SearchQuery returns an error if the query contains invalid characters.
+func SearchQuery(query string) error {
+	if strings.ContainsAny(query, ";-*/\\|@#~€¬<>_()[]}{¡^'") {
+		return errors.New("query contains invalid characters")
+	}
+	return nil
 }
 
 // Struct returns an error if any of the struct's fields is invalid.

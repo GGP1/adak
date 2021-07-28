@@ -3,7 +3,6 @@ package user
 import (
 	"encoding/json"
 	"net/http"
-	"strings"
 	"time"
 
 	"github.com/GGP1/adak/internal/cookie"
@@ -19,7 +18,6 @@ import (
 	"github.com/bradfitz/gomemcache/memcache"
 	"github.com/go-chi/chi/v5"
 	"github.com/google/uuid"
-	"github.com/pkg/errors"
 )
 
 type cursorResponse struct {
@@ -230,8 +228,8 @@ func (h *Handler) Search() http.HandlerFunc {
 		ctx := r.Context()
 
 		query = sanitize.Normalize(query)
-		if strings.ContainsAny(query, ";-\\|@#~€¬<>_()[]}{¡^'") {
-			response.Error(w, http.StatusBadRequest, errors.New("query contains invalid characters"))
+		if err := validate.SearchQuery(query); err != nil {
+			response.Error(w, http.StatusBadRequest, err)
 			return
 		}
 

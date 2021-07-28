@@ -21,6 +21,19 @@ type value struct {
 	Gamertag    string
 }
 
+func TestSearchQuery(t *testing.T) {
+	t.Run("Valid", func(t *testing.T) {
+		query := "searching for values"
+		err := SearchQuery(query)
+		assert.NoError(t, err)
+	})
+	t.Run("Invalid", func(t *testing.T) {
+		query := "'; DROP TABLE users; --"
+		err := SearchQuery(query)
+		assert.Error(t, err)
+	})
+}
+
 func TestStruct(t *testing.T) {
 	t.Run("Valid", func(t *testing.T) {
 		v := value{
