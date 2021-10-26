@@ -68,7 +68,7 @@ func (s *service) Add(ctx context.Context, cartProduct Product) error {
 	if err != nil {
 		return errors.Wrap(err, "starting transaction")
 	}
-	defer tx.Commit()
+	defer tx.Rollback()
 
 	var p product.Product
 	if err := tx.GetContext(ctx, &p, "SELECT * FROM products WHERE id=$1", cartProduct.ID); err != nil {
@@ -88,6 +88,10 @@ func (s *service) Add(ctx context.Context, cartProduct Product) error {
 		p.Weight, p.Discount, p.Taxes, p.Subtotal, p.Total)
 	if err != nil {
 		return errors.Wrap(err, "updating cart")
+	}
+
+	if err := tx.Commit(); err != nil {
+		return errors.Wrap(err, "committing transaction")
 	}
 
 	if err := s.mc.Delete(cartProduct.CartID.String); err != nil && err != memcache.ErrCacheMiss {
@@ -232,7 +236,7 @@ func (s *service) Remove(ctx context.Context, cartID string, pID string, quantit
 	if err != nil {
 		return errors.Wrap(err, "starting transaction")
 	}
-	defer tx.Commit()
+	defer tx.Rollback()
 
 	var cartProduct Product
 	cpQ := "SELECT * FROM cart_products WHERE id=$1 AND cart_id=$2"
@@ -267,6 +271,10 @@ func (s *service) Remove(ctx context.Context, cartID string, pID string, quantit
 		return errors.Wrap(err, "updating cart")
 	}
 
+	if err := tx.Commit(); err != nil {
+		return errors.Wrap(err, "committing transaction")
+	}
+
 	if err := s.mc.Delete(cartID); err != nil && err != memcache.ErrCacheMiss {
 		return errors.Wrap(err, "deleting cart from cache")
 	}
@@ -282,7 +290,7 @@ func (s *service) Reset(ctx context.Context, cartID string) error {
 	if err != nil {
 		return errors.Wrap(err, "starting transaction")
 	}
-	defer tx.Commit()
+	defer tx.Rollback()
 
 	del := "DELETE FROM cart_products WHERE cart_id=$1"
 	if _, err := tx.ExecContext(ctx, del, cartID); err != nil {
@@ -294,6 +302,10 @@ func (s *service) Reset(ctx context.Context, cartID string) error {
 	WHERE id=$1`
 	if _, err := tx.ExecContext(ctx, upt, cartID, 0, 0, 0, 0, 0, 0); err != nil {
 		return errors.Wrap(err, "updating cart")
+	}
+
+	if err := tx.Commit(); err != nil {
+		return errors.Wrap(err, "committing transaction")
 	}
 
 	if err := s.mc.Delete(cartID); err != nil && err != memcache.ErrCacheMiss {

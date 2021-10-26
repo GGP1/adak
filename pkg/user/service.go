@@ -49,7 +49,7 @@ func (s *service) Create(ctx context.Context, user AddUser) error {
 	if err != nil {
 		return errors.Wrap(err, "starting transaction")
 	}
-	defer tx.Commit()
+	defer tx.Rollback()
 
 	var exists bool
 	q := "SELECT EXISTS(SELECT 1 FROM users WHERE email=$1 OR username=$2)"
@@ -81,6 +81,10 @@ func (s *service) Create(ctx context.Context, user AddUser) error {
 		user.Email, user.Password, user.IsAdmin, user.CreatedAt)
 	if err != nil {
 		return errors.Wrap(err, "couldn't create the user")
+	}
+
+	if err := tx.Commit(); err != nil {
+		return errors.Wrap(err, "committing transaction")
 	}
 
 	s.metrics.registeredUsers.Inc()

@@ -63,7 +63,7 @@ func (s *service) New(ctx context.Context, id, userID, cartID string,
 	if err != nil {
 		return Order{}, errors.Wrap(err, "starting transaction")
 	}
-	defer tx.Commit()
+	defer tx.Rollback()
 
 	orderQ := `INSERT INTO orders
 	(id, user_id, currency, address, city, country, state, zip_code, 
@@ -83,6 +83,10 @@ func (s *service) New(ctx context.Context, id, userID, cartID string,
 
 	if err := s.saveOrderProducts(ctx, tx, id, cart.Products); err != nil {
 		return Order{}, err
+	}
+
+	if err := tx.Commit(); err != nil {
+		return Order{}, errors.Wrap(err, "committing transaction")
 	}
 
 	order := Order{

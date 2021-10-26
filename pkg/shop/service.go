@@ -44,7 +44,7 @@ func (s *service) Create(ctx context.Context, shop Shop) error {
 	if err != nil {
 		return errors.Wrap(err, "starting trasaction")
 	}
-	defer tx.Commit()
+	defer tx.Rollback()
 
 	sQuery := `INSERT INTO shops
 	(id, name, created_at)
@@ -61,6 +61,10 @@ func (s *service) Create(ctx context.Context, shop Shop) error {
 		shop.Location.ZipCode, shop.Location.City, shop.Location.Address)
 	if err != nil {
 		return errors.Wrap(err, "couldn't create the location")
+	}
+
+	if err := tx.Commit(); err != nil {
+		return errors.Wrap(err, "committing transaction")
 	}
 
 	s.metrics.registeredShops.Inc()
