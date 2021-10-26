@@ -72,7 +72,7 @@ migrate -path pkg/postgres/migrations -database <postgres_url> down
 
 Adak accepts bot `limit` and `cursor` url parameters for paginating results. 
 
-The `next_cursor` field is always included in the response if there are more values to be fetched. The next cursor is builded up from the last record's *created_at timestamp* and *uuid*, they are formatted (time) and concatenated, the resulting string is encoded with base64 and sent to the client.
+The `next_cursor` field is always included in the response if there are more values to be fetched. The next cursor is builded up from the last record's *created_at timestamp* and *uuid*, they are formatted and concatenated, the resulting string is encoded with base64 and sent to the client.
 
 Example response:
 
@@ -110,17 +110,15 @@ The data is gathered from multiple sources:
 
 More data can be extracted from other services like Postgres, Redis and Memcached, although they are not implemented, it would imply configuration changes only.
 
-### Visualizing data
-
-There are a few ways of see the actual data:
+### Visualizing metrics
 
 #### Raw
 
-The server's raw statistics are shown in the */metrics* path (it also contains Go metrics but not information from external sources).
+The server's raw statistics are shown in the "*/metrics*" path (it also contains Go metrics but not information from external sources).
 
 #### Prometheus
 
-Prometheus allows not only querying the data but also displaying it in graphs, this can be done at `http://localhost:9090` when running the docker compose file.
+Prometheus allows not only querying the data but also displaying it in graphs, this can be done at `http://localhost:9090` when running with docker compose.
 
 ![Prometheus](https://user-images.githubusercontent.com/51374959/118064036-a459f500-b370-11eb-999b-6e539c5b4b9f.png)
 
@@ -128,18 +126,18 @@ Prometheus allows not only querying the data but also displaying it in graphs, t
 
 To display prometheus' metrics with grafana follow these steps:
 
-1. Go to http://localhost:3000 and login as "admin" user, the password is "admin".
-2. Add prometheus as a data source, set `HTTTP/Access` to `Browser` and the url to `http://localhost:9090`, then click `Save & Test`.
+1. Go to http://localhost:3000 and log in as "admin", the password is "admin".
+2. Add prometheus as a data source. Set `HTTTP/Access` to `Browser` and the url to `http://localhost:9090`, then click `Save & Test`.
 3. On the top of the page and next to the *Settings* tab there other called *Dashboards*, click it and import `Prometheus 2.0 Stats`.
 4. Finally, go to the dashboards home and select the dashboard imported above.
 
-> You can create your own or use official/community built [dashboards](https://grafana.com/grafana/dashboards). This is more related to Grafana than Adak so it's left to the user.
+> You can create your own or use official/community built [dashboards](https://grafana.com/grafana/dashboards).
 
 ![Grafana](https://user-images.githubusercontent.com/51374959/118064057-ade35d00-b370-11eb-9fc2-4fa2dc859c8b.png)
 
 ### Load testing
 
-Making 10000 requests with 100 concurrent workers to the `/users` endpoint, each response containing 20 users (2.94KB per response) resulted in:
+Making 10000 requests with 100 concurrent workers to the `/users` endpoint, each response containing 20 non-cached user objects (2.94KB per response) resulted in:
 
 ```
 $ hey -n 10000 -c 100 -m GET http://:4000/users
