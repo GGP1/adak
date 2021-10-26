@@ -20,7 +20,7 @@ services:
       - redis
   
   postgres:
-    image: postgres:13.2-alpine
+    image: postgres:14.0-alpine
     environment:
       POSTGRES_USER: adak
       POSTGRES_PASSWORD: adak
@@ -34,14 +34,14 @@ services:
       - storage
 
   memcached:
-    image: memcached:1.6.9-alpine
+    image: memcached:1.6.10-alpine
     ports:
       - 11211:11211
     networks:
       - storage
   
   redis:
-    image: redis:6.2.1-alpine
+    image: redis:6.2.5-alpine
     ports:
       - 6379:6379
     volumes:
@@ -51,7 +51,7 @@ services:
       - storage
 
   prometheus:
-    image: prom/prometheus:latest
+    image: prom/prometheus:v2.30.1
     restart: on-failure:5
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
@@ -78,7 +78,7 @@ services:
       - metrics
 
   grafana:
-    image: grafana/grafana:latest
+    image: grafana/grafana:8.1.5
     restart: on-failure:5
     ports:
       - 3000:3000
