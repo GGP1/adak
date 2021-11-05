@@ -88,7 +88,7 @@ Example response:
 }
 ```
 
-Example request:
+Sample request:
 ```
 localhost:4000/users?limit=5&cursor=MjAyMS0wNy0wOVQyMzo0ODozOC42NDg0MDZaLHhLM0lBY01XenFTdmY5aEdyUVpsOENOc1haeUV2NlBJ
 ```
