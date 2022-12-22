@@ -127,7 +127,7 @@ Prometheus allows not only querying the data but also displaying it in graphs, t
 To display prometheus' metrics with grafana follow these steps:
 
 1. Go to http://localhost:3000 and log in as "admin", the password is "admin".
-2. Add prometheus as a data source. Set `HTTTP/Access` to `Browser` and the url to `http://localhost:9090`, then click `Save & Test`.
+2. Add prometheus as a data source. Set `HTTP/Access` to `Browser` and the url to `http://localhost:9090`, then click `Save & Test`.
 3. On the top of the page and next to the *Settings* tab there other called *Dashboards*, click it and import `Prometheus 2.0 Stats`.
 4. Finally, go to the dashboards home and select the dashboard imported above.
 
