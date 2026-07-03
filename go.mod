@@ -1,6 +1,6 @@
 module github.com/GGP1/adak
 
-go 1.24.0
+go 1.25.0
 
 require (
 	github.com/bradfitz/gomemcache v0.0.0-20230124162541-5f7a7d875746
@@ -17,7 +17,7 @@ require (
 	github.com/spf13/viper v1.15.0
 	github.com/stretchr/testify v1.10.0
 	github.com/stripe/stripe-go/v72 v72.122.0
-	golang.org/x/crypto v0.45.0
+	golang.org/x/crypto v0.51.0
 	golang.org/x/oauth2 v0.27.0
 	gopkg.in/guregu/null.v4 v4.0.0
 )
@@ -82,9 +82,9 @@ require (
 	go.opentelemetry.io/otel/metric v1.35.0 // indirect
 	go.opentelemetry.io/otel/trace v1.35.0 // indirect
 	go.yaml.in/yaml/v3 v3.0.4 // indirect
-	golang.org/x/net v0.47.0 // indirect
-	golang.org/x/sys v0.38.0 // indirect
-	golang.org/x/text v0.31.0 // indirect
+	golang.org/x/net v0.55.0 // indirect
+	golang.org/x/sys v0.45.0 // indirect
+	golang.org/x/text v0.37.0 // indirect
 	google.golang.org/protobuf v1.36.5 // indirect
 	gopkg.in/ini.v1 v1.67.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
